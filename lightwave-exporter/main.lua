@@ -1,20 +1,16 @@
 require("lua-strict")
 
-local Tacview = require("Tacview176")
+local Tacview = require("Tacview180")
 
 local mainMenuHandle = Tacview.UI.Menus.AddMenu(nil, "LightWave Exporter")
 
 function ExportObject(objectHandle, fileName, frameRate)
 
-	local lifeTimeBegin, lifeTimeEnd = Tacview.Telemetry.GetLifeTime(objectHandle) 
+	
+	local timeBegin, timeEnd = Tacview.Telemetry.GetTransformTimeRange( objectHandle ) 
 	local dt = 1/frameRate
 	
-	local telemetryTimeBegin, telemetryTimeEnd = Tacview.Telemetry.GetDataTimeRange() 
-	
-	local timeBegin = math.max(lifeTimeBegin, telemetryTimeBegin)
-	local timeEnd = math.min(lifeTimeEnd, telemetryTimeEnd)
-	
-	print("timeBegin: ", timeBegin, " timeEnd: ", timeEnd, " dt: ", dt)	
+	Tacview.Log.Debug("timeBegin: ", timeBegin, " timeEnd: ", timeEnd, " dt: ", dt)	
 	
 	local initialPosition = Tacview.Telemetry.GetTransform( objectHandle , timeBegin )
 	
@@ -22,9 +18,13 @@ function ExportObject(objectHandle, fileName, frameRate)
 	
 	local file = io.open(fileName, "wb")
 	
-	print("u0: ",u0," v0: ",v0," altitude0: ",altitude0)
+	if not file then	
+		Tacview.UI.MessageBox.Error("Failed to export data.\n\nEnsure there is enough space and that you have permission to save in this location." ) 
+	return
 	
-	print(initialPosition.u-u0 .. " " .. initialPosition.v-v0 .. " " .. initialPosition.altitude-altitude0)
+	end
+	
+	Tacview.Log.Debug("u0: ",u0," v0: ",v0," altitude0: ",altitude0)
 	
 	--header
 	file:write("Frame Number,Relative Time,u,v,altitude,roll,pitch,heading\n")
@@ -81,37 +81,11 @@ function ExportObject(objectHandle, fileName, frameRate)
 		
 	end
 	
-	
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 end
-
-
-
 
 function Export(frameRate)
 
-	Tacview.Log.Info(frameRate .. " selected")
+	Tacview.Log.Debug("Frame Rate of " .. frameRate .. "Hz selected")
 
 	-- Retrieve selected object
 	
@@ -124,14 +98,23 @@ function Export(frameRate)
 	
 	-- Retrieve file name
 	
-	local fileName = "C:/Downloads/LightwaveExportTest.csv"
+	local options =
+		{
+			defaultFileExtension = "csv",
+			fileTypeList =
+			{
+				{ "*.csv" , "Comma-separated values"  }
+
+			}
+		}
+
+	local fileName = Tacview.UI.MessageBox.GetSaveFileName(options)
 
 	if not fileName then
 		return
 	end
 	
 	ExportObject(selectedObjectHandle, fileName, frameRate)
-	
 
 end
 
