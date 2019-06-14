@@ -45,21 +45,23 @@ local Tacview = require("Tacview176")
 
 local AddOnEnabledSettingName = "Enabled"
 
-local scale = 1/4
+local GlobalScale = 1
 
-local IndicatorWidth = 355 * scale
-local IndicatorHeight = 975 * scale
-local BarWidth = 12 * scale
+local IndicatorWidth = 128 * GlobalScale
+local IndicatorHeight = 256 * GlobalScale
+
+local BarWidth = 8 * GlobalScale
 local BarHeight = 130
 
 ----------------------------------------------------------------
 -- "Members"
 ----------------------------------------------------------------
 
-local currentAoA
+local aoaUnitsPropertyIndex = Tacview.Telemetry.InvalidPropertyIndex
+local currentAoAUnits
 
 local IndicatorTextureHandle
-local BarTextureHandle
+--local BarTextureHandle
 
 local IndicatorRenderStateHandle
 local BarRenderStateHandle
@@ -101,19 +103,19 @@ function DeclareRenderData()
 
 	if not IndicatorTextureHandle then
 
-		IndicatorTextureHandle = Tacview.UI.Renderer.LoadTexture("AddOns/f14-aoa-indicator/textures/indicator-bar.png", false)
+		IndicatorTextureHandle = Tacview.UI.Renderer.LoadTexture("AddOns/f14-aoa-indicator/textures/indicator-background.png", false)
 		
 		Tacview.Log.Debug("IndicatorTextureHandle: ", IndicatorTextureHandle)
 
 	end
 	
-	if not BarTextureHandle then
+--	if not BarTextureHandle then
 
-		BarTextureHandle = Tacview.UI.Renderer.LoadTexture("AddOns/f14-aoa-indicator/textures/indicator-background.png", false)
+--		BarTextureHandle = Tacview.UI.Renderer.LoadTexture("AddOns/f14-aoa-indicator/textures/indicator-bar.png", false)
 		
-		Tacview.Log.Debug("BarTextureHandle: ", BarTextureHandle)
+--		Tacview.Log.Debug("BarTextureHandle: ", BarTextureHandle)
 
-	end
+--	end
 
 	-- The render state is used to define how to draw the instrument.
 	-- We only need to specify the texture in our case.
@@ -133,7 +135,9 @@ function DeclareRenderData()
 
 		local renderState =
 		{
-			texture = BarTextureHandle,
+			color = 0xFFA0FF46,
+
+--			texture = BarTextureHandle,
 		}
 
 		BarRenderStateHandle = Tacview.UI.Renderer.CreateRenderState(renderState)
@@ -220,8 +224,7 @@ function OnDrawTransparentUI()
 
 	-- Data available?
 	
-	
-	if not currentAoA then
+	if not currentAoAUnits then
 		return
 	end
 
@@ -234,13 +237,15 @@ function OnDrawTransparentUI()
 	
 	-- http://www.heatblur.se/F-14Manual/cockpit.html#angle-of-attack-indicator
 	
-	local currentAoAUnits = (30/50)*(math.deg(currentAoA)+10) 
+	-- Tape indicating angle of attack (AOA) on a scale of 0 to 30 units. (Equivalent to -10° to +40° rotation of the AoA probe.)
+
+--	local currentAoAUnits = (30/50)*(math.deg(currentAoA)+10) 
 	
 	if currentAoAUnits < 0 then currentAoAUnits=0 end
 	
 	if currentAoAUnits>30 then currentAoAUnits=30 end
 	
-	print("currentAoaUnits:",currentAoAUnits, ", currentAoA: ", math.deg(currentAoA))
+--	print("currentAoaUnits:",currentAoAUnits, ", currentAoA: ", math.deg(currentAoA))
 
 	-- Make sure rendering data are declared (only once, during the first OnDrawTransparentUI call)
 
@@ -254,7 +259,7 @@ function OnDrawTransparentUI()
 	local rendererHeight = Tacview.UI.Renderer.GetHeight()
 	local rendererWidth = Tacview.UI.Renderer.GetWidth()
 	
-	print("rendererHeight, rendererWidth: ", rendererHeight, ", ", rendererWidth)
+--	print("rendererHeight, rendererWidth: ", rendererHeight, ", ", rendererWidth)
 
 	local transformIndicator =
 	{
@@ -267,9 +272,13 @@ function OnDrawTransparentUI()
 
 	local transformBar =
 	{
-		x = IndicatorWidth / 2 + 36,  
-		y = rendererHeight / 2 - 70,
-		scaleY = currentAoAUnits/30,
+		x = 32 + IndicatorWidth / 2 + 2,
+		y = rendererHeight / 2 - IndicatorHeight / 2 + 29,
+		scaleY = 174 / BarHeight / GlobalScale * currentAoAUnits / 30,
+
+--		x = IndicatorWidth / 2 + 36,  
+--		y = rendererHeight / 2 - 70,
+--		scaleY = currentAoAUnits/30,
 		
 	}
 	
@@ -287,7 +296,7 @@ function OnUpdate(dt, absoluteTime)
 
 	-- Add-on enabled?
 	
-	currentAoA = nil
+	currentAoAUnits = nil
 
 	if not addOnEnabledOption then
 
@@ -319,11 +328,33 @@ function OnUpdate(dt, absoluteTime)
 
 	
 	if not starts_with(objectName,"F-14") then return end
-	
-	-- Retrieve AoA if available
 
-	currentAoA = Tacview.Telemetry.GetCurrentAngleOfAttack(objectHandle)
+	-- Retrieve AoA Units property index
+
+	if aoaUnitsPropertyIndex == Tacview.Telemetry.InvalidPropertyIndex then
+
+		aoaUnitsPropertyIndex = Tacview.Telemetry.GetObjectsNumericPropertyIndex("AOAUnits", false)
+
+		if aoaUnitsPropertyIndex == Tacview.Telemetry.InvalidPropertyIndex then
+
+			return
+
+		end
+	end
+
+	-- Retrieve AoA Units if available
+
+--	currentAoAUnits = Tacview.Telemetry.GetCurrentAngleOfAttack(objectHandle)
 	
+	local sampleIsValid
+
+	currentAoAUnits, sampleIsValid = Tacview.Telemetry.GetNumericSample(objectHandle, absoluteTime, aoaUnitsPropertyIndex)
+
+	if not sampleIsValid then
+
+		currentAoAUnits = nil
+		return
+	end
 
 end
 
