@@ -3,7 +3,7 @@
 	CSV Exporter for LightWave
 	Exports the telemetry of the selected object in a csv file to be imported as an animation in LightWave
 
-	Author: Erin O'Reilly
+	Author: BuzyBee
 	Last update: 2019-06-04 (Tacview 1.8.0)
 
 	Feel free to modify and improve this script!
@@ -242,7 +242,7 @@ function Initialize()
 
 	Tacview.AddOns.Current.SetTitle("LightWave Exporter")
 	Tacview.AddOns.Current.SetVersion("1.0")
-	Tacview.AddOns.Current.SetAuthor("Erin O'Reilly")
+	Tacview.AddOns.Current.SetAuthor("BuzyBee")
 	Tacview.AddOns.Current.SetNotes("Exports the telemetry of the selected object in a csv file to be imported as an animation in LightWave.")
 
 	-- Create a menu to export data at different frame rate
