@@ -1,152 +1,142 @@
 
--- Display AoA in units (tutorial for 2D UI rendering)
--- Author: Erin O'Reilly
--- Last update: 2019-06-07 (Tacview 1.7.6)
+--[[
+	AoA unit cockpit indicator
+	Displays AoA in units like in the F-14B cockpit
 
--- Feel free to modify and improve this script!
+	Author: BuzyBee
+	Last update: 2019-06-17 (Tacview 1.8.0)
+
+	Feel free to modify and improve this script!
+--]]
 
 --[[
 
-MIT License
+	MIT License
 
-Copyright (c) 2018 Raia Software Inc.
+	Copyright (c) 2019 Raia Software Inc.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+	Permission is hereby granted, free of charge, to any person obtaining a copy
+	of this software and associated documentation files (the "Software"), to deal
+	in the Software without restriction, including without limitation the rights
+	to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+	copies of the Software, and to permit persons to whom the Software is
+	furnished to do so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+	The above copyright notice and this permission notice shall be included in all
+	copies or substantial portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+	AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+	LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+	SOFTWARE.
 
 --]]
 
-----------------------------------------------------------------
--- Setup
-----------------------------------------------------------------
-
 require("lua-strict")
 
-local Tacview = require("Tacview176")
+-- Request Tacview API
+
+local Tacview = require("Tacview180")
 
 ----------------------------------------------------------------
 -- Constants
 ----------------------------------------------------------------
 
-local AddOnEnabledSettingName = "Enabled"
+local DisplayAOAUnitsSettingName = "DisplayAOAUnits"
 
 local GlobalScale = 1
 
 local IndicatorWidth = 128 * GlobalScale
 local IndicatorHeight = 256 * GlobalScale
 
-local BarWidth = 8 * GlobalScale
-local BarHeight = 130
+local TapeWidth = 8 * GlobalScale
+local TapeHeight = 130 * GlobalScale
 
 ----------------------------------------------------------------
 -- "Members"
 ----------------------------------------------------------------
 
-local aoaUnitsPropertyIndex = Tacview.Telemetry.InvalidPropertyIndex
 local currentAoAUnits
 
-local IndicatorTextureHandle
---local BarTextureHandle
+local indicatorTextureHandle
+local indicatorRenderStateHandle
+local indicatorVertexArrayHandle
+local indicatorTextureCoordinateArrayHandle
 
-local IndicatorRenderStateHandle
-local BarRenderStateHandle
-
-local IndicatorVertexArrayHandle
-local BarVertexArrayHandle
-
-local IndicatorTextureCoordinateArrayHandle
-local BarTextureCoordinateArrayHandle
+local tapeRenderStateHandle
+local tapeVertexArrayHandle
 
 ----------------------------------------------------------------
 -- UI commands and options
 ----------------------------------------------------------------
 
-local addOnEnabledMenuId
-local addOnEnabledOption = false
+local displayAOAUnitsMenuId
+local displayAOAUnits = true
 
 function OnMenuEnableAddOn()
 
-	-- Change and save option
+	-- Enable/disable add-on
 
-	addOnEnabledOption = not addOnEnabledOption
+	displayAOAUnits = not displayAOAUnits
 
-	Tacview.AddOns.Current.Settings.SetBoolean(AddOnEnabledSettingName, addOnEnabledOption)
+	-- Save option value in registry
 
-	-- Update menu
+	Tacview.AddOns.Current.Settings.SetBoolean(DisplayAOAUnitsSettingName, displayAOAUnits)
 
-	Tacview.UI.Menus.SetOption(addOnEnabledMenuId, addOnEnabledOption)
+	-- Update menu with the new option value
+
+	Tacview.UI.Menus.SetOption(displayAOAUnitsMenuId, displayAOAUnits)
 
 end
 
 ----------------------------------------------------------------
--- 2D Rendering
+-- Load and compile any resource required to draw the instrument
 ----------------------------------------------------------------
 
 function DeclareRenderData()
 
-	-- Only one texture is used, it contains all the different states.
+	-- Load the instrument background texture as required
 
-	if not IndicatorTextureHandle then
+	if not indicatorTextureHandle then
 
-		IndicatorTextureHandle = Tacview.UI.Renderer.LoadTexture("AddOns/f14-aoa-indicator/textures/indicator-background.png", false)
-		
-		Tacview.Log.Debug("IndicatorTextureHandle: ", IndicatorTextureHandle)
+		indicatorTextureHandle = Tacview.UI.Renderer.LoadTexture("AddOns/f14-aoa-indicator/textures/indicator-background.png", false)
 
 	end
-	
---	if not BarTextureHandle then
 
---		BarTextureHandle = Tacview.UI.Renderer.LoadTexture("AddOns/f14-aoa-indicator/textures/indicator-bar.png", false)
-		
---		Tacview.Log.Debug("BarTextureHandle: ", BarTextureHandle)
+	-- Declare the render states for the instrument indicator and tape.
+	-- The render state is used to define how to draw our 2D models.
 
---	end
-
-	-- The render state is used to define how to draw the instrument.
-	-- We only need to specify the texture in our case.
-
-	if not IndicatorRenderStateHandle then
+	if not indicatorRenderStateHandle then
 
 		local renderState =
 		{
-			texture = IndicatorTextureHandle,
+			texture = indicatorTextureHandle,
 		}
 
-		IndicatorRenderStateHandle = Tacview.UI.Renderer.CreateRenderState(renderState)
+		indicatorRenderStateHandle = Tacview.UI.Renderer.CreateRenderState(renderState)
 
 	end
-	
-	if not BarRenderStateHandle then
+
+	if not tapeRenderStateHandle then
+
+		-- Display the tape with a HUD green like color.
+		-- No texture is required for the tape.
 
 		local renderState =
 		{
-			color = 0xFFA0FF46,
-
---			texture = BarTextureHandle,
+			color = 0xFFA0FF46,		-- AABBGGRR
 		}
 
-		BarRenderStateHandle = Tacview.UI.Renderer.CreateRenderState(renderState)
+		tapeRenderStateHandle = Tacview.UI.Renderer.CreateRenderState(renderState)
 
 	end
 
 	-- The following list of vertices is used to define the square shape of the instrument using two triangles.
 
-	if not IndicatorVertexArrayHandle then
+	if not indicatorVertexArrayHandle then
 
 		local HalfWidth = IndicatorWidth / 2
 		local HalfHeight = IndicatorHeight / 2
@@ -161,33 +151,34 @@ function DeclareRenderData()
 			HalfWidth, -HalfHeight, 0.0,
 		}
 
-		IndicatorVertexArrayHandle = Tacview.UI.Renderer.CreateVertexArray(vertexArray)
+		indicatorVertexArrayHandle = Tacview.UI.Renderer.CreateVertexArray(vertexArray)
 
 	end
 
-	if not BarVertexArrayHandle then
+	-- Same for the instrument tape.
+	-- TapeHeight is the maximum tape height (in pixels) for when the AOA Units will be 30
 
-		local HalfWidth = BarWidth / 2
-		local HalfHeight = BarHeight / 2
+	if not tapeVertexArrayHandle then
+
+		local HalfWidth = TapeWidth / 2
 
 		local vertexArray =
 		{
-			-HalfWidth, BarHeight, 0.0,
+			-HalfWidth, TapeHeight, 0.0,
 			-HalfWidth, 0.0, 0.0,
 			HalfWidth, 0.0, 0.0,
-			-HalfWidth, BarHeight, 0.0,
-			HalfWidth, BarHeight, 0.0,
+			-HalfWidth, TapeHeight, 0.0,
+			HalfWidth, TapeHeight, 0.0,
 			HalfWidth, 0.0, 0.0,
 		}
 
-		BarVertexArrayHandle = Tacview.UI.Renderer.CreateVertexArray(vertexArray)
+		tapeVertexArrayHandle = Tacview.UI.Renderer.CreateVertexArray(vertexArray)
 
 	end
 
-	-- We animate the instrument by changing the textures coordinates
-	-- to display another portion of the texture.
+	-- Declare the textures coordinates to project the instrument image on a rectangle made of two triangles.
 
-	if not IndicatorTextureCoordinateArrayHandle then
+	if not indicatorTextureCoordinateArrayHandle then
 
 		local baseTextureArray =
 		{
@@ -199,90 +190,66 @@ function DeclareRenderData()
 			1.0, 1.0,
 		}
 
-		IndicatorTextureCoordinateArrayHandle = Tacview.UI.Renderer.CreateTextureCoordinateArray(baseTextureArray)
-	
-	end
-	
-	if not BarTextureCoordinateArrayHandle then
+		indicatorTextureCoordinateArrayHandle = Tacview.UI.Renderer.CreateTextureCoordinateArray(baseTextureArray)
 
-		local baseTextureArray =
-		{
-			0.0, 0.0,
-			0.0, 1.0,
-			1.0, 1.0,
-			0.0, 0.0,
-			1.0, 0.0,
-			1.0, 1.0,
-		}
-
-		BarTextureCoordinateArrayHandle = Tacview.UI.Renderer.CreateTextureCoordinateArray(baseTextureArray)
-	
 	end
 end
 
+----------------------------------------------------------------
+-- Draw the instrument during transparent UI rendering pass
+----------------------------------------------------------------
+
 function OnDrawTransparentUI()
 
-	-- Data available?
-	
+	-- Any AOA Units to display?
+
 	if not currentAoAUnits then
 		return
 	end
 
-	-- Calculate AoA index
-	-- NOTE: Tacview return an AoA in radian
+	-- More about the F-14B AOA Unit indicator in DCS World documentation:
 
-	-- The following values are based on DCS World F/A-18C documentation for demonstration purpose.
-	-- Possible addon improvement:
-	-- These values could be dynamically adjusted depending on the plane type/designation (F-16, F-14...)
-	
 	-- http://www.heatblur.se/F-14Manual/cockpit.html#angle-of-attack-indicator
-	
 	-- Tape indicating angle of attack (AOA) on a scale of 0 to 30 units. (Equivalent to -10° to +40° rotation of the AoA probe.)
 
---	local currentAoAUnits = (30/50)*(math.deg(currentAoA)+10) 
-	
-	if currentAoAUnits < 0 then currentAoAUnits=0 end
-	
-	if currentAoAUnits>30 then currentAoAUnits=30 end
-	
---	print("currentAoaUnits:",currentAoAUnits, ", currentAoA: ", math.deg(currentAoA))
+	-- Clamp AOA Units
 
-	-- Make sure rendering data are declared (only once, during the first OnDrawTransparentUI call)
+	if currentAoAUnits < 0 then
+
+		currentAoAUnits = 0
+
+	elseif currentAoAUnits > 30 then
+
+		currentAoAUnits = 30
+
+	end
+
+	-- Make sure rendering data are declared
+	-- This includes textures, 3d models, ...
 
 	DeclareRenderData()
 
 	-- Draw Indicator
 
-	-- Possible improvement:
-	-- We could display the AoA value only when the gear is down
-
 	local rendererHeight = Tacview.UI.Renderer.GetHeight()
-	local rendererWidth = Tacview.UI.Renderer.GetWidth()
-	
---	print("rendererHeight, rendererWidth: ", rendererHeight, ", ", rendererWidth)
 
-	local transformIndicator =
+	local indicatorTransform =
 	{
 		x = 32 + IndicatorWidth / 2,
 		y = rendererHeight / 2,
 		scale = 1,
 	}
-	
-	Tacview.UI.Renderer.DrawUIVertexArray(transformIndicator, IndicatorRenderStateHandle, IndicatorVertexArrayHandle, IndicatorTextureCoordinateArrayHandle)
 
-	local transformBar =
+	Tacview.UI.Renderer.DrawUIVertexArray(indicatorTransform, indicatorRenderStateHandle, indicatorVertexArrayHandle, indicatorTextureCoordinateArrayHandle)
+
+	local tapeTransform =
 	{
 		x = 32 + IndicatorWidth / 2 + 2,
 		y = rendererHeight / 2 - IndicatorHeight / 2 + 29,
-		scaleY = 174 / BarHeight / GlobalScale * currentAoAUnits / 30,
-
---		x = IndicatorWidth / 2 + 36,  
---		y = rendererHeight / 2 - 70,
---		scaleY = currentAoAUnits/30,
-		
+		scaleY = 174 / TapeHeight / GlobalScale * currentAoAUnits / 30,
 	}
-	
-	Tacview.UI.Renderer.DrawUIVertexArray(transformBar, BarRenderStateHandle, BarVertexArrayHandle, BarTextureCoordinateArrayHandle)
+
+	Tacview.UI.Renderer.DrawUIVertexArray(tapeTransform, tapeRenderStateHandle, tapeVertexArrayHandle, nil)
 
 end
 
@@ -291,69 +258,78 @@ end
 ----------------------------------------------------------------
 
 -- Update is called once a frame by Tacview
+-- Here we retrieve current aircraft AOA unit value which will be displayed by OnDrawTransparentUI()
 
 function OnUpdate(dt, absoluteTime)
 
-	-- Add-on enabled?
-	
 	currentAoAUnits = nil
 
-	if not addOnEnabledOption then
+	-- Verify that the user wants to display AOA Units
+
+	if not displayAOAUnits then
 
 		return
 
 	end
 
-	-- This add-on is active only when one of the selected objects is a plane
+	-- Indicator will be displayed only when one of the selected objects is a plane
 
 	local objectHandle = Tacview.Context.GetSelectedObject(0)
 
-	if not objectHandle or (Tacview.Telemetry.GetCurrentTags(objectHandle) & Tacview.Telemetry.Tags.FixedWing) == 0 then
+	if not objectHandle or not Tacview.Telemetry.AnyGivenTagActive(Tacview.Telemetry.GetCurrentTags(objectHandle), Tacview.Telemetry.Tags.FixedWing) then
 
 		objectHandle = Tacview.Context.GetSelectedObject(1)
 
-		if not objectHandle or (Tacview.Telemetry.GetCurrentTags(objectHandle) & Tacview.Telemetry.Tags.FixedWing) == 0 then
+		if not objectHandle or not Tacview.Telemetry.AnyGivenTagActive(Tacview.Telemetry.GetCurrentTags(objectHandle), Tacview.Telemetry.Tags.FixedWing) then
 
 			return
 
 		end
 
 	end
-	
+
+	-- Check if the aircraft is a F-14
+	-- This add-on would work for other aircraft, but we would probably need to update our instrument scale.
+
 	local objectName = Tacview.Telemetry.GetCurrentShortName( objectHandle )
-	
-	local function starts_with(str, start)
+
+	local function StartsWith(str, start)
+
 		return str:sub(1, #start) == start
+
 	end
 
-	
-	if not starts_with(objectName,"F-14") then return end
+	if not StartsWith(objectName,"F-14") then
+
+		return
+
+	end
 
 	-- Retrieve AoA Units property index
 
+	local aoaUnitsPropertyIndex = Tacview.Telemetry.GetObjectsNumericPropertyIndex("AOAUnits", false)
+
 	if aoaUnitsPropertyIndex == Tacview.Telemetry.InvalidPropertyIndex then
 
-		aoaUnitsPropertyIndex = Tacview.Telemetry.GetObjectsNumericPropertyIndex("AOAUnits", false)
+		-- no AOAUnits available for this aircraft
+		return
 
-		if aoaUnitsPropertyIndex == Tacview.Telemetry.InvalidPropertyIndex then
-
-			return
-
-		end
 	end
 
-	-- Retrieve AoA Units if available
+	-- Retrieve AoA Units sample for that aircraft at that time
 
---	currentAoAUnits = Tacview.Telemetry.GetCurrentAngleOfAttack(objectHandle)
-	
 	local sampleIsValid
 
 	currentAoAUnits, sampleIsValid = Tacview.Telemetry.GetNumericSample(objectHandle, absoluteTime, aoaUnitsPropertyIndex)
 
 	if not sampleIsValid then
 
+		-- If there is no real sample available at that time,
+		-- then ignore the extrapolated value provided by Tacview.
+
 		currentAoAUnits = nil
 		return
+
 	end
 
 end
@@ -364,29 +340,28 @@ end
 
 function Initialize()
 
-	-- Declare addon properties
+	-- Declare add-on information
 
-	local currentAddOn = Tacview.AddOns.Current
+	Tacview.AddOns.Current.SetTitle("Display AOA in Units")
+	Tacview.AddOns.Current.SetVersion("1.8.0")
+	Tacview.AddOns.Current.SetAuthor("BuzyBee")
+	Tacview.AddOns.Current.SetNotes("Displays AoA in units instead of degrees.")
 
-	currentAddOn.SetTitle("Display AOA in Units")
-	currentAddOn.SetVersion("1.8.0")
-	currentAddOn.SetAuthor("BuzyBee")
-	currentAddOn.SetNotes("Displays AoA in units instead of degrees.")
+	-- Load user preferences
+	-- The variable displayAOAUnits already contain the default setting
 
-	-- Load preferences
-	-- Use current addOnEnabledOption value as the default setting
-
-	addOnEnabledOption = Tacview.AddOns.Current.Settings.GetBoolean(AddOnEnabledSettingName, addOnEnabledOption)
+	displayAOAUnits = Tacview.AddOns.Current.Settings.GetBoolean(DisplayAOAUnitsSettingName, displayAOAUnits)
 
 	-- Declare menus
+	-- Create a main menu "AoA Indicator"
+	-- Then insert in it an option to display or not the indicator
 
-	local addOnMenuId = Tacview.UI.Menus.AddMenu(nil, "AoA in Units")
-	addOnEnabledMenuId = Tacview.UI.Menus.AddOption(addOnMenuId, "Display AoA in Units", addOnEnabledOption, OnMenuEnableAddOn)
+	local mainMenuId = Tacview.UI.Menus.AddMenu(nil, "AoA Indicator")
+	displayAOAUnitsMenuId = Tacview.UI.Menus.AddOption(mainMenuId, "Display AoA in Units", displayAOAUnits, OnMenuEnableAddOn)
 
 	-- Register callbacks
 
 	Tacview.Events.Update.RegisterListener(OnUpdate)
-
 	Tacview.Events.DrawTransparentUI.RegisterListener(OnDrawTransparentUI)
 
 end
