@@ -81,7 +81,7 @@ function ExportObject(objectHandle, fileName, frameRate)
 
 	-- Write csv file header
 
-	file:write("Frame Number,Relative Time,X,Z,Y,Roll,Pitch,Yaw\n")
+	file:write("Frame Number,Relative Time,X,Y,Z,Heading,Pitch,Roll\n")
 
 	-- Export samples at the given frameRate
 
@@ -130,6 +130,16 @@ function ExportObject(objectHandle, fileName, frameRate)
 		local totalPitch 	= objectTransform.pitch + pitchWrap
 		local totalHeading 	= objectTransform.heading + headingWrap
 
+		-- Lightwave understands roll in the opposite direction of Tacview so the sign of the roll variable must be reversed
+
+		local lightwaveRoll
+
+		if totalRoll == 0 then
+			lightwaveRoll = 0
+		else
+			lightwaveRoll = -totalRoll
+		end
+
 		-- Output data in the csv file
 
 		file:write
@@ -140,11 +150,11 @@ function ExportObject(objectHandle, fileName, frameRate)
 				frameNumber,
 				relativeTime,
 				objectTransform.u - u0,
-				objectTransform.v - v0,
 				objectTransform.altitude - altitude0,
-				math.deg(totalRoll),
+				objectTransform.v - v0,
+				math.deg(totalHeading),
 				math.deg(totalPitch),
-				math.deg(totalHeading)
+				math.deg(lightwaveRoll)
 			)
 		)
 
