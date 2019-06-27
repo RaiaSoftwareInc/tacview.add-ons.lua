@@ -61,14 +61,14 @@ function ExportObject(objectHandle, fileName, frameRate)
 
 	local firstSampleTime, lastSampleTime = Tacview.Telemetry.GetTransformTimeRange(objectHandle)
 
-	Tacview.Log.Debug("firstSampleTime:", firstSampleTime, "lastSampleTime:", lastSampleTime, "dt:", dt)
+--	Tacview.Log.Debug("firstSampleTime:", firstSampleTime, "lastSampleTime:", lastSampleTime, "dt:", dt)
 
 	-- Retrieve object first sample position
 
 	local initialPosition = Tacview.Telemetry.GetTransform(objectHandle, firstSampleTime)
 	local u0, v0, altitude0 = initialPosition.u, initialPosition.v, initialPosition.altitude
 
-	Tacview.Log.Debug("u0: ", u0, "v0:", v0, "altitude0:", altitude0)
+--	Tacview.Log.Debug("u0: ", u0, "v0:", v0, "altitude0:", altitude0)
 
 	-- Create the csv file
 
@@ -130,6 +130,16 @@ function ExportObject(objectHandle, fileName, frameRate)
 		local totalPitch 	= objectTransform.pitch + pitchWrap
 		local totalHeading 	= objectTransform.heading + headingWrap
 
+		-- Lightwave understands picht in the opposite direction of Tacview
+
+		local lightwavePitch
+
+		if totalPitch == 0 then
+			lightwavePitch = 0
+		else
+			lightwavePitch = -totalPitch
+		end
+
 		-- Lightwave understands roll in the opposite direction of Tacview so the sign of the roll variable must be reversed
 
 		local lightwaveRoll
@@ -153,7 +163,7 @@ function ExportObject(objectHandle, fileName, frameRate)
 				objectTransform.altitude - altitude0,
 				objectTransform.v - v0,
 				math.deg(totalHeading),
-				math.deg(totalPitch),
+				math.deg(lightwavePitch),
 				math.deg(lightwaveRoll)
 			)
 		)
@@ -251,7 +261,7 @@ function Initialize()
 	-- Declare add-on information
 
 	Tacview.AddOns.Current.SetTitle("LightWave Exporter")
-	Tacview.AddOns.Current.SetVersion("1.0")
+	Tacview.AddOns.Current.SetVersion("1.1")
 	Tacview.AddOns.Current.SetAuthor("BuzyBee")
 	Tacview.AddOns.Current.SetNotes("Exports the telemetry of the selected object in a csv file to be imported as an animation in LightWave.")
 
