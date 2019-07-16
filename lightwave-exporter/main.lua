@@ -47,7 +47,30 @@ local Tacview = require("Tacview180")
 -- The roll, pitch and yaw angles will increase or decrease cumulatively with no wrap to 0.
 ----------------------------------------------------------------
 
-function ExportObject(objectHandle, fileName, frameRate)
+local relativeObjectExportEnabledMenuID
+local exportRelativeObject = false
+
+function OnMenuEnableRelativeObjectExport()
+
+	-- Change and save option
+
+	exportRelativeObject = not exportRelativeObject
+
+	Tacview.AddOns.Current.Settings.SetBoolean("enableRelativeObjectExport", exportRelativeObject)
+
+	-- Update menu
+
+	Tacview.UI.Menus.SetOption(relativeObjectExportEnabledMenuID, exportRelativeObject)
+
+end
+
+function DoNothing()
+
+end
+
+-- Export first object relative to its own starting position, or export first object relative to second object's starting position.
+
+function ExportObject(objectHandle1, objectHandle2, fileName, frameRate)
 
 	-- Check parameters
 
@@ -59,16 +82,27 @@ function ExportObject(objectHandle, fileName, frameRate)
 
 	-- Retrieve object first and last sample time
 
-	local firstSampleTime, lastSampleTime = Tacview.Telemetry.GetTransformTimeRange(objectHandle)
+	local initialPosition
 
---	Tacview.Log.Debug("firstSampleTime:", firstSampleTime, "lastSampleTime:", lastSampleTime, "dt:", dt)
+	local firstSampleTime, lastSampleTime = Tacview.Telemetry.GetTransformTimeRange(objectHandle1)
 
-	-- Retrieve object first sample position
+	if exportRelativeObject then
 
-	local initialPosition = Tacview.Telemetry.GetTransform(objectHandle, firstSampleTime)
+		-- Retrieve second object's first sample position
+		-- At this point objectHandle2 is NOT nil (this has been validated earlier)
+
+		initialPosition = Tacview.Telemetry.GetTransform(objectHandle2, firstSampleTime)
+
+	else
+
+		--if not exporting a relative object
+		-- Retrieve first object's first sample position
+
+		initialPosition = Tacview.Telemetry.GetTransform(objectHandle1, firstSampleTime)
+
+	end
+
 	local u0, v0, altitude0 = initialPosition.u, initialPosition.v, initialPosition.altitude
-
---	Tacview.Log.Debug("u0: ", u0, "v0:", v0, "altitude0:", altitude0)
 
 	-- Create the csv file
 
@@ -100,7 +134,7 @@ function ExportObject(objectHandle, fileName, frameRate)
 
 		-- Retrieve current transform to export
 
-		local objectTransform = Tacview.Telemetry.GetTransform(objectHandle, currentSampleTime)
+		local objectTransform = Tacview.Telemetry.GetTransform(objectHandle1, currentSampleTime)
 
 		-- Make sure angles are increased cumulatively
 
@@ -188,6 +222,7 @@ function ExportObject(objectHandle, fileName, frameRate)
 	end
 
 	file:close()
+
 end
 
 ----------------------------------------------------------------
@@ -201,13 +236,33 @@ function Export(frameRate)
 
 	Tacview.Log.Debug("Frame Rate of", frameRate, "Hz selected")
 
-	-- Retrieve selected object
+	-- Retrieve selected object(s)
 
-	local selectedObjectHandle = Tacview.Context.GetSelectedObject(0) or Tacview.Context.GetSelectedObject(1)
+	local selectedObjectHandle1
+	local selectedObjectHandle2
 
-	if not selectedObjectHandle then
-		Tacview.UI.MessageBox.Info("Please select an object to export.")
-		return
+	if exportRelativeObject then
+
+		selectedObjectHandle1 = Tacview.Context.GetSelectedObject(0)
+		selectedObjectHandle2 = Tacview.Context.GetSelectedObject(1)
+
+		if not selectedObjectHandle1 or not selectedObjectHandle2 then
+
+			Tacview.UI.MessageBox.Info("Please select two objects for relative export.")
+			return
+
+		end
+
+	else -- if not exportRelativeObject
+
+		selectedObjectHandle1 = Tacview.Context.GetSelectedObject(0) or Tacview.Context.GetSelectedObject(1)
+
+		if not selectedObjectHandle1 then
+
+			Tacview.UI.MessageBox.Info("Please select an object to export.")
+			return
+
+		end
 	end
 
 	-- Ask the user for the target file name
@@ -229,7 +284,8 @@ function Export(frameRate)
 
 	-- Export the data
 
-	ExportObject(selectedObjectHandle, fileName, frameRate)
+	ExportObject(selectedObjectHandle1, selectedObjectHandle2, fileName, frameRate)
+
 end
 
 ----------------------------------------------------------------
@@ -269,10 +325,23 @@ function Initialize()
 
 	local mainMenuHandle = Tacview.UI.Menus.AddMenu(nil, "LightWave Exporter")
 
+	-- Load preferences
+	-- Use current exportRelativeObject value as the default setting
+
+	exportRelativeObject = Tacview.AddOns.Current.Settings.GetBoolean("enableRelativeObjectExport", exportRelativeObject)
+
+	-- Declare menus
+
 	Tacview.UI.Menus.AddCommand(mainMenuHandle, "Export Selected Object @ 24 Hz", OnExport24)
 	Tacview.UI.Menus.AddCommand(mainMenuHandle, "Export Selected Object @ 25 Hz", OnExport25)
 	Tacview.UI.Menus.AddCommand(mainMenuHandle, "Export Selected Object @ 29.97 Hz", OnExport2997)
 	Tacview.UI.Menus.AddCommand(mainMenuHandle, "Export Selected Object @ 30 Hz", OnExport30)
+
+	-- Tacview.UI.Menus.AddSeparator(mainMenuHandle)
+
+	Tacview.UI.Menus.AddCommand(mainMenuHandle, "------------------------------", DoNothing)
+
+	relativeObjectExportEnabledMenuID = Tacview.UI.Menus.AddOption(mainMenuHandle, "Export Relative Object", exportRelativeObject, OnMenuEnableRelativeObjectExport)
 end
 
 Initialize()
