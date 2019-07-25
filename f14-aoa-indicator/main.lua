@@ -102,7 +102,8 @@ function DeclareRenderData()
 
 	if not indicatorTextureHandle then
 
-		indicatorTextureHandle = Tacview.UI.Renderer.LoadTexture("AddOns/f14-aoa-indicator/textures/indicator-background.png", false)
+		local addOnPath = Tacview.AddOns.Current.GetPath()
+		indicatorTextureHandle = Tacview.UI.Renderer.LoadTexture(addOnPath.."textures/indicator-background.png", false)
 
 	end
 
