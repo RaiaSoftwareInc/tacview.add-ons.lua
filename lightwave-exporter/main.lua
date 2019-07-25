@@ -64,10 +64,6 @@ function OnMenuEnableRelativeObjectExport()
 
 end
 
-function DoNothing()
-
-end
-
 -- Export first object relative to its own starting position, or export first object relative to second object's starting position.
 
 function ExportObject(objectHandle1, objectHandle2, fileName, frameRate)
@@ -337,9 +333,7 @@ function Initialize()
 	Tacview.UI.Menus.AddCommand(mainMenuHandle, "Export Selected Object @ 29.97 Hz", OnExport2997)
 	Tacview.UI.Menus.AddCommand(mainMenuHandle, "Export Selected Object @ 30 Hz", OnExport30)
 
-	-- Tacview.UI.Menus.AddSeparator(mainMenuHandle)
-
-	Tacview.UI.Menus.AddCommand(mainMenuHandle, "------------------------------", DoNothing)
+	Tacview.UI.Menus.AddSeparator(mainMenuHandle)
 
 	relativeObjectExportEnabledMenuID = Tacview.UI.Menus.AddOption(mainMenuHandle, "Export Relative Object", exportRelativeObject, OnMenuEnableRelativeObjectExport)
 end
