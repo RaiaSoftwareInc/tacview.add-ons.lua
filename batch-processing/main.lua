@@ -81,7 +81,7 @@ function Export(countPerName)
 	file:write("ObjectName, Count\n")
 
 	for shortName, count in pairs(countPerName) do
-		
+
 		file:write
 		(
 			string.format
@@ -89,7 +89,7 @@ function Export(countPerName)
 				"%s,%d\n",
 				shortName,
 				count
-			
+
 			)
 		)
 	end
@@ -100,12 +100,12 @@ function Export(countPerName)
 
 end
 
--- declare a global variable, the table where the statistics will be stored 
+-- declare a global variable, the table where the statistics will be stored
 
 local countPerName
 
 ----------------------------------------------------------------
--- Perform actions on each .acmi file to collect statistics 
+-- Perform actions on each .acmi file to collect statistics
 ----------------------------------------------------------------
 
 function ProcessFile(filePath)
@@ -132,15 +132,15 @@ function ProcessFile(filePath)
 	local objectCount = Tacview.Telemetry.GetObjectCount()
 
 	for index=0,objectCount-1 do
-		
+
 		local objectHandle = Tacview.Telemetry.GetObjectHandleByIndex( index )
-		
+
 		local objectTags = Tacview.Telemetry.GetCurrentTags(objectHandle)
 
 		if Tacview.Telemetry.AnyGivenTagActive( objectTags , Tacview.Telemetry.Tags.FixedWing | Tacview.Telemetry.Tags.Rotorcraft ) then
-			
+
 			local shortName = Tacview.Telemetry.GetCurrentShortName( objectHandle )
-			
+
 			if countPerName[shortName] then
 				countPerName[shortName] = countPerName[shortName] + 1
 			else
@@ -152,20 +152,20 @@ function ProcessFile(filePath)
 end
 
 ---------------------------------------------------------------------------------
--- Recursively locate and process every file in the user's selected chosen folder 
+-- Recursively locate and process every file in the user's selected chosen folder
 ---------------------------------------------------------------------------------
 
 function ProcessFolder(folderPath)
-    
+
 	for itemName in lfs.dir(folderPath) do
-        
+
 		if itemName ~= "." and itemName ~= ".." then
 
-            local itemPath = folderPath..itemName
+			local itemPath = folderPath..itemName
 
-            local attr = lfs.attributes (itemPath)
+			local attr = lfs.attributes (itemPath)
 
-            if (type(attr) == "table") then
+			if (type(attr) == "table") then
 
 				if attr.mode == "directory" then
 					ProcessFolder(itemPath..'\\')
@@ -173,8 +173,8 @@ function ProcessFolder(folderPath)
 					ProcessFile(itemPath)
 				end
 			end
-        end
-    end
+		end
+	end
 
 end
 
@@ -185,7 +185,7 @@ end
 function OnBatchProcess()
 
 	countPerName = {}
-	
+
 	-- request folder name from user
 
 	local folderPath = Tacview.UI.MessageBox.GetFolderName()
@@ -206,7 +206,7 @@ end
 
 function Initialize()
 
-	
+
 	-- Declare add-on information
 
 	Tacview.AddOns.Current.SetTitle("Batch Process")
