@@ -44,3 +44,20 @@ If you want to publish your creation or changes, contact us at support@tacview.n
 ### Telemetry Export
 
 * [lightwave-exporter](lightwave-exporter) – Exports selected object position and rotation in a straightforward csv file which can be used to animate aircraft in [LightWave](https://www.lightwave3d.com/)
+
+### Flight Instruments
+
+* [f-14-aoa-indicator](f-14-aoa-indicator) - Displays AOA indicator in units for F-14's
+
+### Statistics
+
+* [batch-processing](batch-processing) - Recursively loads a folder full of .acmi files for the purpose of collecting statistics on each one.
+
+### Hardware
+
+* [hsr](hsr) Output aircraft's speed for use by the HSIMRACING.COM Fan System driver.
+
+
+
+
+
