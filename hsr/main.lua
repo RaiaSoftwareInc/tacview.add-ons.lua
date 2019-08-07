@@ -273,7 +273,7 @@ function Initialize()
 	local currentAddOn = Tacview.AddOns.Current
 
 	currentAddOn.SetTitle("Rfun Fan System")
-	currentAddOn.SetVersion("0.1")
+	currentAddOn.SetVersion("0.2")
 	currentAddOn.SetAuthor("Vyrtuoz")
 	currentAddOn.SetNotes("Exports local aircraft speed to Rfun fan system driver.")
 
