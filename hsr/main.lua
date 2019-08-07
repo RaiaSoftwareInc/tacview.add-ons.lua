@@ -45,6 +45,7 @@ local Tacview = require("Tacview180")
 ----------------------------------------------------------------
 
 local kph2mps = 1000.0 / 3600				-- To convert km/h in m/s
+local mps2kph = 3600 / 1000.0
 
 local MinFanSpeed = 0.0						-- Min speed value sent the fan
 local MaxFanSpeed = 999.0					-- Max speed value send to the fan
@@ -173,9 +174,24 @@ end
 -- Main loop
 ----------------------------------------------------------------
 
+-- keep track of whether player has changed vehicle
+
+local previousVehicleHandle
+local vehicleId = 0 -- incremented by 1 each time vehicle is changed
+
 -- Update is called once a frame by Tacview
 
 function OnUpdate(dt, absoluteTime)
+
+	-- Determine if playback is paused. 
+
+	local isPaused
+
+	if Tacview.Context.Playback.IsPlaying()	then	
+		isPaused = 0
+	else
+		isPaused = 1
+	end
 
 	-- Add-on enabled?
 
@@ -186,6 +202,11 @@ function OnUpdate(dt, absoluteTime)
 	-- Retrieve the handle of the most important object
 
 	local vehicleHandle = GetLocalVehicleHandle(absoluteTime)
+
+	if vehicleHandle ~= previousVehicleHandle then
+		vehicleId = vehicleId + 1
+		previousVehicleHandle = vehicleHandle
+	end
 
 	if not vehicleHandle then
 		return
@@ -199,7 +220,7 @@ function OnUpdate(dt, absoluteTime)
 
 	if vehicleSpeed then
 
-		-- Speed is in m/s so we convert it to an arbitraty 000-999 range for the fan
+		-- Speed is in m/s so we convert it to an arbitrary 000-999 range for the fan
 
 		local fanSpeed = (vehicleSpeed - MinVehicleSpeed) * FanSpeedFactor + MinFanSpeed
 
@@ -207,9 +228,16 @@ function OnUpdate(dt, absoluteTime)
 
 		fanSpeed = math.max(math.min(fanSpeed, MaxFanSpeed), MinFanSpeed)
 
+		-- Alternatively, convert vehicle speed to km/h
+
+		local vehicleSpeedKph = vehicleSpeed * mps2kph
+
 		-- Send packet
 
-		SendUDPMessage(string.format("%03i", math.floor(fanSpeed + 0.5)))
+		SendUDPMessage(string.format("speed=%i\nisPaused=%i\nvehicleId=%i", 
+						math.floor(vehicleSpeedKph + 0.5),
+						isPaused,
+						vehicleId))
 
 	end
 end
