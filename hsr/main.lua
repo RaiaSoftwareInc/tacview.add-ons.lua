@@ -56,7 +56,7 @@ local MaxVehicleSpeed = 1000.0 * kph2mps	-- Max vehicle speed (1000 km/h in m/s)
 local FanSpeedFactor = (MaxFanSpeed - MinFanSpeed) / (MaxVehicleSpeed - MinVehicleSpeed)
 
 local udpAddress = "127.0.0.1"
-local udpPort = 8123
+local udpPort = 8053
 
 ----------------------------------------------------------------
 -- Preferences / menus
@@ -77,6 +77,8 @@ function InitializeUDP()
 
 	local socket = require("socket")
 	udpSocket = assert(socket.udp())
+
+	Tacview.Log.Info("HSR: Ready to send packets to", udpAddress, udpPort)
 
 end
 
@@ -204,8 +206,14 @@ function OnUpdate(dt, absoluteTime)
 	local vehicleHandle = GetLocalVehicleHandle(absoluteTime)
 
 	if vehicleHandle ~= previousVehicleHandle then
+
+		if vehicleHandle then
+			Tacview.Log.Info("HSR: New vehicle detected:", Tacview.Telemetry.GetCurrentShortName(vehicleHandle))
+		end
+
 		vehicleId = vehicleId + 1
 		previousVehicleHandle = vehicleHandle
+
 	end
 
 	if not vehicleHandle then
@@ -234,10 +242,14 @@ function OnUpdate(dt, absoluteTime)
 
 		-- Send packet
 
-		SendUDPMessage(string.format("speed=%i\nisPaused=%i\nvehicleId=%i", 
+		local packet = string.format("speed=%i\nisPaused=%i\nvehicleId=%i", 
 						math.floor(vehicleSpeedKph + 0.5),
 						isPaused,
-						vehicleId))
+						vehicleId)
+
+		-- Tacview.Log.Info("HSR:", packet)
+
+		SendUDPMessage(packet)
 
 	end
 end
