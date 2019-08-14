@@ -1,0 +1,877 @@
+--------------------------------------------------------------------------------------------------------------------------------
+
+	Tacview 1.8.0 Lua Core Interface
+	Last update: 2019-06-10
+
+--------------------------------------------------------------------------------------------------------------------------------
+
+Tacview will automatically load any Lua script named "main.lua" found in the immediate sub-folders of:
+
+	C:\Program Files (x86)\Tacview\AddOns\
+	%ProgramData%\Tacview\AddOns\
+	%APPDATA%\Tacview\AddOns\
+
+For example you could store your addon main script as:
+
+	%ProgramData%\Tacview\AddOns\My add-on\main.lua
+
+At the beginning of your script you will typically retrieve the available Lua interface for which your add-on has been programmed:
+
+	Tacview = require("Tacview180")			-- Request Tacview 1.8.0 API
+
+Then you can access any of the following methods like the following:
+
+	Tacview.Log.Info("Successfully exported ", objectCount, " object(s)")
+
+Depending on the context your script is executed in, you will have access to slightly different interfaces.
+Your main.lua script will be executed in the main context. It will be granted access to all Tacview features but export and import interfaces.
+While your import and export scripts will be granted access to the core features as well as respectively import or export interfaces.
+To prevent multithreading issues as well as errors breaking other add-ons, each Lua add-on is loaded in its own virtual machine.
+
+--------------------------------------------------------------------------------------------------------------------------------
+Global functions
+
+Close() -- Tacview 1.7.2
+
+	Unconditionally closes the application.
+	NOTE: This function does not ask the user to save his work.
+
+--------------------------------------------------------------------------------------------------------------------------------
+Settings
+
+	This interface is provided to access Tacview configuration.
+	If you want to save and load settings for your own addon, see AddOns.Current.Settings
+
+Settings.SetBoolean( settingPath, newBooleanValue ) -- Tacview 1.7.2
+
+	Save a Boolean setting under the given name.
+
+	settingPath can be one of the following:
+
+		"UI.View.Grid.Visible"				-- Enable/disable latitude/longitude grid
+		"UI.View.HUD.Visible"				-- Enable/disable cockpit head-up-display
+		"UI.View.Overlay.Visible"			-- Enable/disable all the informations displayed on top of the 3D view
+		"UI.View.Camera.Dogfight.Enabled"	-- Enable/disable dogfight camera mode (when in external view)
+
+Settings.GetBoolean( settingFullPath ) -- Tacview 1.7.2
+
+	Returns the current setting value or nil if the provided path does not point to a boolean setting.
+	See Settings.SetBoolean for the possible values of settingFullPath.
+
+	Return value:
+
+		Corresponding setting boolean value.
+
+Settings.SetString( settingFullPath , newStringValue ) -- Tacview 1.7.2
+
+	Save a string setting under the given name.
+
+	settingFullPath and newStringValue can be one of the following:
+
+		"UI.View.Terrain.Mode"				-- Change the way the terrain is displayed in the 3D view
+			"Empty"
+			"Flat"
+			"3D"
+			"Full3D"
+
+		"UI.View.Camera.Mode"				-- Change camera mode
+			"Cockpit"
+			"External"
+			"Satellite"
+			"Free"
+
+		"UI.View.Camera.Dogfight.Mode"		-- Change dogfight camera mode (active only when "UI.View.Camera.Mode" == "External" and "UI.View.Camera.Dogfight.Enabled" == true)
+			"Centered"
+			"LookAt"
+			"LookForward"
+
+Settings.GetString( settingFullPath ) -- Tacview 1.7.2
+
+	Returns the current setting value or nil if the provided path does not point to a string setting.
+	See Settings.SetString for the possible values of settingFullPath.
+
+	Return value:
+
+		Corresponding setting string value.
+
+--------------------------------------------------------------------------------------------------------------------------------
+AddOns
+
+	The add-ons interface is mainly used to specify information about your add-on.
+	Your addon settings will be saved and restored at the next session of Tacview.
+
+AddOns.Current.GetPath() -- Tacview 1.7.4
+
+	Retrieve the current addon root path.
+	This is typically where your addon dll or lua file is stored.
+	This function is useful to access and load your custom resources without hardcoding a path to them.
+
+	Return value:
+
+		AddOn path (e.g. "C:\ProgramData\Tacview\AddOns\Tutorial 1 - Hello World - CS\")
+		or nil if not applicable (typically for lua code injected over a pipe)
+
+AddOns.Current.SetTitle( addOnTitle ) -- Tacview 1.7.2
+
+	Defines a user friendly-name in place of the folder name which is displayed by default in Tacview UI.
+
+AddOns.Current.SetVersion( textVersionNumber ) -- Tacview 1.7.2
+
+	It is recommended to declare the version of your add-on using this function.
+	That way, it will be easier for the end-user to know if it's time to download an updated version of it.
+
+AddOns.Current.SetAuthor( authorName ) -- Tacview 1.7.2
+
+	Let everyone who is the author of this brilliant add-on!
+
+AddOns.Current.SetNotes( textNotes ) -- Tacview 1.7.2
+
+	Defines a text which will be displayed in Tacview status bar when your addon is selected in the addons menu.
+	A dedicated window will be available in Tacview 2.
+
+AddOns.Current.Settings.SetBoolean( settingName , newBooleanValue ) -- Tacview 1.7.2
+
+	Save a Boolean setting under the given name.
+
+	SettingName should be set to a string which unambiguously identify your setting.
+	SettingName must not be equal to "Enabled" which is reserved by Tacview to enable/disable the addon.
+
+AddOns.Current.Settings.GetBoolean( settingName , defaultBooleanValue ) -- Tacview 1.7.2
+
+	Returns the current setting value, or the default provided one if no value was previously saved.
+
+	Return value:
+
+		Corresponding setting boolean value.
+
+--------------------------------------------------------------------------------------------------------------------------------
+Log
+
+	The log module is typically used to log messages and errors which can be used to diagnose specific issues.
+	All strings sent to the log will also be saved in the %TEMP%\Tacview.log file.
+	Please, use the log wisely and try to display only meaningful messages to the end-user.
+	Do not spam the log with internal development messages, this may confuse the user who is looking for more relevant status from other modules.
+
+Log.Debug(...) -- Tacview 1.7.2
+
+	Use this method to help you trace and diagnose problems with your addon.
+	NOTE: Debug information will be displayed only when using the /Debug:On command line argument.
+
+Log.Info(...) -- Tacview 1.7.2
+
+	This method can be used to display specific information related to your addon which might be useful to the end-user.
+	NOTE: Lua print() function is redirected to Log.Info().
+
+Log.Warning(...) -- Tacview 1.7.2
+
+	Warnings can be used to notify the user of unusual circumstances like non-critical errors in input data.
+	Warnings will be highlighted in Tacview console to attract the user attention.
+
+Log.Error(...) -- Tacview 1.7.2
+
+	Error messages are typically used to display critical errors which usually prevent further operation.
+
+--------------------------------------------------------------------------------------------------------------------------------
+UI.MessageBox
+
+	Message boxes can be used to display modal notifications and ask for simple questions to the user.
+	It is suggested to not use too many message boxes as they are breaking the productivity flow of the user.
+	Whenever possible, you can use the log to output most of you messages and rely on settings to choose the appropriate behavior depending on the circumstances.
+
+UI.MessageBox.Info( textMessage ) -- Tacview 1.7.2
+UI.MessageBox.Error( textMessage ) -- Tacview 1.7.2
+
+	Displays a modal notification to inform or warn the user.
+
+UI.MessageBox.Question( textMessage ) -- Tacview 1.7.2
+
+	Displays a question.
+
+	Return value:
+
+		One of the following constants:
+
+			UI.MessageBox.OK
+			UI.MessageBox.Cancel
+
+--------------------------------------------------------------------------------------------------------------------------------
+Math
+
+	This module contains all the necessary tools to convert and modify typical telemetry data.
+
+	Here, we are calling vectors, tables with three components:
+
+		{
+			x = number,
+			y = number,
+			z = number,
+		}
+
+Math.Angle.Subtract( leftAngle , rightAngle ) -- Tacview 1.7.2
+
+	Substracts two radian angles.
+
+	Return value:
+
+		Difference between leftAngle and rightAngle.
+		The result is normalized to (-pi, +pi].
+
+Math.Units.FeetToMeters( value ) -- Tacview 1.8.0
+
+	Converts feet distances in meters
+
+Math.Units.NauticalMilesToMeters( value ) -- Tacview 1.8.0
+
+	Converts nautical miles distances in meters
+
+Math.Vector.LongitudeLatitudeToCartesian( {longitude = number , latitude = number , altitude = number} ) -- Tacview 1.7.2
+
+	Converts Earth spherical coordinates into cartesian coordinates.
+	It is possible to direcly give an object transform to this function (see Telemetry.GetCurrentTransform).
+
+	Longitude and latitude are in radian.
+	Altitude is in meter.
+
+	Return value:
+
+		A vector which is a the cartesian position in global Earth space.
+
+Math.Vector.CartesianToLongitudeLatitude( {x = number , y = number , z = number} ) -- Tacview 1.7.5
+
+	Converts cartesian coordinates into Earth spherical coordinates.
+
+	Return value:
+
+		A table which contains the { longitude = ... , latitude = ... , altitude = ...}
+		Longitude and latitude are in radian.
+		Altitude is in meter.
+
+Math.Vector.BearingRangeAltitudeToLongitudeLatitude( referenceLongitude , referenceLatitude , bearing , range , altitude ) -- Tacview 1.8.0
+
+	Retrieve longitude, latitude and altitude relative to given reference point.
+
+		- Longitude and latitude are expressed in radian.
+
+		- Bearing is expressed in degrees relative to true north.
+		- Range is expressed in meters.
+		- Altitude is expressed in meters.
+
+	Return value:
+
+		Position of the target point as {longitude = number , latitude = number , altitude = number}
+
+Math.Vector.Add( vector1 , vector2 ) -- Tacview 1.7.2
+
+	Adds two 3D vectors.
+
+	Return value:
+
+		A vector wich is the sum of vector1 and vector2.
+
+Math.Vector.Subtract( vector1 , vector2 ) -- Tacview 1.7.2
+
+	Substracts two 3D vectors.
+
+	Return value:
+
+		A vector which is the difference between vector1 and vector2.
+
+Math.Vector.Multiply( factor , vector ) -- Tacview 1.7.5
+
+	Multiplies a scalar value by a specified vector.
+
+	Return value:
+
+		Scaled vector.
+
+Math.Vector.Normalize( vector ) -- Tacview 1.7.2
+
+	Normalize the given vector.
+
+	Return value:
+
+		Normalized vector.
+		This function is safe and a nul vector is the vector is nul.
+
+Math.Vector.GetLength( vector ) -- Tacview 1.8.0
+
+	Retrieve the length of given vector.
+
+Math.Vector.GetDistance( pt1 , pt2 ) -- Tacview 1.8.0
+
+	Retrieve the distance between given 3D cartesian points.
+
+Math.Vector.GetDistanceOnEarth( longitude1 , latitude1 , longitude2 , latitude2 , altitude ) -- Tacview 1.8.0
+
+	Retrieve the distance between the specified coordinates on earth at the given above sea level altitude.
+
+Math.Vector.AngleBetween( vector1 , vector2 ) -- Tacview 1.7.2
+
+	Calculate the angle between two *normalized* vectors.
+	DO NOT forget to normalize the vectors before calling GetAngle!
+	NOTE: If you want an accurate quadran calculation, you may want to use the function with three parameters.
+
+	Return value:
+
+		Angle in radian between the two given vectors.
+		Which corresponds to ArcCos( DotProduct( vector1, vector2) )
+
+Math.Vector.AngleBetween( vector , referenceVector1 , referenceVector2 ) -- Tacview 1.7.2
+
+	Calculate the angle between using two normalized vectors.
+	DO NOT forget to normalize the vectors before calling GetAngle!
+	Unlike AngleBetween( vector1 , vector2 ), this function gives the correct quadran.
+
+	Return value:
+
+		Angle in radian between the two given vectors.
+		Which corresponds to ArcTan( DotProduct( vector, referenceVector1 ), DotProduct( vector, referenceVector2 ) )
+
+Math.Vector.LocalToGlobal( objectTransform , localCoordinates ) -- Tacview 1.7.2
+
+	Converts the given point from an object local coordinates into Earth cartesian coordinates.
+	You can direcly pass to this function, the objectTransform table coming from Telemetry.GetCurrentTransform()
+	Where localCoordinates is a vector.
+
+	objectTransform =
+	{
+		-- If xyz are not specified, they will be calculated from longitude, latitude, and altitude.
+
+		x = cartesianPositionX,					-- meters
+		y = cartesianPositionY,					-- meters
+		z = cartesianPositionZ,					-- meters
+
+		-- If either longitude or latitude is not specified, they will be calculated from xyz.
+
+		longitude = sphericalLongitude,			-- radian
+		latitude = sphericalLatitude,			-- radian
+		altitude = absoluteAltitude,			-- (meters) required only if xyz are not specified
+
+		roll = objectRoll,						-- radian
+		pitch = objectPitch,					-- radian
+		yaw = objectYaw,						-- radian
+	}
+
+	Return value:
+
+		coordinates as a vector in Earth global cartesian space.
+		returns nil if not enough data is provided.
+
+--------------------------------------------------------------------------------------------------------------------------------
+Context
+
+	This contains all the information relative the telemetry representation on screen.
+	NOTE: See Lua Main Interface for additional functions.
+
+Context.GetAbsoluteTime() -- Tacview 1.7.5
+
+	Retrieves the current telemetry time in seconds since 1970-01-01 (this parameter is useful to talk with the Telemetry module)
+
+Context.SetAbsoluteTime( absoluteTime ) -- Tacview 1.7.6
+
+	Set current telemetry time for data playback in seconds since 1970-01-01
+
+	NOTE: DO NOT force the time at every frame, especially during real-time telemetry recording.
+	This would conflict with Tacview internal time update leading to 3D view stutter.
+
+	If you want to synchronize Tacview time with an external tool, you should do so only when there is a important delta-time between both tools:
+
+	-- Resynchronize Tacview time only if more there is more than one second difference with the external tool
+
+	if math.abs(Context.GetAbsoluteTime() - externalToolTime) > 1.0 then
+		Context.SetAbsoluteTime(externalToolTime)
+	end
+
+--------------------------------------------------------------------------------------------------------------------------------
+StaticObjects
+
+StaticObjects.GetHandleByName( objectName )
+
+	Retrieve static object handle from its name.
+	The name of the object can be defined via the <name> xml tag in kml files.
+
+	Names are case sensitive and may not be unique.
+	This function will return the first matching object.
+	Beware that object handles are volatile and may not be preserved the next time your addon is being called by Tacview.
+
+	Return value:
+
+		handle of the static object
+		or nil of no object correspond to the given name	
+
+StaticObjects.SetVisible( staticObjectHandle , isVisible )
+
+	Show or hide given object.
+	You can use StaticObjects.GetHandleByName() to retrieve the handle of the object you would like to show/hide.
+
+--------------------------------------------------------------------------------------------------------------------------------
+Telemetry
+
+	This module is the heart of Tacview.
+	Use the telemetry manager to read and write any data for any dynamic object.
+
+Telemetry.BeginningOfTime -- Tacview 1.7.5
+Telemetry.EndOfTime -- Tacview 1.7.5
+
+	Constants representing special time stamps.
+	BeginningOfTime is typically used to create timeless objects like waypoints, bullseyes, or buildings.
+
+	NOTE: If you want to know the time of the first and last sample of the telemetry data, use Telemetry.GetDataTimeRange()
+
+Telemetry.InvalidPropertyIndex -- Tacview 1.7.5
+
+	Constant used to detect invalid properties.
+
+Telemetry.Tags -- Tacview 1.7.3
+
+	Enumeration of bits used to defined object types.
+
+		-- Domain
+
+		Telemetry.Tags.Air
+		Telemetry.Tags.Ground
+		Telemetry.Tags.Sea
+
+		Telemetry.Tags.Weapon
+		Telemetry.Tags.Sensor
+		Telemetry.Tags.Navaid
+		Telemetry.Tags.Abstract
+		Telemetry.Tags.Misc
+
+		-- Attributes
+
+		Telemetry.Tags.Static
+		Telemetry.Tags.Heavy
+		Telemetry.Tags.Medium
+		Telemetry.Tags.Light
+		Telemetry.Tags.Minor
+
+		-- Basic Type
+
+		Telemetry.Tags.FixedWing
+		Telemetry.Tags.Rotorcraft
+
+		Telemetry.Tags.Armor
+		Telemetry.Tags.AntiAircraft
+		Telemetry.Tags.Vehicle
+		Telemetry.Tags.Watercraft
+
+		Telemetry.Tags.Human
+		Telemetry.Tags.Biologic
+
+		Telemetry.Tags.Missile
+		Telemetry.Tags.Rocket
+		Telemetry.Tags.Bomb
+		Telemetry.Tags.Torpedo
+		Telemetry.Tags.Projectile
+		Telemetry.Tags.Beam
+
+		Telemetry.Tags.Decoy
+
+		Telemetry.Tags.Building
+
+		Telemetry.Tags.Bullseye
+		Telemetry.Tags.Waypoint
+
+		-- Specific Type
+
+		Telemetry.Tags.Tank
+		Telemetry.Tags.Warship
+		Telemetry.Tags.AircraftCarrier
+		Telemetry.Tags.Submarine
+		Telemetry.Tags.Infantry
+		Telemetry.Tags.Parachutist
+
+		Telemetry.Tags.Shell
+		Telemetry.Tags.Bullet
+
+		Telemetry.Tags.Flare
+		Telemetry.Tags.Chaff
+		Telemetry.Tags.SmokeGrenade
+
+		Telemetry.Tags.Aerodrome
+
+		Telemetry.Tags.Container
+		Telemetry.Tags.Shrapnel
+		Telemetry.Tags.Explosion
+
+Telemetry.AllGivenTagsActive( objectTags , activeTagsCombination ) -- Tacview 1.8.0
+Telemetry.AnyGivenTagActive( objectTags , activeTagsCombination ) -- Tacview 1.8.0
+
+	Helpers to know if all or any of the combination of tags match given object tags.
+	You can retrieve current object tags (which defines the type of an object) with the Telemetry.GetCurrentTags function.
+
+	Return value:
+
+		true or false depending on the match
+
+Telemetry.Property -- Tacview 1.7.6
+
+	List of the most commonly referenced property names.
+
+	These constants are helpers. You are NOT limited to these when requested property indexes.
+	For example, you can still manually call: Tacview.Telemetry.GetObjectsNumericPropertyIndex("Fuel", false)
+
+		-- Text properties (Tacview 1.7.6)
+
+		Telemetry.Property.Text.Callsign
+		Telemetry.Property.Text.Event
+		Telemetry.Property.Text.Name
+
+		-- Text properties (Tacview 1.8.0)
+
+		Telemetry.Property.Text.Color
+		Telemetry.Property.Text.FocusedTarget
+		Telemetry.Property.Text.LockedTarget
+		Telemetry.Property.Text.Pilot
+
+		-- Numeric properties (Tacview 1.7.6)
+
+		Telemetry.Property.Numeric.Disabled
+		Telemetry.Property.Numeric.EngagementRange
+
+		-- Numeric properties (Tacview 1.8.0)
+
+		Telemetry.Property.Numeric.IAS
+		Telemetry.Property.Numeric.Importance
+		Telemetry.Property.Numeric.MinRange
+		Telemetry.Property.Numeric.MaxRange
+
+Telemetry.Clear() -- Tacview 1.7.2
+
+	Purge all telemetry data currently loaded in memory.
+	This function does not warn the user, nor it gives him the opportunity to save any data.
+	This function does not interrupt or stop any recording in progress. It simply purges all the data recorded up to that point.
+
+Telemetry.Load( fileName ) -- Tacview 1.8.0
+
+	This function merges given file data with any data already loaded in memory.
+	Call Telemetry.Clear() before loading new data if you do not want to merge.
+
+	Return value:
+
+		true if given file has been successfully loaded
+
+Telemetry.IsEmpty() -- Tacview 1.7.6
+
+	Tells if no at all telemetry is currently loaded in memory.
+	This include intemporal data.
+
+Telemetry.IsLikeEmpty() -- Tacview 1.7.6
+
+	Tells if no significant telemetry is currently loaded in memory.
+	For example, if no data or only intemporal data is loaded this function returns true.
+	Otherwise it returns false.
+
+Telemetry.GetDataTimeRange() -- Tacview 1.7.6
+
+	Retrieve the extend of the telemetry data currently loaded in memory.
+	This excludes any intemporal samples like bulleyes position for example.
+
+	Return value:
+
+	{
+		beginTime,		-- first sample absolute time
+		endTime			-- last sample absolute time
+	}
+
+Telemetry.GetCurrentObjectHandle( objectId ) -- Tacview 1.7.2
+
+	Retrieves the handle of the specified object at the current update time.
+	If there are several objects with the same id (for example a player which has spawned in the same aircraft multiple time during the same session),
+	the telemetry manger will return the object which is the most appropriate for the current time frame.
+	Unlike Ids, objects handles uniquely identify each object currently loaded in memory.
+
+	Return value:
+
+		objectHandle (integer)
+
+Telemetry.GetCurrentOrCreateObjectHandle( objectId ) -- Tacview 1.7.5
+
+	Retrieves the handle of the specified object at the current update time.
+	If the give object id is not found, then a new object will be created at the current update time with the given id.
+	Unlike Ids, objects handles uniquely identify each object currently loaded in memory.
+
+	Return value:
+
+		objectHandle (integer)
+
+Telemetry.GetOrCreateObjectHandle( objectId , absoluteTime ) -- Tacview 1.7.5
+
+	Retrieves the handle of the specified object at the specified time.
+	If the give object id is not found, then a new object will be created at the specified time with the given id.
+	Unlike Ids, objects handles uniquely identify each object currently loaded in memory.
+
+	To create a timeless object like a waypoint, you can use the following:
+
+		local newObjectHandle = Tacview.Telemetry.GetOrCreateObjectHandle( objectId , Tacview.Telemetry.BeginningOfTime )
+
+	Return value:
+
+		objectHandle (integer)
+
+Telemetry.GetCurrentTags( objectHandle ) -- Tacview 1.7.3
+
+	Return given object tags as a bit field.
+
+	Return value:
+
+		Each bit of the returned integer corresponds to a specific tag.
+		The combination of these tags defines the current object type.
+		The object type can evolve over time and be refined depending on available telemetry at this point.
+
+Telemetry.GetCurrentShortName( objectHandle ) -- Tacview 1.7.2
+
+	Return given object short name at the current update time.
+
+	Return value:
+
+		Text which typically correspond to the NATO code or any other appropriate short designation for the object.
+
+Telemetry.GetTransform( objectHandle , absoluteTime ) -- Tacview 1.7.5
+Telemetry.GetCurrentTransform( objectHandle ) -- Tacview 1.7.2
+
+	Returns given object position/rotation at the current update or specified time.
+	Some objects (typically bullets) may not have all the information available.
+	For example, the rotation information may not be available for all aircraft.
+	Native coordinates correspond the original coordinates in the source flight simulator (typically for BMS and DCS).
+
+	Return value:
+
+		ObjectTransform =
+		{
+			time = sample_absolute_time,			-- (seconds) This effective absolute time of this sample may be different from current update time if the object does not exist yet, or anymore...
+
+			x = cartesianPositionX,					-- (meters) Cartesian position (ALWAYS AVAILABLE)
+			y = cartesianPositionY,					-- (meters) Cartesian position (ALWAYS AVAILABLE)
+			z = cartesianPositionZ,					-- (meters) Cartesian position (ALWAYS AVAILABLE)
+
+			longitude = sphericalLongitude,			-- (radian) Spherical position (ALWAYS AVAILABLE)
+			latitude = sphericalLatitude,			-- (radian) Spherical position (ALWAYS AVAILABLE)
+			altitude = absoluteAltitude,			-- (meters) Spherical position (ALWAYS AVAILABLE)
+
+			roll = objectRoll,						-- (radian) roll  axis rotation (if rotationIsValid == true)
+			pitch = objectPitch,					-- (radian) pitch axis rotation (if rotationIsValid == true)
+			yaw = objectYaw,						-- (radian) yaw   axis rotation (if rotationIsValid == true)
+
+			u = nativePositionX,					-- (meters) Native x coordinate (if nativeCoordinatesAreValid == true)
+			v = nativePositionY,					-- (meters) Native y coordinate (if nativeCoordinatesAreValid == true)
+			heading = nativeHeadingToNorth,			-- (radian) Heading in native coordinates system (if nativeCoordinatesAreValid == true & rotationIsValid == true)
+
+			rotationIsValid = boolean,				-- Set to true if rotation information is valid (otherwise the data may be emulated)
+			nativeCoordinatesAreValid = boolean,	-- Set to true if native coordiantes are valid (otherwise u, v and heading are set to zero)
+		}
+
+	Return value:
+
+		value , validity
+		validity is set to false if the value does not really apply for the given time (typically if the object does not exist at the given time)
+		event when validity is set to false, the value is valid and usable (this simplify the client code)
+
+Telemetry.GetVerticalGForce( objectHandle , absoluteTime ) -- Tacview 1.8.0
+Telemetry.GetCurrentVerticalGForce( objectHandle ) -- Tacview 1.7.3
+
+	Returns given object vertical g-Force at current time.
+
+	The vertical g-Force is the g-Force which usually the most relevant to the pilot and its aircraft. This is the one displayed in the cockpit.
+
+	If vertical g-Force has been recorded, then Tacview will return the interpolated sample.
+	If vertical g-Force has not been recorded, but rotation data is available, Tacview will calculate the vertical G-Force.
+
+	Return value:
+
+		Vertical g-Force if available.
+		nil when not enough data is available (or object does not exist at this time).
+
+Telemetry.GetAbsoluteGForce( objectHandle , absoluteTime ) -- Tacview 1.8.0
+Telemetry.GetCurrentAbsoluteGForce( objectHandle ) -- Tacview 1.8.0
+
+	Returns given object absolute g-Force is available at current time.
+
+	The absolute g-Force is the acceleration of the object divided by G. It is independent of the object orientation or trajectory.
+
+	Return value:
+
+		absolute g-Force if available.
+		nil when not enough data is available (or object does not exist at this time).
+
+Telemetry.GetGlobalNumericPropertyIndex( propertyName , autoCreate ) -- Tacview 1.7.6
+Telemetry.GetGlobalTextPropertyIndex( propertyName , autoCreate ) -- Tacview 1.7.6
+
+	Retrieve a property for the global object (0).
+
+	If the property does not exist yet:
+		- if autoCreate is true, then the property will be created and its index returned.
+		- if autoCreate is false, then Telemetry.InvalidPropertyIndex will be returned.
+
+	To optimize CPU and memory, numeric and text properties are separate in the telemetry manager.
+	WARNING: Because numeric and text properties are separate, indexes for numeric and text samples may overlap and cannot be mixed.
+
+Telemetry.GetObjectsNumericPropertyIndex( propertyName , autoCreate ) -- Tacview 1.7.5
+Telemetry.GetObjectsTextPropertyIndex( propertyName , autoCreate ) -- Tacview 1.7.5
+
+	Retrieve a property index for everything which is not the global object.
+	The index returned is the same for all objects.
+
+	If the property does not exist yet:
+		- if autoCreate is true, then the property will be created and its index returned.
+		- if autoCreate is false, then Telemetry.InvalidPropertyIndex will be returned.
+
+	To optimize CPU and memory, numeric and text properties are separate in the telemetry manager.
+	WARNING: Because numeric and text properties are separate, indexes for numeric and text samples may overlap and cannot be mixed.
+
+Telemetry.GetNumericSample( objectHandle , absoluteTime , propertyIndex ) -- Tacview 1.7.5
+Telemetry.GetTextSample( objectHandle , absoluteTime , propertyIndex ) -- Tacview 1.7.5
+
+	Retrieve property numeric or text value at the given time.
+
+	Return value:
+
+		value , validity
+		validity is set to false if the value does not really apply for the given time (typically if the object does not exist at the given time)
+		event when validity is set to false, the value is valid and usable (this simplify the client code)
+
+Telemetry.SetNumericSample( objectHandle , absoluteTime , propertyIndex , value ) -- Tacview 1.7.5
+Telemetry.SetTextSample( objectHandle , absoluteTime , propertyIndex , value ) -- Tacview 1.7.5
+
+	Set or re-set given numeric or text property value at the given time.
+	You can set absoluteTime to Tacview.Telemetry.BeginningOfTime to declare the properties of timeless objects like waypoints.
+
+Telemetry.GetNumericSampleCount( objectHandle , propertyIndex ) -- Tacview 1.8.0
+Telemetry.GetTextSampleCount( objectHandle , propertyIndex ) -- Tacview 1.8.0
+
+	Retrieve the number of samples currently loaded in memory for the specified object.
+	This function is typically used to enumerate the object samples.
+
+Telemetry.GetNumericSampleFromIndex( objectHandle , sampleIndex , propertyIndex ) -- Tacview 1.8.0
+Telemetry.GetTextSampleFromIndex( objectHandle , sampleIndex , propertyIndex ) -- Tacview 1.8.0
+
+	Retrieve given object telemetry data sample from its index.
+	SampleIndex starts at 0 and ends at count-1.
+	You can use GetNumericSampleCount() and GetTextSampleCount() to know the number of samples of a specific property.
+
+	Return value:
+
+		{ sampleValue , sampleTime }
+
+		Returns nil if index is invalid
+
+Telemetry.SetTransform( objectHandle , absoluteTime , transform ) -- Tacview 1.7.5
+
+	Set or re-set object position and rotation at the given time.
+
+	absoluteTime is a 64-bit floating point number which represents the number of seconds elapsed to 1970-01-01T00:00:00Z
+
+	Injected angles (including longitude and latitude) MUST be normalized between ]-pi,+pi]
+	Failure to do so may produce undefined results with some formulas.
+
+	For performance reasons, angles retrieved by the telemetry manager are *NOT* always normalized between ]-pi,+pi]
+	Do not forget to normalize angles before displaying then as text to the final user!
+
+	-- non specified members will be set to the interpolated value of the preceding and following samples.
+
+	transform
+	{
+		-- Spherical position
+
+		f64 longitude;		-- (radian) Spherical position (+ is towards east)
+		f64 latitude;		-- (radian) Spherical position (+ is towards north)
+		f32 altitude;		-- (meters) Spherical position
+
+		-- Rotation
+
+		f32 roll;			-- (radian) roll axis rotation
+		f32 pitch;			-- (radian) pitch axis rotation
+		f32 yaw;			-- (radian) yaw axis rotation
+
+		-- Native coordinates, mostly used to get accurate distance and speed calculation for flat world simulators.
+
+		f32 u;				-- (meters) Native x coordinate
+		f32 v;				-- (meters) Native y coordinate
+		f32 heading;		-- (radian) Heading in native coordinates system
+	};
+
+Telemetry.GetTransformTimeRange( objectHandle ) -- Tacview 1.8.0
+
+	Retrieve the time of the first and last transform sample available for the specified object.
+	This function is typically useful to enumerate object samples over its effective activity period.
+	Returns nil if the object does not have any transform sample available.
+	Note that Telemetry.BeginningOfTime can be returned if the object is timeless like a Bullseye.
+
+	Return value:
+
+	{
+		firstTransformSampleTime,		-- first effective transform sample absolute time
+		lastTransformSampleTime			-- last effective transform sample absolute time
+	}
+
+
+Telemetry.GetLifeTime( objectHandle ) -- Tacview 1.7.6
+
+	Return absolute time of the object first appearance and its time of disappearance if applicable.
+	Unlike GetObjectDataTimeRange(), this function may return a wider range which can goes up to Telemetry.EndOfTime if the object has never been destroyed or removed from the battlefield.
+	Prefer the function GetTransformTimeRange() if you want to iterate over the object telemetry samples via a time counter.
+
+	Return value:
+
+	{
+		lifeTimeBegin,		-- First sample absolute time
+		lifeTimeEnd			-- Last sample absolute time
+	}
+
+	If the object exists from the beginning of times (e.g. a bullseye) its lifeTimeBegin is Telemetry.BeginningOfTime.
+	If the object has never been destroyed or removed from the battlefield, then lifeTimeEnd is Telemetry.EndOfTime.
+
+Telemetry.SetLifeTimeEnd( objectHandle , absoluteTime ) -- Tacview 1.7.5
+
+	Defines the end-of-life of the specified object.
+	Typically used to specify when an object has been destroyed or has been removed from the battlefield.
+
+Telemetry.RemoveNumericSample( objectHandle , absoluteTime , propertyIndex ) -- Tacview 1.8.0
+Telemetry.RemoveNumericSampleFromIndex( objectHandle , sampleIndex , propertyIndex ) -- Tacview 1.8.0
+Telemetry.RemoveTextSample( objectHandle , absoluteTime , propertyIndex ) -- Tacview 1.8.0
+Telemetry.RemoveTextSampleFromIndex( objectHandle , sampleIndex , propertyIndex ) -- Tacview 1.8.0
+
+	Delete sample value at the specified time or index.
+
+	Return value:
+
+		true if the operation has succeeded
+		false if one of the parameter is out-dated (because of real-time telemetry change for example)
+
+Telemetry.DeleteObject( objectHandle ) -- Tacview 1.7.5
+
+	Remove the specified object from the telemetry manager.
+	This operation is safe: The corresponding handle will remain valid until the next effective purge (typically when loading a new telemetry file) so the other modules will not crash if they attempt to reference the object afterward.
+	However, any data related to this object will be freed.
+
+Telemetry.GetObjectCount() -- Tacview 1.7.6
+
+	Retrieve the total number of objects currently active in the telemetry manager.
+	Typically used to enumerate all objects.
+
+Telemetry.GetObjectHandleByIndex( index ) -- Tacview 1.7.6
+
+	Retrieve an object by its index.
+	NOTE: The index goes from 0 to GetObjectCount() - 1.
+
+	Return value:
+
+		The object handle or nil if the index is out of range.
+
+Telemetry.GetObjectId( objectHandle ) -- Tacview 1.7.6
+
+	Retrieve given object id.
+
+	Beware that object ids can be recycled and cannot uniquely identify objects.
+	For that reason, avoid using them, unless it is for telemetry injection (event creation) or export.
+
+--------------------------------------------------------------------------------------------------------------------------------
+Terrain
+
+	The following functions can be used to customize the terrain as well as to retrieve some information about it.
+
+Terrain.GetElevation( longitude , latitude ) -- Tacview 1.7.5
+
+	Retrieve given point elevation in meter.
+	Longitude and latitude are in radian.

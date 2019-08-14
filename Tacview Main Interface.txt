@@ -1,0 +1,561 @@
+--------------------------------------------------------------------------------------------------------------------------------
+
+	Tacview 1.8.0 Lua General Interface
+	Last update: 2019-06-10
+
+--------------------------------------------------------------------------------------------------------------------------------
+
+The following features are available to general Lua modules in addition of the core features listed in [Tacview Lua Core Interface.txt]
+Data importers and exporters DO NOT have access to any of the following features.
+
+--------------------------------------------------------------------------------------------------------------------------------
+UI
+
+	General functions to manipulate Tacview UI and aspect.
+
+UI.EnterFullScreen() -- Tacview 1.7.2
+UI.ExitFullScreen() -- Tacview 1.7.2
+
+	Enter/exit full screen mode.
+	When switched to full screen, Tacview displays only the 3D view in a borderless window.
+	This can be useful during an online debriefing, so the user can fully focus his attention on the objects displayed in the 3D view.
+	The user can manually switch between full screen and windowed mode by pressing [ALT] + [ENTER].
+	It is also possible to exit the full screen mode by pressing [Esc].
+
+UI.EnterReadMode( [borderless] ) -- Tacview 1.7.2
+UI.ExitReadMode() -- Tacview 1.7.2
+
+	Enter/exit read-mode.
+	In read-mode Tacview displays only the 3D view (tools and menus are hidden).
+	borderless is an optional boolean parameter which can be set to true if you also want to hide Tacview window border.
+	This function is mainly to integrate Tacview window in another application when combined with UI.SetWindowParent()
+
+UI.SetWindowParent( parentWindowhandle ) -- Tacview 1.7.2
+
+	Attach Tacview main window to another application window.
+	Typically used with UI.EnterReadMode(true) and UI.SetWindowPosition() to display Tacview inside another application.
+	Call SetWindowParent(nil) to detach Tacview main window from your application.
+
+UI.SetWindowPosition( x , y [, width , height] ) -- Tacview 1.7.2
+
+	Change Tacview main window position and size when with and height are provided.
+	Position is specified for the top/left corner of the window on the desktop, or in its parent window.
+
+UI.SetWindowSize( width , height ) -- Tacview 1.7.2
+
+	Change Tacview main window size.
+	width and height must be > 0.
+
+UI.GetWindowHandle() -- Tacview 1.7.5
+
+	Returns Tacview main window handle.
+	You can use this function to create child windows or dialog boxes for your add-on.
+	DO NOT use this function to manually change Tacview window size, position or parent, in that case, use the dedicated functions which are doing more than just calling the OS.
+
+	Return value:
+
+		Tacview main window handle.
+		This handle may be nil if Tacview is executed in silent mode with the command line.
+
+--------------------------------------------------------------------------------------------------------------------------------
+UI.MessageBox
+
+	Message boxes can be used to display modal notifications and ask for simple questions to the user.
+	It is suggested to not use too many message boxes as they are breaking the productivity flow of the user.
+	Whenever possible, you can use the log to output most of you messages and rely on settings to choose the appropriate behavior depending on the circumstances.
+
+UI.MessageBox.GetSaveFileName( options ) -- Tacview 1.8.0
+
+	Asks the user which under which file name he/she wants to save a file.
+
+	options =
+	{
+		defaultFileExtension = defaultFileExtension,	-- excluding '.', for example "csv"
+		fileName = defaultFileNameToSave,				-- (OPTIONAL) default full path or file name for the file to save
+
+		fileTypeList =									-- List of file types supported for save (usually one item of the typical type)
+		{
+			{ extensions, description }					-- File type(s) and description {"*.jpg;*.png", "Picture"}
+		}
+	}
+
+	Return value:
+
+		full path of the file name to save
+		nil if the user has canceled the operation
+
+	Example:
+
+		local options =
+		{
+			defaultFileExtension = "csv",
+			fileTypeList =
+			{
+				{ "*.csv" , "Comma-separated values"  }
+				{ "*.xml" , "Extensible Markup Language" }
+				{ "*.json;*.js" , "JavaScript Object Notation" }
+			}
+		}
+
+UI.MessageBox.GetFolderName( options ) -- Tacview 1.8.0
+
+	Prompts the user to select a folder and retrieve selected folder full path.
+
+	options =
+	{
+		folderName = defaultFolderNameToSelect,			-- (OPTIONAL) full path of the folder to select by default
+		canCreateNewFolder = boolean,					-- (OPTIONAL) set to true to enable the user to create new folders
+	}
+
+	Return value:
+
+		full path of the folder name
+		nil if the user has canceled the operation
+
+	Example:
+
+		local options =
+		{
+			folderName = "C:/Downloads/",
+			canCreateNewFolder = true,
+		}
+
+--------------------------------------------------------------------------------------------------------------------------------
+UI.Menus
+
+	The Menu interface is useful to create and insert commands and options in Tacview menus.
+	All new menus will be added to the addons menu.
+	Tacview will automatically remove menu items of an addon which is unloaded.
+
+UI.Menus.AddMenu( parentMenuId , textLabel ) -- Tacview 1.7.2
+
+	Creates and inserts a menu in Tacview menu.
+	You can specify the id of a parent menu, or you can use nil to insert your menu in Tacview addons main menu.
+
+	Return value:
+
+		a menu id (integer) which can be used late to insert sub items or to remove the menu.
+
+UI.Menus.AddSeparator( parentMenuId ) -- Tacview 1.8.0
+
+	Add a separator in the specified menu.
+	Use separators to group options and commands to make your menus more intuitive for your users.
+
+UI.Menus.AddCommand( parentMenuId , textLabel , function ) -- Tacview 1.7.2
+
+	Insert a command in the given menu.
+	You can specify the id of a parent menu, or you can use nil to insert your menu in Tacview addons main menu.
+	function will be called whenever this very menu command has been clicked.
+
+	Return value:
+
+		a menu id (integer) which can be used late to insert sub items or to remove the menu.
+
+UI.Menus.AddOption( parentMenuId , textLabel , optionBoolean , function ) -- Tacview 1.7.2
+
+	Insert a command with a tick mark in the given menu.
+	If optionBoolean is true, then a tick mark will be displayed after the command label.
+	You can specify the id of a parent menu, or you can use nil to insert your menu in Tacview addons main menu.
+	function will be called whenever this menu option has been clicked.
+
+	Return value:
+
+		Menu id which can later be used to change the option value using UI.Menus.SetOption().
+
+UI.Menus.SetOption( menuId , optionBoolean ) -- Tacview 1.7.2
+
+	Change the value of a menu option.
+	If optionBoolean is true, then a tick mark will be displayed next to the corresponding command label.
+
+--------------------------------------------------------------------------------------------------------------------------------
+UI.Renderer
+
+	The renderer is typically used to display objects in the main 3D view.
+	NOTE: Drawing functions can be called *only* during draw events.
+	See Events.* for how to register drawing callbacks.
+
+UI.Renderer.GetWidth() -- Tacview 1.7.2
+
+	Retrieve the renderer width in pixels or nil when not in a draw event.
+
+UI.Renderer.GetHeight() -- Tacview 1.7.2
+
+	Retrieve the renderer height in pixels or nil when not in a draw event.
+
+UI.Renderer.LoadTexture( texturePath [, wrapRepeat [, compressed] ) -- Tacview 1.7.3
+UI.Renderer.UnloadTexture( textureHandle ) -- Tacview 1.7.3
+
+	wrapRepeat = must be set to true if you want the texture to be repeated (default = true)
+	compressed = must be set to true if you want the texture to be compressed (recommended) (default = true)
+
+	Load png or jpg file and compile it as a texture.
+	Only 24-bit and 32-bit formats are supported.
+	32-bit format can be used to draw translucent textures.
+
+	Textures are directly used by UI.Renderer.CreateRenderState
+	Textures are indirectly used (in render states) by UI.Renderer.DrawObjectVertexArray and UI.Renderer.DrawUIVertexArray
+	Textures are automatically unloaded when the add-on is freed.
+
+	Return value:
+
+		The texture handle or nil if the file was not found or invalid.
+
+UI.Renderer.CreateVertexArray( vertexArray ) -- Tacview 1.7.2
+UI.Renderer.ReleaseVertexArray( vertexArrayHandle ) -- Tacview 1.7.2
+
+	Vertex arrays are a list of 3D points used to display triangle strips, which in turn represent 3D objects on screen.
+	Vertex arrays are automatically freed when the addon is unloaded.
+
+	Typically:
+		- You must call once (per 3D object) UI.Renderer.CreateVertexArray() to prepare your vertex array.
+		- Then, in your Events.DrawOpaqueObjects() callback, you can use the handle returned by CreateVertexArray() to draw your object using UI.Renderer.DrawVertexArray().
+		- Whenever the vertex array is not required anymore, you can release the associated resource by calling UI.Renderer.ReleaseVertexArray()
+
+	vertexArray =
+	{
+		x, y, z,
+		...
+	}
+
+	Return value:
+
+		handle (interger) of the compiled array or nil if the array is invalid.
+
+UI.Renderer.CreateTextureCoordinateArray( textureCoordinateArray ) -- Tacview 1.7.3
+UI.Renderer.ReleaseTextureCoordinateArray( textureCoordinateArrayHandle ) -- Tacview 1.7.3
+
+	Texture coordinate arrays are a list of 2D coordinates used to texture triangle strips.
+	They are automatically freed when the addon is unloaded.
+
+	textureCoordinateArray =
+	{
+		u, u,
+		...
+	}
+
+	Return value:
+
+		handle (interger) of the compiled array or nil if the array is invalid.
+
+UI.Renderer.CreateRenderState( renderState ) -- Tacview 1.7.2
+UI.Renderer.ReleaseRenderState( renderStateHandle ) -- Tacview 1.7.2
+
+	The draw state describes constants which will be used for one or many draw calls.
+	Typically used to specify a single color for a whole 3D model, as well as a list of textures used during draw operations.
+	You can use at any time UI.Renderer.ReleaseRenderState() to free the resource associated to a previously compiled draw state.
+	Draw states are automatically freed when the addon is unloaded.
+
+	renderState =
+	{
+		-- OPTIONAL color (default to opaque white)
+		-- Opaque red is: 0xff0000ff
+		-- Opaque green is: 0xff00ff00
+		-- Opaque blue is: 0xffff0000
+
+		[color = 32_bit_rgba_color_code,]
+
+		-- OPTIONAL texture loaded with UI.Renderer.LoadTexture()
+
+		[texture = textureHandle,]
+
+		-- OPTIONAL blend-mode (for transparent rendering phases)
+
+		[
+			blendMode =
+				Tacview.UI.Renderer.BlendMode.Normal
+				Tacview.UI.Renderer.BlendMode.Additive
+		]
+	}
+
+	Return value:
+
+		handle (integer) of the compiled state or nil if the array is invalid.
+
+UI.Renderer.DrawObjectVertexArray( transform , renderStateHandle , vertexArrayHandle ) -- Tacview 1.7.2
+UI.Renderer.DrawObjectVertexArray( transform , renderStateHandle , vertexArrayHandle [, textureCoordinateArrayHandle] ) -- Tacview 1.7.3
+
+	renderStateHandle is an integer previously returned by UI.Renderer.CreateRanderState()
+	vertexArrayHandle is an integer previously returned by UI.Renderer.CreateVertexArray()
+	textureCoordinateArrayHandle is an optional integer previously returned by UI.Renderer.CreateTextureCoordinateArray()
+
+	transform =
+	{
+		-- If the cartesian xyz position in the Earth global space is not provided, it will be calculated based on the spherical position (longitude, latitude, altitude).
+
+		x = number,
+		y = number,
+		z = number,
+
+		-- If the spherical position is not provided, it will be calculated based on xyz cartesian position.
+
+		longitude = radian,
+		latitude = radian,
+		altitude = meters,
+
+		-- Optional rotation info
+
+		roll = radian,
+		pitch = radian,
+		yaw = radian,
+
+		-- Optional scale
+
+		scale = number
+	}
+
+	Draw the given 3D model (from a previous call to UI.Renderer.CreateVertexArray) using the given state (from a previous call to UI.Renderer.CreateRenderState) at the given position/rotation/scale in the 3D view.
+	State and vertex array must be created only ONCE.
+	DO NOT re-declare the state and/or the vertex array at each draw call, this will result in a resource leak.
+
+UI.Renderer.DrawUIVertexArray( transform , renderStateHandle , vertexArrayHandle ) -- Tacview 1.7.2
+UI.Renderer.DrawUIVertexArray( transform , renderStateHandle , vertexArrayHandle [, textureCoordinateArrayHandle] ) -- Tacview 1.7.3
+
+	renderStateHandle is an integer previously returned by UI.Renderer.CreateRenderState()
+	vertexArrayHandle is an integer previously returned by UI.Renderer.CreateVertexArray()
+	textureCoordinateArrayHandle is an optional integer previously returned by UI.Renderer.CreateTextureCoordinateArray()
+
+	transform =
+	{
+		-- Mandatory screen coordinates
+
+		x = number,
+		y = number,
+		z = number,				-- 0 by default
+
+		-- Optional orientation
+
+		roll = radian,
+		pitch = radian,
+		yaw = radian,
+
+		-- Optional uniform scale
+
+		scale = number
+
+		-- Optional non-uniform scale
+		-- Tacview 1.8.0
+
+		scaleX = number
+		scaleY = number
+	}
+
+	During the UI pass, 2D coordinates are like the following:
+
+	UI.Renderer.GetHeight()
+
+	    ^
+	    |transform.Y
+	    |
+	    |
+	    |      transform.x
+	    +------------------> UI.Renderer.GetWidth()
+	   0,0
+
+	Draw the given 2D/3D model (from a previous call to UI.Renderer.CreateVertexArray) using the given state (from a previous call to UI.Renderer.CreateRenderState()) at the given position/rotation/scale on top of the 3D view.
+	State and vertex array must be created only ONCE.
+	DO NOT re-declare the state and/or the vertex array at each draw call, this will result in a resource leak.
+
+UI.Renderer.DrawOpaqueObject( objectHandle , transform [, alpha ]] ) -- Tacview 1.7.2
+UI.Renderer.DrawTransparentObject( objectHandle , transform [, alpha ]] ) -- Tacview 1.7.2
+
+	High level function to draw the opaque or transparent parts of the corresponding telemetry object in the 3D view.
+	These functions will automatically use the current object shape and color to properly display the 3D model in the 3D view.
+
+	UI.Renderer.DrawOpaqueObject() is typically called in Events.DrawOpaqueObjects callbacks to draw the main object body.
+	UI.Renderer.DrawTransparentObject() is typically called in Events.DrawTransparentObjects callbacks to draw the remaining transparent parts of objects (e.g. properlters).
+
+	transform =
+	{
+		-- If the spherical position in not provided, Tacview will use cartesian xyz position in the Earth global space
+
+		x = number,
+		y = number,
+		z = number,
+
+		-- Spherical position will be used in priority to render the object
+
+		longitude = radian,
+		latitude = radian,
+		altitude = meters,
+
+		-- Optional rotation info
+
+		roll = radian,
+		pitch = radian,
+		yaw = radian,
+
+		-- Optional scale
+
+		scale = number
+	}
+
+	You can scale the object or set scale to -1 for automatic scale (depending on user settings)
+	You can force the transparency of the object or set alpha to -1 for automatic (depending on dead/alive status)
+
+UI.Renderer.Print( transform , renderStateHandle , text ) -- Tacview 1.7.3
+
+	Print the given text at the corresponding x,y coordinates.
+	Should be used only during 2D transparent UI operations.
+
+	You can set renderState.blendMode to Tacview.UI.Renderer.BlendMode.Additive to display HUD style text.
+
+	transform =
+	{
+		-- If the cartesian xyz position in the Earth global space is not provided, it will be calculated based on the spherical position (longitude, latitude, altitude).
+
+		x = number,
+		y = number,
+
+		-- Optional scale
+
+		scale = number
+	}
+
+UI.Renderer.ContextMenu.RegisterListener( function ) -- Tacview 1.7.6
+
+	Use this function to register a callback to add options to the context menu Tacview will display on right click in the 3D view.
+	Right before displaying the 3D view context menu Tacview will call the following function so you can have the opportunity to add custom option:
+
+		function( contextMenuId , objectHandle )
+
+		-- contextMenuId (integer): Id of the context menu in which you can add options.
+		-- objectHandle (integer): object associated to the context menu (0 if no object is related to the menu)
+
+	Use UI.Menus functions with parentMenuId set to contextMenuID to add your own options to the context menu according to the selected object.
+	The context menu is volatile and will be automatically destroyed as soon as it will be closed by the user.
+	Every time your callback is called, your options will be added to a brand new menu.
+
+--------------------------------------------------------------------------------------------------------------------------------
+Events
+
+	You can register callbacks for different kind of events in Tacview.
+
+Events.Update.RegisterListener( function ) -- Tacview 1.7.2
+
+	Once a frame, Tacview will call your function which must match the following signature:
+
+		Update( dt , absoluteTime )
+
+			- dt is the number of seconds elapsed in real life since the last Update()
+			- absoluteTime is the current telemetry time in seconds since 1970-01-01 (this parameter is useful to talk with the Telemetry module)
+
+Events.DrawOpaqueObjects.RegisterListener( function ) -- Tacview 1.7.2
+Events.DrawTransparentObjects.RegisterListener( function ) -- Tacview 1.7.2
+
+	Once a frame, Tacview will call your function to draw 3D objects in the 3D view.
+	There is one pass for the opaque 3D models and one pass for the transparent models.
+	See UI.Renderer.DrawObjectVertexArray() and UI.Renderer.DrawOpaqueObject() to draw objects in the 3D world.
+
+Events.DrawOpaqueUI.RegisterListener( function ) -- Tacview 1.7.2
+Events.DrawTransparentUI.RegisterListener( function ) -- Tacview 1.7.2
+
+	Once a frame, Tacview will call your function to draw 2D transparent foreground UI on top of the 3D view.
+	You function will not receive any parameter.
+	See UI.Renderer.DrawUIVertexArray() to draw your UI on top of the 3D view.
+
+--------------------------------------------------------------------------------------------------------------------------------
+Context
+
+	This contains all the information relative the telemetry representation on screen.
+	NOTE: See Lua Core Interface for additional functions.
+
+Context.GetSelectedObject( objectIndex ) -- Tacview 1.7.2
+
+	Retrieves the handle of one of the selected objects.
+	objectIndex can be either 0 for the primary object or 1 for the secondary object.
+	It is currently possible to select two objects at the same time.
+
+Context.SetSelectedObject( objectIndex , objectHandle ) -- Tacview 1.7.2
+
+	Choose which object is currently selected.
+	objectIndex can be either 0 for the primary object or 1 for the secondary object.
+	The user usually select object(s) to change the camera point-of-view or to define a specific context for some tools.
+	To get an object handle from its telemetry id, use the function Telemetry.GetObjectHandle(id)
+
+Context.GetActiveObjectList() -- Tacview 1.7.3
+
+	Retrieve the handles of all currently active (alive) objects at the current playback time.
+	The returned table contains the handles in no specific order.
+	Returns an empty table if no objects are currently active.
+
+	Return value:
+
+		{ objectHandle1 , objectHandle2 , ... }
+
+--------------------------------------------------------------------------------------------------------------------------------
+Context.Camera
+
+	The camera is used to define the user point-of-view in the 3D window of Tacview.
+
+Context.Camera.GetMode() -- Tacview 1.7.2
+
+	Returns the current camera mode.
+
+	Return value:
+
+		Camera.Cockpit
+		Camera.External
+		Camera.Satellite
+		Camera.Free
+
+Context.Camera.SetRotation( roll , pitch , yaw ) -- Tacview 1.8.0
+
+	Orient the camera.
+
+		roll: in radian, positive when banking to the right
+		pitch: in radian, positive when climbing
+		yaw: in radian, positive when turning to the right
+
+	When "UI.View.Camera.Dogfight.Mode" == "LookAt" and "UI.View.Camera.Dogfight.Enabled" == true then the rotation is an offset relative to the target object.
+	In other words, the rotation of (0,0,0) will point the camera toward the secondary object.
+
+	If you want to look to the right of the targeted object, simply set the yaw of camera to +45 degrees:
+
+		Tacview.Context.Camera.SetExternalViewRotation( 0 , 0 , math.rad(45) )
+
+	NOTE: When the camera mode is switched, the rotation is usually reset.
+	For that reason, you should change the rotation AFTER switching the camera to the mode of your choice.
+
+Context.Camera.SetRangeToTarget( range ) -- Tacview 1.8.0
+
+	Changes the distance between the camera and the observed object in external and satellite mode.
+	The range is expressed in meters.
+	In satellite mode, the range is relative to the mean sea level.
+
+Context.Camera.SetOffset( offsetData ) -- Tacview 1.7.2
+
+	Temporarily offset camera position and rotation.
+	The offset is automatically reset at teach new frame when not overridden by an addon.
+
+	The following components can be specified, all of them are optional:
+
+	offsetData =
+	{
+		lateral = meters_positive_to_the_right ,
+		longitudinal = meters_positive_forward ,
+		vertical = meters_positive_up ,
+		roll = radian ,
+		pitch = radian ,
+		yaw = radian ,
+	}
+
+Context.Camera.SetFieldOfView( radian ) -- Tacview 1.7.2
+
+	Change the camera vertical field-of-view for one frame.
+	The field-of-view is automatically reset at each new frame when not overridden by an addon.
+	The default field-of-view is 60 degrees.
+	NOTE: The field-of-view must be defined in radian.
+
+--------------------------------------------------------------------------------------------------------------------------------
+Context.Playback
+
+	Functions to control the playback of loaded telemetry data.
+
+Context.Playback.Play() -- Tacview 1.7.6
+Context.Playback.Pause() -- Tacview 1.7.6
+
+	Resume / pause playback.
+
+Context.Playback.IsPlaying() -- Tacview 1.7.6
+
+	returns false if the playback is currently paused.
