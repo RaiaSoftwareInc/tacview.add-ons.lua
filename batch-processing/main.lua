@@ -190,6 +190,10 @@ function OnBatchProcess()
 
 	local folderPath = Tacview.UI.MessageBox.GetFolderName()
 
+	if not folderPath then
+		return
+	end
+
 	-- Process all files in the folder
 
 	ProcessFolder(folderPath)
