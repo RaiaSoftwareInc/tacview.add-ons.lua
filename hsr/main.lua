@@ -10,7 +10,7 @@
 
 MIT License
 
-Copyright (c) 2018 Raia Software Inc.
+Copyright (c) 2019 Raia Software Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -58,6 +58,8 @@ local FanSpeedFactor = (MaxFanSpeed - MinFanSpeed) / (MaxVehicleSpeed - MinVehic
 local udpAddress = "127.0.0.1"
 local udpPort = 8053
 
+local PacketsPerSecond = 4 					-- Maximum number of packets sent per second
+
 ----------------------------------------------------------------
 -- Preferences / menus
 ----------------------------------------------------------------
@@ -65,7 +67,7 @@ local udpPort = 8053
 local FanEnabledSettingName = "FanEnabled"
 local fanEnabledMenuId = nil
 
-local fanEnabled = true
+local fanEnabled = false
 
 ----------------------------------------------------------------
 -- UDP service
@@ -78,7 +80,9 @@ function InitializeUDP()
 	local socket = require("socket")
 	udpSocket = assert(socket.udp())
 
-	Tacview.Log.Info("HSR: Ready to send packets to", udpAddress, udpPort)
+	if fanEnabled and udpSocket then
+		Tacview.Log.Info("HSR: Ready to send packets to", udpAddress, udpPort)
+	end
 
 end
 
@@ -179,21 +183,44 @@ end
 -- keep track of whether player has changed vehicle
 
 local previousVehicleHandle
-local vehicleId = 0 -- incremented by 1 each time vehicle is changed
+
+local vehicleId = 0 		-- incremented by 1 each time vehicle is changed
+
+-- keep track of how much time has elapsed since last packet sent
+
+local timeElapsed = 0
+
+-- keep track of whether playback is currently paused
+
+local isPaused
 
 -- Update is called once a frame by Tacview
 
 function OnUpdate(dt, absoluteTime)
 
-	-- Determine if playback is paused. 
+	-- Keep track of whether playback was paused at LAST update
 
-	local isPaused
+	local previousIsPaused = isPaused
+
+	-- Determine if playback is currently paused. 
 
 	if Tacview.Context.Playback.IsPlaying()	then	
 		isPaused = 0
 	else
 		isPaused = 1
 	end
+
+	-- Keep track of whether playback was just paused at this frame
+
+	local justPaused
+
+	if previousIsPaused == 0 and isPaused == 1 then
+		justPaused = true
+	end
+
+	-- Keep track of how much time has elapsed since last packet sent
+
+	timeElapsed = timeElapsed + dt
 
 	-- Add-on enabled?
 
@@ -240,17 +267,22 @@ function OnUpdate(dt, absoluteTime)
 
 		local vehicleSpeedKph = vehicleSpeed * mps2kph
 
-		-- Send packet
+		-- Prepare packet
 
 		local packet = string.format("speed=%i\nisPaused=%i\nvehicleId=%i", 
 						math.floor(vehicleSpeedKph + 0.5),
 						isPaused,
 						vehicleId)
 
-		-- Tacview.Log.Info("HSR:", packet)
+		-- Send a packet if enough time has elapsed since the last packet
 
-		SendUDPMessage(packet)
+		if (timeElapsed > 1 / PacketsPerSecond) or justPaused then
 
+			SendUDPMessage(packet)
+--			Tacview.Log.Info("HSR:", packet)
+			timeElapsed = 0
+
+		end
 	end
 end
 
@@ -263,6 +295,10 @@ function OnFanEnabledMenuOption()
 	-- Change the option
 
 	fanEnabled = not fanEnabled
+
+	if fanEnabled and udpSocket then
+		Tacview.Log.Info("HSR: Ready to send packets to", udpAddress, udpPort)
+	end
 
 	-- Save it in the registry
 
@@ -285,7 +321,7 @@ function Initialize()
 	local currentAddOn = Tacview.AddOns.Current
 
 	currentAddOn.SetTitle("Rfun Fan System")
-	currentAddOn.SetVersion("0.2")
+	currentAddOn.SetVersion("0.3")
 	currentAddOn.SetAuthor("Vyrtuoz")
 	currentAddOn.SetNotes("Exports local aircraft speed to Rfun fan system driver.")
 
