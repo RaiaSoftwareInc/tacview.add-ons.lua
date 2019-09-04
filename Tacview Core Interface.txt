@@ -358,6 +358,21 @@ Math.Vector.LocalToGlobal( objectTransform , localCoordinates ) -- Tacview 1.7.2
 		returns nil if not enough data is provided.
 
 --------------------------------------------------------------------------------------------------------------------------------
+Events
+
+	You can register callbacks for different kind of events in Tacview.
+
+Events.Shutdown.RegisterListener( function ) -- Tacview 1.8.0
+
+	Tacview will call the given function as soon as the corresponding add-on is unloaded.
+	This can be handy to complete operations in progress and to release appropriate external resources.
+	Note that you do not have to explicitly free Tacview resources (like menus), because this is done for you automatically.
+
+		OnShutdown()
+
+			Called right before the Lua add-on is unloaded.
+
+--------------------------------------------------------------------------------------------------------------------------------
 Context
 
 	This contains all the information relative the telemetry representation on screen.

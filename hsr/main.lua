@@ -286,6 +286,12 @@ function OnUpdate(dt, absoluteTime)
 	end
 end
 
+function OnShutdown()
+
+	SendUDPMessage("EXIT")
+
+end
+
 ----------------------------------------------------------------
 -- Menus
 ----------------------------------------------------------------
@@ -342,6 +348,7 @@ function Initialize()
 	-- Register callbacks
 
 	Tacview.Events.Update.RegisterListener(OnUpdate)
+	Tacview.Events.Shutdown.RegisterListener(OnShutdown)
 
 end
 
