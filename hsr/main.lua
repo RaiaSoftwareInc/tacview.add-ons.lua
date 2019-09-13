@@ -100,7 +100,17 @@ function GetLocalVehicleHandle(absoluteTime)
 
 	local telemetry = Tacview.Telemetry
 
-	-- Find the most important object which is currently alive
+	-- Use the primary selected object, or the secondary if there is no primary
+
+	local selectedObjectHandle = Tacview.Context.GetSelectedObject(0) or Tacview.Context.GetSelectedObject(1)
+
+	if selectedObjectHandle then
+	
+		return selectedObjectHandle
+
+	end
+
+	-- If no object is selected, find the most important object which is currently alive
 
 	local importancePropertyIndex = telemetry.GetObjectsNumericPropertyIndex("Importance", false)
 
@@ -132,12 +142,7 @@ function GetLocalVehicleHandle(absoluteTime)
 		end
 	end
 
-	-- In the worst case, use the selected object
-
-	local selectedObjectHandle = Tacview.Context.GetSelectedObject(0) or Tacview.Context.GetSelectedObject(1)
-
-	return selectedObjectHandle
-
+	return nil
 end
 
 function GetVehicleSpeed(vehicleHandle , absoluteTime)
@@ -153,7 +158,9 @@ function GetVehicleSpeed(vehicleHandle , absoluteTime)
 		local vehicleIAS, isSampleValid = telemetry.GetNumericSample(vehicleHandle, absoluteTime, iasPropertyIndex)
 
 		if isSampleValid == true then
+
 			return vehicleIAS
+
 		end
 	end
 
@@ -173,7 +180,7 @@ function GetVehicleSpeed(vehicleHandle , absoluteTime)
 
 	-- Not enough data available
 
-	return nil
+	return 0
 end
 
 ----------------------------------------------------------------
@@ -235,21 +242,36 @@ function OnUpdate(dt, absoluteTime)
 	if vehicleHandle ~= previousVehicleHandle then
 
 		if vehicleHandle then
+			
 			Tacview.Log.Info("HSR: New vehicle detected:", Tacview.Telemetry.GetCurrentShortName(vehicleHandle))
+			vehicleId = vehicleId + 1
+			previousVehicleHandle = vehicleHandle
+
+		else
+
+			-- If there was previously a vehicle handle and now there isn't, send a message to STOP the fan.
+
+			if previousVehicleHandle then
+
+				StopFan()
+				previousVehicleHandle = nil
+				return
+
+			end
+
 		end
 
-		vehicleId = vehicleId + 1
-		previousVehicleHandle = vehicleHandle
-
-	end
-
-	if not vehicleHandle then
-		return
 	end
 
 	-- Retrieve vehicle speed
 
-	local vehicleSpeed = GetVehicleSpeed(vehicleHandle , absoluteTime)
+	local vehicleSpeed
+
+	if vehicleHandle then
+
+		vehicleSpeed = GetVehicleSpeed(vehicleHandle , absoluteTime)
+
+	end
 
 	-- Send wind factor over UDP to Rfun fan system driver
 
@@ -279,7 +301,6 @@ function OnUpdate(dt, absoluteTime)
 		if (timeElapsed > 1 / PacketsPerSecond) or justPaused then
 
 			SendUDPMessage(packet)
---			Tacview.Log.Info("HSR:", packet)
 			timeElapsed = 0
 
 		end
@@ -288,7 +309,13 @@ end
 
 function OnShutdown()
 
-	SendUDPMessage("EXIT")
+	StopFan()
+
+end
+
+function StopFan()
+
+	SendUDPMessage("STOP")
 
 end
 
@@ -327,8 +354,8 @@ function Initialize()
 	local currentAddOn = Tacview.AddOns.Current
 
 	currentAddOn.SetTitle("Rfun Fan System")
-	currentAddOn.SetVersion("0.3")
-	currentAddOn.SetAuthor("Vyrtuoz")
+	currentAddOn.SetVersion("0.9")
+	currentAddOn.SetAuthor("BuzyBee")
 	currentAddOn.SetNotes("Exports local aircraft speed to Rfun fan system driver.")
 
 	-- Load preferences
