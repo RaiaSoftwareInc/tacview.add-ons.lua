@@ -55,34 +55,64 @@ local FontColor = 0xffffffff
 
 local AltitudeMax = 6000	
 local AltitudeStep=500		-- AltitudeMax should be a multiple of AltitudeStep
-local yEntries = math.floor(AltitudeMax/AltitudeStep)
+local yEntries = 12
 
 local ThrottleMax=1.2
 local ThrottleStep=0.1	-- ThrottleMax should be a multiple of ThrottleStep
-local xEntries = math.floor(ThrottleMax/ThrottleStep)
+local xEntries = 12
 
 --constants
 
 local m2ft = 3.28084
 local m2km = 1/1000
 local s2h = 1/3600
-local rejectMax= 100
+local kgph2gps = 1000/3600 	-- kilograms per hour to grams per second (1 kg / h = 1000 g / 3600 s)
+
+-- What minimum speed in mps
+
+local minGroundSpeed = 28	-- 100kph = 28mps
 
 -- the calculation of the following 2 constants is based on the way the chart is drawn 
 -- The chart has yEntries lines and xEntries columns plus axes and legends
 
 local BackgroundHeight = (yEntries + 7)*FontSize
-local BackgroundWidth = (xEntries + 1) * 6 * FontSize/2
+local BackgroundWidth = (xEntries + 3) * 6 * FontSize/2
 
--- choose calculation period
+-- percentiles above and below which values will be flagged red and green respectively
 
-local dt = 5
+local FlagHighPercentile = 80
+local FlagLowPercentile = 20
 
-local chart = {}
+local updatePeriod = 10		-- how many seconds of data to calculate at one time
+local samplePeriod = 1		-- how many seconds over which to calculate fuel consumption
+local minDistance = 1		-- minimum distance in meters over which to calculate fuel consumption
 
 -- keep track of existing object
 
 local previousSelectedObjectHandle
+
+-- Cumulative Statistic
+
+local chartEntriesSum = {}
+local chartEntriesCount = {}
+local chart = {}
+local lastStatTime = 0.0
+
+function InitializeCharts()
+
+	for y=0,yEntries-1 do
+			
+		chart[y]={}
+		chartEntriesSum[y]={}
+		chartEntriesCount[y]={}
+			
+		for x=0,xEntries-1 do
+			chart[y][x]=0
+			chartEntriesSum[y][x]=0
+			chartEntriesCount[y][x]=0
+		end
+	end
+end
 
 -- Update is called once a frame by Tacview
 
@@ -96,106 +126,45 @@ function OnUpdate(dt, absoluteTime)
 		return
 	end
 
-	if selectedObjectHandle ~= previousSelectedObjectHandle then
+	local firstSampleTime, lastSampleTime= Tacview.Telemetry.GetTransformTimeRange(selectedObjectHandle)
+
+	-- Object changed?
+
+	if selectedObjectHandle and selectedObjectHandle ~= previousSelectedObjectHandle then
+		
 		print"New object found, calculating fuel consumption chart"
-		calculateChart(selectedObjectHandle)
+
+		InitializeCharts()
+		lastStatTime=firstSampleTime
+	
+		-- keep track of selected object
+
+		previousSelectedObjectHandle = selectedObjectHandle
+
 	end
 
-	-- keep track of selected object
+	-- Update stats if enough new data is available 
 	
-	previousSelectedObjectHandle = selectedObjectHandle
+	if lastStatTime+updatePeriod <= lastSampleTime then
+		calculateChart(selectedObjectHandle, lastStatTime,lastStatTime+updatePeriod)
+		lastStatTime = lastStatTime + updatePeriod
+	end
+end
+
+local flagLowValue = 0
+local flagHighValue = 100
+
+function clamp(x,min,max)
+
+	return math.max(math.min(x,max),min)
 
 end
 
-local averageFuelConsumption
-
-function calculateChart(selectedObjectHandle)
-
-	-- iterate through the lifetime of the object at the chosen dt rate
-
-	local firstSampleTime, lastSampleTime = Tacview.Telemetry.GetTransformTimeRange(selectedObjectHandle)
-
-	local values = {}
-
-	for i=math.ceil(firstSampleTime),math.floor(lastSampleTime),dt do
-
-		-- find distance and speed between the current and previous position of the object:getSampleRate()
-
-		local previousTime
-		local speedKpH
-		local currentPosition
-		local lastPosition
-
-		currentPosition = Tacview.Telemetry.GetTransform(selectedObjectHandle,i)
-
-		if previousTime then
-			lastPosition = Tacview.Telemetry.GetTransform(selectedObjectHandle, previousTime)
-			previousTime = i
-		else
-			lastPosition = Tacview.Telemetry.GetTransform(selectedObjectHandle, firstSampleTime)
-		end
-
-		local x0 = math.rad(tonumber(lastPosition.latitude))
-		local y0 = math.rad(tonumber(lastPosition.longitude))
-		local x1 = math.rad(tonumber(currentPosition.latitude))
-		local y1 = math.rad(tonumber(currentPosition.longitude))
-
-		local distanceInMeters = GetSphericalDistance(x0,y0,x1,y1)
-
-		local speedKpH = (distanceInMeters*m2km)/(dt*s2h)
-
-		-- find other necessary info 
-
-		local fuelFlowWeightPropertyIndex = Tacview.Telemetry.GetObjectsNumericPropertyIndex("FuelFlowWeight", false)
-		local throttlePropertyIndex = Tacview.Telemetry.GetObjectsNumericPropertyIndex("Throttle", false)
-
-		if fuelFlowWeightPropertyIndex == Tacview.Telemetry.InvalidPropertyIndex then
-			return
-		end
-
-		if throttlePropertyIndex == Tacview.Telemetry.InvalidPropertyIndex then
-			return
-		end
-
-		local fuelFlowWeight, isSampleValid = Tacview.Telemetry.GetNumericSample(selectedObjectHandle, i, fuelFlowWeightPropertyIndex)
-
-		if not isSampleValid then
-			fuelFlowWeight = nil
-			return
-		end
-
-		local throttle, isSampleValid = Tacview.Telemetry.GetNumericSample(selectedObjectHandle, i, throttlePropertyIndex)
-
-		if not isSampleValid then
-			throttle = nil
-			return
-		end
-
-		-- keep track of info in a table
-
-		values[#values + 1] = { altitude=currentPosition.altitude*m2ft, fuelFlowWeight = fuelFlowWeight, throttle = throttle, groundSpeed = speedKpH }
-		
-	end
-
-	-- Create chart outline and sort through the values collected to place average values in correct location on chart.
-	-- Keep track of sum and count so that average can be calculated later.
-		
-	local sum = {}
-	local count = {}
 
 
-	for x=0,xEntries-1 do
-			
-		chart[x]={}
-		sum[x]={}
-		count[x]={}
-			
-		for y=0,yEntries-1 do
-			chart[x][y]=-1
-			sum[x][y]=-1
-			count[x][y]=-1
-		end
-	end
+function calculateChart(selectedObjectHandle, startTime, endTime)
+
+	local values = ObtainData(startTime,endTime,selectedObjectHandle)
 
 	-- sort through values 
 
@@ -207,78 +176,116 @@ function calculateChart(selectedObjectHandle)
 		local groundSpeed = values[i].groundSpeed
 		local fuelConsumption	
 
-		if groundSpeed ~= 0 then
-			fuelConsumption = fuelFlowWeight/groundSpeed
-		else
-			fuelConsumption = 999
-		end
-
-		local x = math.floor(throttle/ThrottleStep)
-		local y = math.floor(altitude/AltitudeStep)
-
-		if fuelConsumption < 100 then
-	
-			if sum[x][y] >0 then
-				sum[x][y] = sum[x][y] + fuelConsumption
-			else 
-				sum[x][y] = fuelConsumption
-			end
-	
-			if count[x][y] >0 then
-				count[x][y] = count[x][y] + 1
-			else
-				count[x][y] = 1
-			end
+		if groundSpeed > minGroundSpeed then
 			
-		end
-	end
+			fuelConsumption = fuelFlowWeight * kgph2gps/groundSpeed	-- fuel flow weight is in kg/h and ground speed is in m/s
+																	-- after conversion, fuel consumption is in g/m.
 
-	for x=0,xEntries-1 do
+			local x = math.floor(throttle/ThrottleStep)
 
-		chart[x]={}
+			if throttle > 0 and throttle/ThrottleStep - math.floor(throttle/ThrottleStep) == 0 then
+				x = x-1
+				x = clamp(x,0,xEntries-1)
+			end
 				
-		for y=0,yEntries-1 do
+			local y = math.floor(altitude/AltitudeStep)
 
-			if count[x][y]>0 then
-				local average = sum[x][y]/count[x][y]
-				chart[x][y]=math.floor(average*10)/10
+			if altitude > 0 and altitude/AltitudeStep - math.floor(altitude/AltitudeStep) == 0 then
+				y = y-1
+				y = clamp(y,0,yEntries-1)
+			end
+
+			chartEntriesSum[y][x] = chartEntriesSum[y][x] + fuelConsumption
+			chartEntriesCount[y][x] = chartEntriesCount[y][x] + 1
+
+		end
+	end
+
+	for y=0,yEntries-1 do
+
+		for x=0,xEntries-1 do
+
+			if chartEntriesCount[y][x]>0 then
+				chart[y][x] = chartEntriesSum[y][x]/chartEntriesCount[y][x]
 			else
-				chart[x][y] = '-'
+				chart[y][x] = '-'
 			end
 		end
 	end
 
-	for x=0,xEntries-1 do
+	-- determine percentiles fuel consumption so that above-average entries may be flagged
 
-		for y=0,yEntries-1 do
+	local list = {}
 
-			if count[x][y]>0 then
-				local average = sum[x][y]/count[x][y]
-				chart[x][y]=math.floor(average*10)/10
-			else
-				chart[x][y] = '-'
-			end
-		end
-	end
+	for y=0,yEntries-1 do
 
-	-- determine average fuel consumption so that above-average entries may be flagged
-
-	local sum = 0
-	local count = 0
-
-	for x=0,xEntries-1 do
-
-		for y=0,yEntries-1 do
+		for x=0,xEntries-1 do
 			
-			if chart[x][y] ~= '-' then
-				sum = sum + chart[x][y]
-				count = count+1
+			if chart[y][x] ~= '-' then
+				list[#list+1] = chart[y][x]
 			end
 		end
+	end
 
-		averageFuelConsumption = sum/count
+	table.sort(list)
+
+	flagLowValue = list[math.ceil(#list * FlagLowPercentile/100)]
+	flagHighValue = list[math.ceil(#list * FlagHighPercentile/100)]
+
+end
+
+function ObtainData(startTime,endTime, selectedObjectHandle)
+
+	local values = {}
+
+	local fuelFlowWeightPropertyIndex = Tacview.Telemetry.GetObjectsNumericPropertyIndex("FuelFlowWeight", false)
+	local throttlePropertyIndex = Tacview.Telemetry.GetObjectsNumericPropertyIndex("Throttle", false)
+
+	if fuelFlowWeightPropertyIndex == Tacview.Telemetry.InvalidPropertyIndex then
+		return values
+	end
+
+	if throttlePropertyIndex == Tacview.Telemetry.InvalidPropertyIndex then
+		return values
+	end
+
+	-- iterate through the times at the chosen samplePeriod rate
+
+	for i = startTime,endTime,samplePeriod do
+
+		-- find distance and speed between the current and previous position of the object:getSampleRate()
+
+		local currentPosition = Tacview.Telemetry.GetTransform(selectedObjectHandle,i)
+		local lastPosition = Tacview.Telemetry.GetTransform(selectedObjectHandle, i-samplePeriod)
+
+		local x0 = lastPosition.latitude
+		local y0 = lastPosition.longitude
+		local x1 = currentPosition.latitude
+		local y1 = currentPosition.longitude
+		
+		local speedMpS = GetSphericalDistance(x0,y0,x1,y1)/samplePeriod
+
+		-- find other necessary info 
+
+		local fuelFlowWeight, isSampleValid = Tacview.Telemetry.GetNumericSample(selectedObjectHandle, i, fuelFlowWeightPropertyIndex)
+
+		if not isSampleValid then
+			break
+		end
+
+		local throttle, isSampleValid = Tacview.Telemetry.GetNumericSample(selectedObjectHandle, i, throttlePropertyIndex)
+
+		if not isSampleValid then
+			break
+		end
+
+		-- keep track of info in a table
+
+		values[#values + 1] = { altitude=currentPosition.altitude, fuelFlowWeight = fuelFlowWeight, throttle = throttle, groundSpeed = speedMpS }
 
 	end
+
+	return values
 
 end
 
@@ -357,7 +364,7 @@ function DisplayChartData()
 
 	-- draw chart
 
-	local chartData = " ALTITUDE(M)               FUEL CONSUMPTION KG / KM\n"
+	local chartData = " ALTITUDE(M)               FUEL CONSUMPTION G / M\n"
 
 	for y=yEntries-1,0,-1 do
 
@@ -369,19 +376,23 @@ function DisplayChartData()
 	
 		for x = 0,xEntries-1 do
 
-			if(chart[x][y]=='-') then
-				chartData = chartData .. "  -  |" 
-			elseif chart[x][y]<10 then
-				if chart[x][y]>averageFuelConsumption then
-					chartData = chartData .. " "..OrangeColor..chart[x][y] ..DefaultColor.." |"
+			if chart[y][x]=='-' or chart[y][x]==0 then
+				chartData = chartData .. "  -   |" 
+			elseif chart[y][x]<10 then
+				if chart[y][x]>=flagHighValue then
+					chartData = chartData .. " "..OrangeColor..string.format("%.2f", tostring(chart[y][x])) ..DefaultColor.." |"
+				elseif chart[y][x]<=flagLowValue then
+					chartData = chartData .. " "..GreenColor..string.format("%.2f", tostring(chart[y][x])) ..DefaultColor.." |"
 				else
-					chartData = chartData .. " "..GreenColor..chart[x][y] ..DefaultColor.." |"
+					chartData = chartData .. " "..string.format("%.2f", tostring(chart[y][x])) .." |"
 				end
 			else
-				if chart[x][y]>averageFuelConsumption then
-					chartData = chartData .. OrangeColor .. chart[x][y] .. DefaultColor.." |"
+				if chart[y][x]>=flagHighValue then
+					chartData = chartData .. OrangeColor .. string.format("%.2f", tostring(chart[y][x])) .. DefaultColor.." |"
+				elseif chart[y][x]<=flagLowValue then
+					chartData = chartData .. GreenColor.. string.format("%.2f", tostring(chart[y][x])) ..DefaultColor.." |"
 				else
-					chartData = chartData .. GreenColor..chart[x][y] ..DefaultColor.." |"
+					chartData = chartData .. string.format("%.2f", tostring(chart[y][x])) .." |"
 				end
 			end
 
@@ -389,11 +400,11 @@ function DisplayChartData()
 
 	end
 
-		chartData = chartData .. "\n         "
+		chartData = chartData .. "\n       "
 
 	for x = 1, xEntries do 
 
-		chartData = chartData .. " " .. x*ThrottleStep .. "  "
+		chartData = chartData .. "  " .. x*ThrottleStep .. "  "
 
 	end 
 
@@ -479,8 +490,10 @@ function Initialize()
 
 	local currentAddOn = Tacview.AddOns.Current
 
+	InitializeCharts()
+
 	currentAddOn.SetTitle("Fuel Consumption Report")
-	currentAddOn.SetVersion("0.3")
+	currentAddOn.SetVersion("0.4")
 	currentAddOn.SetAuthor("BuzyBee")
 	currentAddOn.SetNotes("Display fuel consumption as a function of altitude and speed")
 
