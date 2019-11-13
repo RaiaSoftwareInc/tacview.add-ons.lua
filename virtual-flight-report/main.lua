@@ -36,12 +36,16 @@ SOFTWARE.
 -- Setup
 ----------------------------------------------------------------
 
-require("LuaStrict")
+require("lua-strict")
 
 declareGlobal("unpack", nil)
 declareGlobal("module", nil)
 
 local Tacview = require("Tacview180")
+
+-- How close must the aircraft come to an airport for it to be considered arrival/departure ICAO
+
+local minimumDistance = 50000
 
 ----------------------------------------------------------------
 -- HTTPPOST  service
@@ -50,18 +54,16 @@ local Tacview = require("Tacview180")
 
 function PostData()
 
-	local selectedObjectHandle = Tacview.Context.GetSelectedObject(0) or Tacview.Context.GetSelectedObject(1)
-
 	local btnpirep 		= "A"
+--	local depicao		= "B"
+--  local arricao		= "C"
     local dateFilled	= "B"
-    local flightDate	= "C"
-    local depicao		= "DDDD"
-    local arricao 		= "EEEE"
+--  local flightDate	= "C"
     local route 		= "F"
-    local aircraft 		= "G"
-    local fuel 			= "H"
-    local miles 		= "I"
-    local pax 			= "J"	 
+--  local aircraft 		= "G"
+    local fuel 			= "21"
+    local miles 		= "22"
+    local pax 			= "23"	 
     local dh 			= "K"
     local dm 			= "L"
     local ds 			= "M"
@@ -72,29 +74,83 @@ function PostData()
     local tm 			= "R"
     local ts 			= "S"
     local comments 		= "T"
-    local pilot 		= "U"
+--  local pilot 		= "U"
     local flight_number = "V"
+
+	local selectedObjectHandle = Tacview.Context.GetSelectedObject(0) or Tacview.Context.GetSelectedObject(1)
+
+	if not selectedObjectHandle then
+		-- message box - please select an object
+		-- LOG no object selected
+		return
+	end
+
+	-- Find departure and arrival ICAO	
+	-- Use the closest airport(s) to the first and last known location(s) of the aircraft 
+
+	local firstSampleTime, lastSampleTime = Tacview.Telemetry.GetTransformTimeRange(selectedObjectHandle)
+
+	local initialPosition = Tacview.Telemetry.GetTransform(selectedObjectHandle, firstSampleTime)
+
+	local finalPosition = Tacview.Telemetry.GetTransform(selectedObjectHandle, lastSampleTime)
+
+	local depicao = ClosestAirport(initialPosition.latitude,initialPosition.longitude)
+	local arricao = ClosestAirport(finalPosition.latitude,finalPosition.longitude)
+
+	print("Departure ICAO:" .. depicao)
+	print("Arrival ICAO:" .. arricao)
+
+	-- Find date of flight in format YYYY-MM-DD.
+
+	local flightDate = os.date("%Y/%m/%d",math.floor(lastSampleTime))
+
+	print("flightDate: "..flightDate)
+
+	-- Find type of aircraft
+
+	local aircraftNamePropertyIndex = Tacview.Telemetry.GetObjectsTextPropertyIndex("Name", false)
+
+	local aircraftName, isSampleValid
+
+	if aircraftNamePropertyIndex ~= Tacview.Telemetry.InvalidPropertyIndex then
+
+		aircraftName, isSampleValid = Tacview.Telemetry.GetTextSample(selectedObjectHandle, lastSampleTime, aircraftNamePropertyIndex)
+
+		if isSampleValid == false then
+
+			aircraftName = nil
+			return
+
+		end
+
+		print("aircraftName:"..aircraftName)
+
+	end
+
+	-- Find pilot (call sign)
+
+	local pilotPropertyIndex = Tacview.Telemetry.GetObjectsTextPropertyIndex("Pilot", false)
+
+	local pilot, isSampleValid
+
+	if pilotPropertyIndex ~= Tacview.Telemetry.InvalidPropertyIndex then
+
+		pilot, isSampleValid = Tacview.Telemetry.GetTextSample(selectedObjectHandle, lastSampleTime, pilotPropertyIndex)
+
+		if isSampleValid == false then
+
+			pilot = nil
+			return
+
+		end
+
+		print("pilot:"..pilot)
+
+	end
 
 	
 
 
---[[
-	local callSignPropertyIndex = Tacview.Telemetry.GetObjectsNumericPropertyIndex("pilot", false)
-
-	if callSignPropertyIndex ~= Tacview.Telemetry.InvalidPropertyIndex then
-
-		local isSampleValid
-
-		callSign, isSampleValid = telemetry.GetNumericSample(selectedObjectHandle, absoluteTime, callSignPropertyIndex)
-
-		if isSampleValid == true then
-
-			pilot = callSign
-
-		end
-	end
-
-	print("CallSign/Pilot ="..pilot)--]]
 
     local http = require"socket.http"
     local ltn12 = require"ltn12"
@@ -105,7 +161,7 @@ function PostData()
 					"&depicao="		..depicao..
 					"&arricao="		..arricao..
 					"&route="		..route..
-					"&aircraft="	..aircraft..
+					"&aircraft="	..aircraftName..
 					"&fuel="		..fuel..
 					"&miles="		..miles..
 					"&pax="			..pax..
@@ -152,18 +208,121 @@ function SendVirtualFlightReport()
 
 end
 
+local addOnPath = Tacview.AddOns.Current.GetPath()
+local airportListFilePath = addOnPath .. "data/airport-list.csv"
+local airportList = {}
+
+function LoadAirportList()
+
+	-- Opens a file in read mode
+	local file = io.open(airportListFilePath,"r")
+
+	-- sets the default input file 
+	io.input(file)
+
+	-- read from csv file to create a table of tables representing the airport list
+	-- 22,"Winnipeg St Andrews","Winnipeg","Canada","YAV","CYAV",50.056389,-97.0325,760,-6,"A"
+	
+	-- there must be no commas in any fields because data is parsed per line using comma as delimiter 
+	-- This could be improved in a future version
+
+	for line in io.lines(airportListFilePath) do
+
+		-- Remove quotation marks if necessary
+
+		line = line:gsub('"','')
+
+		-- Parse line 
+
+		local id, name, city, country, IATA, ICAO, latitude,longitude, someNum1, someNum2, someCode
+
+		= line:match("%s*(.-),%s*(.-),%s*(.-),%s*(.-),%s*(.-),%s*(.-),%s*(.-),%s*(.-),%s*(.-),%s*(.-),%s*(.-)")
+		airportList[#airportList + 1] = { id=id, name=name, city=city, country=country, IATA=IATA, ICAO=ICAO, latitude=latitude,
+				longitude = longitude, someNum1=someNum1, someNum2=someNum2, someCode=someCode }
+
+		-- convert latitude and longitude into radians
+
+ 		airportList[#airportList].latitude = math.rad(tonumber(latitude))
+ 		airportList[#airportList].longitude = math.rad(tonumber(longitude))
+
+	end
+
+	-- closes the open file
+	io.close(file)
+
+end
+
+function ClosestAirport(referenceLatitude,referenceLongitude) 
+
+	local closestAirportICAO = "NONE"
+	local closestAirportDistance = minimumDistance
+
+	for i=1,#airportList do
+
+		local x0 = airportList[i].latitude
+		local y0 = airportList[i].longitude
+		local x1 = referenceLatitude
+		local y1 = referenceLongitude
+
+		local distance = GetSphericalDistance(x0,y0,x1,y1)
+
+		if distance<closestAirportDistance then 
+			closestAirportDistance = distance
+			closestAirportICAO = airportList[i].ICAO
+		end
+
+	end
+
+	return closestAirportICAO
+
+end
+
+-- Calculate distance between two points on earth
+
+function GetSphericalDistance(x0, y0, x1, y1)
+		
+	-- WGS84 semi-major axis size in meters
+	-- https://en.wikipedia.org/wiki/Geodetic_datum
+
+	local WGS84_EARTH_RADIUS = 6378137.0;
+
+	return GetSphericalAngle(x0, y0, x1, y1) * WGS84_EARTH_RADIUS;
+
+end
+
+-- Calculate angle between two points on a sphere.
+-- http://williams.best.vwh.net/avform.htm
+
+function GetSphericalAngle(x0, y0, x1, y1)
+
+	local arcX = x1 - x0
+	local HX = math.sin(arcX * 0.5)
+	HX = HX * HX;
+
+	local arcY = y1 - y0
+	local HY = math.sin(arcY * 0.5)
+	HY = HY * HY
+
+	local tmp = math.cos(y0) * math.cos(y1);
+
+	return 2.0 * math.asin(math.sqrt(HY + tmp * HX));
+
+end
+
 ----------------------------------------------------------------
 -- Initialize this addon
 ----------------------------------------------------------------
 
 function Initialize()
 
+	LoadAirportList()
+
 	-- Declare addon properties
 
 	local currentAddOn = Tacview.AddOns.Current
 
 	currentAddOn.SetTitle("Virtual Flight Report")
-	currentAddOn.SetVersion("0.1")
+	currentAddOn.SetVersion("0.2")
 	currentAddOn.SetAuthor("BuzyBee")
 	currentAddOn.SetNotes("Send flight report to specific website via HTTP POST.")
 
