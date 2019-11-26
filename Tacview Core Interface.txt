@@ -1,7 +1,7 @@
 --------------------------------------------------------------------------------------------------------------------------------
 
-	Tacview 1.8.0 Lua Core Interface
-	Last update: 2019-06-10
+	Tacview 1.8.2 Lua Core Interface
+	Last update: 2019-11-26
 
 --------------------------------------------------------------------------------------------------------------------------------
 
@@ -52,6 +52,9 @@ Settings.SetBoolean( settingPath, newBooleanValue ) -- Tacview 1.7.2
 		"UI.View.HUD.Visible"				-- Enable/disable cockpit head-up-display
 		"UI.View.Overlay.Visible"			-- Enable/disable all the informations displayed on top of the 3D view
 		"UI.View.Camera.Dogfight.Enabled"	-- Enable/disable dogfight camera mode (when in external view)
+		"UI.View.Objects.Height.Visible"	-- Enable/disable lines between the ground and each 3D object
+		"UI.View.Objects.Direction.Visible"	-- Enable/disable direction lines for the selected objects
+		"UI.View.Objects.Labels.Visible"	-- Enable/disable objects labels in the 3D view
 
 Settings.GetBoolean( settingFullPath ) -- Tacview 1.7.2
 
@@ -134,7 +137,7 @@ AddOns.Current.Settings.SetBoolean( settingName , newBooleanValue ) -- Tacview 1
 	Save a Boolean setting under the given name.
 
 	SettingName should be set to a string which unambiguously identify your setting.
-	SettingName must not be equal to "Enabled" which is reserved by Tacview to enable/disable the addon.
+	SettingName must NOT be equal to "Enabled" which is reserved by Tacview to enable/disable the addon.
 
 AddOns.Current.Settings.GetBoolean( settingName , defaultBooleanValue ) -- Tacview 1.7.2
 
@@ -143,6 +146,21 @@ AddOns.Current.Settings.GetBoolean( settingName , defaultBooleanValue ) -- Tacvi
 	Return value:
 
 		Corresponding setting boolean value.
+
+AddOns.Current.Settings.SetString( settingName , newTextValue ) -- Tacview 1.8.2
+
+	Save a text setting under the given name.
+
+	SettingName should be set to a string which unambiguously identify your setting.
+	SettingName must NOT be equal to "Enabled" which is reserved by Tacview to enable/disable the addon.
+
+AddOns.Current.Settings.GetString( settingName , defaultTextValue ) -- Tacview 1.8.2
+
+	Returns the current setting value, or the default provided one if no value was previously saved.
+
+	Return value:
+
+		Corresponding setting text value.
 
 --------------------------------------------------------------------------------------------------------------------------------
 Log
