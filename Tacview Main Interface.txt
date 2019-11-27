@@ -64,6 +64,41 @@ UI.MessageBox
 	It is suggested to not use too many message boxes as they are breaking the productivity flow of the user.
 	Whenever possible, you can use the log to output most of you messages and rely on settings to choose the appropriate behavior depending on the circumstances.
 
+UI.MessageBox.GetOpenFileName( options ) -- Tacview 1.8.2
+
+	Asks the user which file(s) he/she wants to load.
+
+	options =
+	{
+		defaultFileExtension = defaultFileExtension,	-- excluding '.', for example "csv"
+		fileName = defaultFileNameToSave,				-- (OPTIONAL) default full path or file name for the file to save
+		multiSelection = false,							-- (OPTIONAL) set to true to enable multiple files selection
+
+		fileTypeList =									-- List of file types supported for save (usually one item of the typical type)
+		{
+			{ extensions, description }					-- File type(s) and description {"*.jpg;*.png", "Picture"}
+		}
+	}
+
+	Return value:
+
+		list of file name(s) to load
+		nil if the user has canceled the operation
+
+	Example:
+
+		local options =
+		{
+			defaultFileExtension = "csv",
+			multiSelection = true,
+			fileTypeList =
+			{
+				{ "*.csv" , "Comma-separated values"  }
+				{ "*.xml" , "Extensible Markup Language" }
+				{ "*.json;*.js" , "JavaScript Object Notation" }
+			}
+		}
+
 UI.MessageBox.GetSaveFileName( options ) -- Tacview 1.8.0
 
 	Asks the user which under which file name he/she wants to save a file.
