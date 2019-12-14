@@ -212,6 +212,26 @@ UI.MessageBox.Question( textMessage ) -- Tacview 1.7.2
 			UI.MessageBox.OK
 			UI.MessageBox.Cancel
 
+UI.Format.DistanceToText( distanceInMeters ) -- Tacview 1.8.2
+
+	Format the given distance (in meters) in format and units specified by the current user.
+	Use this function to automatically display readable distance numbers in your UI.
+
+	Return value:
+
+		Text which represent the distance in the units currently selected in Tacview options
+
+UI.Format.TextToDistance( formatedDistance ) -- Tacview 1.8.2
+
+	Convert the given text into a distance in meters.
+	Use this function to convert user input into a distance number usable in Tacview telemetry.
+	This function will automatically recognize suffix such as "nm" or "km" for example
+
+	Return value:
+
+		Distance in meters (double float)
+		or nil if given text cannot be interpreted
+
 --------------------------------------------------------------------------------------------------------------------------------
 Math
 
@@ -699,7 +719,7 @@ Telemetry.GetCurrentTransform( objectHandle ) -- Tacview 1.7.2
 
 		value , validity
 		validity is set to false if the value does not really apply for the given time (typically if the object does not exist at the given time)
-		event when validity is set to false, the value is valid and usable (this simplify the client code)
+		even when validity is set to false, the value is valid and usable (this simplify the client code)
 
 Telemetry.GetVerticalGForce( objectHandle , absoluteTime ) -- Tacview 1.8.0
 Telemetry.GetCurrentVerticalGForce( objectHandle ) -- Tacview 1.7.3
@@ -762,7 +782,7 @@ Telemetry.GetTextSample( objectHandle , absoluteTime , propertyIndex ) -- Tacvie
 
 		value , validity
 		validity is set to false if the value does not really apply for the given time (typically if the object does not exist at the given time)
-		event when validity is set to false, the value is valid and usable (this simplify the client code)
+		even when validity is set to false, the value is valid and usable (this simplify the client code)
 
 Telemetry.SetNumericSample( objectHandle , absoluteTime , propertyIndex , value ) -- Tacview 1.7.5
 Telemetry.SetTextSample( objectHandle , absoluteTime , propertyIndex , value ) -- Tacview 1.7.5
@@ -838,7 +858,6 @@ Telemetry.GetTransformTimeRange( objectHandle ) -- Tacview 1.8.0
 		lastTransformSampleTime			-- last effective transform sample absolute time
 	}
 
-
 Telemetry.GetLifeTime( objectHandle ) -- Tacview 1.7.6
 
 	Return absolute time of the object first appearance and its time of disappearance if applicable.
@@ -898,6 +917,62 @@ Telemetry.GetObjectId( objectHandle ) -- Tacview 1.7.6
 
 	Beware that object ids can be recycled and cannot uniquely identify objects.
 	For that reason, avoid using them, unless it is for telemetry injection (event creation) or export.
+
+--------------------------------------------------------------------------------------------------------------------------------
+Database
+
+	The database contains a list of definition of all the real and fictional objects known by Tacview from a typical Cessna plane to military ships.
+
+Database.InvalidPropertyIndex -- Tacview 1.8.2
+
+	Constant used to detect invalid properties.
+
+Database.GetTextPropertyIndex( propertyName ) -- Tacview 1.8.2
+
+	Retrieve the index of the given property in the database.
+	The index returned is the same for all entries.
+
+	return Database.InvalidPropertyIndex if the propertyName is invalid or not found in the database.
+
+Database.GetNextRecord( recordHandle , recordType ) -- Tacview 1.8.2
+
+	Use this function to enumerate all records which match the given object type.
+	To start the enumeration, use 0 for the recordHandle.
+	Then re-use the returned values to enumerate the following records.
+	You can use any combination of Telemetry.Tags to define a type as complex as you want.
+
+	Return value:
+
+		new recordHandle (integer)
+		0 if no more data matching the requested type
+
+Database.GetRecordId( recordHandle ) -- Tacview 1.8.2
+
+	Retrieve the unique id for the given record.
+
+	Return value:
+
+		text identifier (nil or empty means invalid record)
+
+Database.GetRecordPriority( recordHandle ) -- Tacview 1.8.2
+
+	Retrieve the priority for the given database record.
+
+	Return value:
+
+		priorty (float)
+		0.0 to 0.5 are the lowest priorities which correspond to the data defined in first (typically Tacview default database)
+		1.0 and greater are typically used for user definitions (loaded over Tacview definition to override default definitions)
+
+Database.GetRecordTextValue( recordHandle , propertyIndex ) -- Tacview 1.8.2
+
+	Retrieve property text value from the property index.
+
+	Return value:
+
+		value , validity
+		validity is set to false if the value does not really apply for the given time (typically if the object does not exist at the given time)
+		even when validity is set to false, the value is valid and usable (this simplify the client code)
 
 --------------------------------------------------------------------------------------------------------------------------------
 Terrain
