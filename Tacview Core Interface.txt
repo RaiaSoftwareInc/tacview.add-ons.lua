@@ -400,6 +400,16 @@ Events
 
 	You can register callbacks for different kind of events in Tacview.
 
+Events.DocumentLoaded.RegisterListener( function ) -- Tacview 1.8.2
+
+	Tacview will call the given function as soon as a document has been loaded/merged.
+	This is useful to trigger post load processing, especially to automatize the cleanup of new data.
+
+		OnDocumentLoaded()
+
+			Called right after more telemetry data has been loaded via the File->Load/Merge option.
+			Called once at the end of a real-time telemetry recording.
+
 Events.Shutdown.RegisterListener( function ) -- Tacview 1.8.0
 
 	Tacview will call the given function as soon as the corresponding add-on is unloaded.
@@ -927,13 +937,6 @@ Database.InvalidPropertyIndex -- Tacview 1.8.2
 
 	Constant used to detect invalid properties.
 
-Database.GetTextPropertyIndex( propertyName ) -- Tacview 1.8.2
-
-	Retrieve the index of the given property in the database.
-	The index returned is the same for all entries.
-
-	return Database.InvalidPropertyIndex if the propertyName is invalid or not found in the database.
-
 Database.GetNextRecord( recordHandle , recordType ) -- Tacview 1.8.2
 
 	Use this function to enumerate all records which match the given object type.
@@ -964,15 +967,22 @@ Database.GetRecordPriority( recordHandle ) -- Tacview 1.8.2
 		0.0 to 0.5 are the lowest priorities which correspond to the data defined in first (typically Tacview default database)
 		1.0 and greater are typically used for user definitions (loaded over Tacview definition to override default definitions)
 
-Database.GetRecordTextValue( recordHandle , propertyIndex ) -- Tacview 1.8.2
+Database.GetTextPropertyIndex( propertyName ) -- Tacview 1.8.2
+Database.GetNumericPropertyIndex( propertyName ) -- Tacview 1.8.2
 
-	Retrieve property text value from the property index.
+	Retrieve the index of the given property in the database.
+	The index returned is the same for all entries.
+
+		return Database.InvalidPropertyIndex if the propertyName is invalid or not found in the database.
+
+Database.GetRecordTextValue( recordHandle , propertyIndex ) -- Tacview 1.8.2
+Database.GetRecordNumericValue( recordHandle , propertyIndex ) -- Tacview 1.8.2
+
+	Retrieve property text or numeric value from the property index.
 
 	Return value:
 
-		value , validity
-		validity is set to false if the value does not really apply for the given time (typically if the object does not exist at the given time)
-		even when validity is set to false, the value is valid and usable (this simplify the client code)
+		value or nil if no data available for this record.
 
 --------------------------------------------------------------------------------------------------------------------------------
 Terrain
