@@ -52,15 +52,15 @@ local automaticallyFixIL2PilotNamesSettingName = "automaticallyFixIL2PilotNames"
 ----------------------------------------------------------------
 
 local automaticallyFixPilotNamesMenuId
-local automaticallyFixIL2PilotNames = false
+local automaticallyFixIL2PilotNames = true
 local oneTimeFixIL2PilotNames=false
 
 function FixPilotNamesNow()
 
-	if IsIL2Flight() == 0 then
-
+	if not IsIL2Flight() then
+		Tacview.Log.Debug("IL-2 NAME CORRECTOR: Not an IL-2 flight - unable to proceed with fixing any pilot names")
+		
 		return
-
 	end
 	
 	-- Cache Tacview API (optimization)
@@ -71,7 +71,21 @@ function FixPilotNamesNow()
 
 	-- Retrieve the list of currently active (alive) objects
 
-	local numberOfObjects = Tacview.Telemetry.GetObjectCount() 
+	local numberOfObjects = Tacview.Telemetry.GetObjectCount()
+
+	local pilotPropertyIndex = telemetry.GetObjectsTextPropertyIndex( "Pilot" , false )
+
+	if pilotPropertyIndex == telemetry.InvalidPropertyIndex then
+		Tacview.Log.Debug("IL-2 NAME CORRECTOR: Pilot property index is invalid - unable to proceed with fixing any pilot names")
+		return
+	end	
+
+	local namePropertyIndex = telemetry.GetObjectsTextPropertyIndex("Name",false)
+
+	if namePropertyIndex == telemetry.InvalidPropertyIndex then
+		Tacview.Log.Debug("IL-2 NAME CORRECTOR: Name property index is invalid - unable to proceed with fixing any pilot names")
+		return
+	end	
 
 	for i=0,numberOfObjects-1 do
 
@@ -79,141 +93,115 @@ function FixPilotNamesNow()
 
 		-- If pilot name exists, do nothing.
 
-		local pilotPropertyIndex = telemetry.GetObjectsTextPropertyIndex( "Pilot" , false )
+		local existingPilotName, sampleIsValid = telemetry.GetTextSample(objectHandle, Tacview.Telemetry.BeginningOfTime, pilotPropertyIndex)
 
-		if pilotPropertyIndex ~= telemetry.InvalidPropertyIndex then
+		if not sampleIsValid then
 
-			local existingPilotName, sampleIsValid = telemetry.GetTextSample(objectHandle, Tacview.Telemetry.BeginningOfTime, pilotPropertyIndex)
+			-- Parse out the pilot name for Fixed Wing or Tank objects
 
-			if sampleIsValid then
+			local objectTags = getCurrentTags(objectHandle)
 
-				Tacview.Log.Info("IL-2 NAME CORRECTOR: Pilot Name exists already, no action will be taken")
-	
-				return
+			if (objectTags & tags.FixedWing) ~= 0 or (objectTags & tags.Tank) ~= 0 then
+							
+				-- Retrieve IL-2 Generated Name
 
-			end
-		end
+				local IL2GeneratedName, sampleIsValid = telemetry.GetTextSample(objectHandle, Tacview.Telemetry.BeginningOfTime, namePropertyIndex)
 
-		-- Otherwise, parse out the pilot name for Fixed Wing or Tank objects
+				if sampleIsValid then
 
-		local objectTags = getCurrentTags(objectHandle)
+			--[[	-- Retrieve short name
 
-		local pilotName = "";
+					local shortName = telemetry.GetCurrentShortName( objectHandle )
 
-		if (objectTags & tags.FixedWing) ~= 0 or (objectTags & tags.Tank) ~= 0 then
-						
-			-- Retrieve IL-2 Generated Name
+					-- Retrieve full name
 
-			local namePropertyIndex = telemetry.GetObjectsTextPropertyIndex("Name",false)
+					local fullName
 
-			if namePropertyIndex == telemetry.InvalidPropertyIndex then
-				Tacview.Log.Debug("IL-2 NAME CORRECTOR: Name property index is invalid")
-				return
-			end
+					local fullNamePropertyIndex = telemetry.GetObjectsTextPropertyIndex( "FullName" , false )
 
-			local IL2GeneratedName, sampleIsValid = telemetry.GetTextSample(objectHandle, Tacview.Telemetry.BeginningOfTime, namePropertyIndex)
+					if fullNamePropertyIndex ~= telemetry.InvalidPropertyIndex then
 
-			if not sampleIsValid then
-				Tacview.Log.Debug("IL-2 NAME CORRECTOR: Name text sample is invalid")
-				return
-			end
+						local sampleIsValid
 
-			-- Retrieve short name
+						fullName, sampleIsValid = telemetry.GetTextSample(objectHandle, Tacview.Telemetry.BeginningOfTime, fullNamePropertyIndex)
+							
+						if not sampleIsValid then
 
-			local shortName = telemetry.GetCurrentShortName( objectHandle )
+							fullName = nil
+						end
+					end
 
-			-- Retrieve full name
+					-- Retrieve long name
 
-			local fullName
+					local longName
 
-			local fullNamePropertyIndex = telemetry.GetObjectsTextPropertyIndex( "FullName" , false )
+					local longNamePropertyIndex = telemetry.GetObjectsTextPropertyIndex( "LongName" , false )
 
-			if fullNamePropertyIndex ~= telemetry.InvalidPropertyIndex then
+					if longNamePropertyIndex ~= telemetry.InvalidPropertyIndex then
 
-				local sampleIsValid
+						local sampleIsValid
 
-				fullName, sampleIsValid = telemetry.GetTextSample(objectHandle, Tacview.Telemetry.BeginningOfTime, fullNamePropertyIndex)
-				
-				if not sampleIsValid then
+						longName, sampleIsValid = telemetry.GetTextSample(objectHandle, Tacview.Telemetry.BeginningOfTime, longNamePropertyIndex)
+							
+						if not sampleIsValid then
 
-					fullName = nil
+							longName = nil
 
+						end
+					end
+
+					if longName and StartsWith(IL2GeneratedName, longName) then
+
+						pilotName = string.sub(IL2GeneratedName, #longName+1)
+
+
+					elseif shortName and StartsWith(IL2GeneratedName, shortName) then
+
+						pilotName = string.sub(IL2GeneratedName, #shortName+1)
+
+
+					elseif fullName and StartsWith(IL2GeneratedName, fullName)  then
+
+						pilotName = string.sub(IL2GeneratedName, #fullName+1)
+
+
+
+					else
+
+						local startChar = string.find(IL2GeneratedName," - ", 1, true)
+						pilotName = string.sub(IL2GeneratedName,startChar + 3)
+
+					end
+
+					if StartsWith(pilotName, " - ") then
+						pilotName = string.sub(pilotName,4)
+					end	--]]
+
+					--------------------------------------------------------------------
+					-- Determine which part of the IL2 Generated Name is the pilot name,
+					-- and set Pilot Text Sample accordingly.
+					--------------------------------------------------------------------
+
+					-- local startChar = string.find(IL2GeneratedName," - ", 1, true)
+
+					if IL2GeneratedName:reverse():find("%s+%-+%s+") then
+
+						local startChar = #IL2GeneratedName - IL2GeneratedName:reverse():find("%s+%-+%s+") + 2
+
+						if startChar then
+
+							local pilotName = string.sub(IL2GeneratedName,startChar)
+
+							pilotName = trim(pilotName)
+
+							telemetry.SetTextSample( objectHandle , Tacview.Telemetry.BeginningOfTime , pilotPropertyIndex , pilotName ) 
+							
+						end
+					end
 				end
 			end
-
-			-- Retrieve long name
-
-			local longName
-
-			local longNamePropertyIndex = telemetry.GetObjectsTextPropertyIndex( "LongName" , false )
-
-			if longNamePropertyIndex ~= telemetry.InvalidPropertyIndex then
-
-				local sampleIsValid
-
-				longName, sampleIsValid = telemetry.GetTextSample(objectHandle, Tacview.Telemetry.BeginningOfTime, longNamePropertyIndex)
-				
-				if not sampleIsValid then
-
-					longName = nil
-
-				end
-			end
-
-			-- Locate and remove aircraft information to leave pilot name
-
-			if longName and StartsWith(IL2GeneratedName, longName) then
-
-				pilotName = string.sub(IL2GeneratedName, #longName+1)
-
-				if StartsWith(pilotName, " - ") then
-
-					pilotName = string.sub(pilotName,4)
-
-				end
-
-			elseif shortName and StartsWith(IL2GeneratedName, shortName) then
-
-				pilotName = string.sub(IL2GeneratedName, #shortName+1)
-
-				if StartsWith(pilotName, " - ") then
-					pilotName = string.sub(pilotName,4)
-				end
-
-			elseif fullName and StartsWith(IL2GeneratedName, fullName)  then
-
-				pilotName = string.sub(IL2GeneratedName, #fullName+1)
-
-				if StartsWith(pilotName, " - ") then
-
-					pilotName = string.sub(pilotName,4)
-
-				end
-
-			else
-
-				local startChar = string.find(IL2GeneratedName," - ", 1, true)
-				pilotName = string.sub(IL2GeneratedName,startChar + 3)
-
-			end
-
-			-- Set the pilot text property
-
-			if pilotPropertyIndex == telemetry.InvalidPropertyIndex then
-				Tacview.Log.Debug("IL-2 NAME CORRECTOR: Pilot property index is invalid")
-				return
-			end
-
-			telemetry.SetTextSample( objectHandle , Tacview.Telemetry.BeginningOfTime , pilotPropertyIndex , pilotName )
-
 		end
 	end
-end
-
-function StartsWith(str, start)
-
-	return str:sub(1, #start) == start
-
 end
 
 function OnMenuAutomaticallyFixPilotNames()
@@ -246,7 +234,7 @@ end
 
 function OnDocumentLoaded()
 
-	if IsIL2Flight() == 0 then
+	if not IsIL2Flight() then
 		Tacview.Log.Debug("IL-2 NAME CORRECTOR: Not an IL-2 Flight")
 		return
 	end
@@ -272,25 +260,37 @@ function IsIL2Flight()
 
 	if sourcePropertyIndex == Tacview.Telemetry.InvalidPropertyIndex then
 		Tacview.Log.Debug("IL-2 NAME CORRECTOR: Data Source Index invalid")
-		return
+		return false
 	end
 
 	local simulator, sampleIsValid = Tacview.Telemetry.GetTextSample( 0, Tacview.Telemetry.BeginningOfTime , sourcePropertyIndex) 
-
-	if not sampleIsValid then
-		Tacview.Log.Debug("IL-2 NAME CORRECTOR: Data Source Sample invalid")
-		return
-	end
 
 	Tacview.Log.Debug("IL-2 NAME CORRECTOR: Using simulator ",simulator)
 
 	if simulator == "IL-2 Sturmovik" then
 
-		return 1
+		return true
 
 	end
 
-	return 0
+	return false
+
+end
+
+--[[	
+function StartsWith(str, start)
+
+	str = str.toLowerCase()
+	start = start.toLowerCase
+
+	return str:sub(1, #start) == start
+
+end	
+--]]
+
+function trim(s)
+
+  return (s:gsub("^%s*(.-)%s*$", "%1"))
 
 end
 
