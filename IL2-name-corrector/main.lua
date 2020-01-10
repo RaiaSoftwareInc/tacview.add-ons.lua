@@ -303,7 +303,7 @@ function Initialize()
 	-- Declare add-on information
 
 	Tacview.AddOns.Current.SetTitle("IL-2 Name Corrector")
-	Tacview.AddOns.Current.SetVersion("0.1")
+	Tacview.AddOns.Current.SetVersion("1.0")
 	Tacview.AddOns.Current.SetAuthor("BuzyBee")
 	Tacview.AddOns.Current.SetNotes("Correct the way IL-2 displays names.")
 
