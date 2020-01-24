@@ -1,7 +1,7 @@
 --------------------------------------------------------------------------------------------------------------------------------
 
 	Tacview 1.8.2 Lua Core Interface
-	Last update: 2019-11-26
+	Last update: 2020-01-21
 
 --------------------------------------------------------------------------------------------------------------------------------
 
@@ -212,9 +212,29 @@ UI.MessageBox.Question( textMessage ) -- Tacview 1.7.2
 			UI.MessageBox.OK
 			UI.MessageBox.Cancel
 
+UI.Format.AltitudeToText( altitudeInMeters ) -- Tacview 1.8.2
+
+	Format the given altitude (in meters) in format and units specified by the user.
+	Use this function to automatically display readable altitude numbers in your UI.
+
+	Return value:
+
+		Text which represent the altitude in the units currently selected in Tacview options
+
+UI.Format.TextToAltitude( formatedAltitude ) -- Tacview 1.8.2
+
+	Convert the given text into an altitude in meters.
+	Use this function to convert user input into an altitude number usable in Tacview telemetry.
+	This function will automatically recognize suffix such as "ft" or "m" for example
+
+	Return value:
+
+		Altitude in meters (double float)
+		or nil if given text cannot be interpreted
+
 UI.Format.DistanceToText( distanceInMeters ) -- Tacview 1.8.2
 
-	Format the given distance (in meters) in format and units specified by the current user.
+	Format the given distance (in meters) in format and units specified by the user.
 	Use this function to automatically display readable distance numbers in your UI.
 
 	Return value:
@@ -230,6 +250,27 @@ UI.Format.TextToDistance( formatedDistance ) -- Tacview 1.8.2
 	Return value:
 
 		Distance in meters (double float)
+		or nil if given text cannot be interpreted
+
+UI.Format.LongitudeToText( longitudeInRadian ) -- Tacview 1.8.2
+UI.Format.LatitudeToText( latitudeInRadian ) -- Tacview 1.8.2
+
+	Format the given spherical coordinate (in radian) in format and units specified by the user.
+	Use this function to automatically display readable latitude or longitude numbers in your UI.
+
+	Return value:
+
+		Text which represent the latitude or longitude in the units currently selected in Tacview options
+
+UI.Format.TextToSpherical( formatedLongitudeOrLatitude ) -- Tacview 1.8.2
+
+	Convert the given text into latitude or longitude in radian.
+	Use this function to convert user input into an longitude or latitude number usable in Tacview telemetry.
+	This function will automatically recognize suffix such as "W" or "E" for example
+
+	Return value:
+
+		Latitude or longitude in radian (double float)
 		or nil if given text cannot be interpreted
 
 --------------------------------------------------------------------------------------------------------------------------------
@@ -448,7 +489,7 @@ Context.SetAbsoluteTime( absoluteTime ) -- Tacview 1.7.6
 --------------------------------------------------------------------------------------------------------------------------------
 StaticObjects
 
-StaticObjects.GetHandleByName( objectName )
+StaticObjects.GetObjectHandleByName( objectName )
 
 	Retrieve static object handle from its name.
 	The name of the object can be defined via the <name> xml tag in kml files.
