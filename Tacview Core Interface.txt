@@ -1,7 +1,7 @@
 --------------------------------------------------------------------------------------------------------------------------------
 
-	Tacview 1.8.2 Lua Core Interface
-	Last update: 2020-01-21
+	Tacview 1.8.3 Lua Core Interface
+	Last update: 2020-03-18
 
 --------------------------------------------------------------------------------------------------------------------------------
 
@@ -222,10 +222,15 @@ UI.Format.AltitudeToText( altitudeInMeters ) -- Tacview 1.8.2
 		Text which represent the altitude in the units currently selected in Tacview options
 
 UI.Format.TextToAltitude( formatedAltitude ) -- Tacview 1.8.2
+UI.Format.TextToAltitudeLocalized( formatedAltitude ) -- Tacview 1.8.3
 
 	Convert the given text into an altitude in meters.
 	Use this function to convert user input into an altitude number usable in Tacview telemetry.
 	This function will automatically recognize suffix such as "ft" or "m" for example
+
+	If no prefix is specified, 
+		TextToAltitude will assume the altitude is in meters (appropriate to read data from files)
+		TextToAltitudeLocalized will assume the altitude is in the user current unit system (appropriate to read data from UI input boxes)
 
 	Return value:
 
@@ -242,10 +247,15 @@ UI.Format.DistanceToText( distanceInMeters ) -- Tacview 1.8.2
 		Text which represent the distance in the units currently selected in Tacview options
 
 UI.Format.TextToDistance( formatedDistance ) -- Tacview 1.8.2
+UI.Format.TextToDistanceLocalized( formatedDistance ) -- Tacview 1.8.3
 
 	Convert the given text into a distance in meters.
 	Use this function to convert user input into a distance number usable in Tacview telemetry.
 	This function will automatically recognize suffix such as "nm" or "km" for example
+
+	If no prefix is specified, 
+		TextToDistance will assume the altitude is in meters (appropriate to read data from files)
+		TextToDistanceLocalized will assume the altitude is in the user current unit system (appropriate to read data from UI input boxes)
 
 	Return value:
 
@@ -618,7 +628,7 @@ Telemetry.Property -- Tacview 1.7.6
 
 		-- Text properties (Tacview 1.7.6)
 
-		Telemetry.Property.Text.Callsign
+		Telemetry.Property.Text.CallSign
 		Telemetry.Property.Text.Event
 		Telemetry.Property.Text.Name
 
@@ -973,6 +983,16 @@ Telemetry.GetObjectId( objectHandle ) -- Tacview 1.7.6
 Database
 
 	The database contains a list of definition of all the real and fictional objects known by Tacview from a typical Cessna plane to military ships.
+
+Database.Reload -- Tacview 1.8.3
+
+	Reload the whole database and update the UI accordingly.
+	Should be called whenever your addon has made a significant change to the database content.
+
+	Return value:
+
+		false if there were some error(s) during the reload.
+		return true otherwise.
 
 Database.InvalidPropertyIndex -- Tacview 1.8.2
 
