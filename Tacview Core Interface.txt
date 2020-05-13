@@ -1,7 +1,7 @@
 --------------------------------------------------------------------------------------------------------------------------------
 
 	Tacview 1.8.3 Lua Core Interface
-	Last update: 2020-03-18
+	Last update: 2020-04-17
 
 --------------------------------------------------------------------------------------------------------------------------------
 
@@ -253,13 +253,38 @@ UI.Format.TextToDistanceLocalized( formatedDistance ) -- Tacview 1.8.3
 	Use this function to convert user input into a distance number usable in Tacview telemetry.
 	This function will automatically recognize suffix such as "nm" or "km" for example
 
-	If no prefix is specified, 
-		TextToDistance will assume the altitude is in meters (appropriate to read data from files)
-		TextToDistanceLocalized will assume the altitude is in the user current unit system (appropriate to read data from UI input boxes)
+	If no prefix is specified:
+		TextToDistance will assume the distance is in meters (appropriate to read data from files)
+		TextToDistanceLocalized will assume the distance is in the user current unit system (appropriate to read data from UI input boxes)
 
 	Return value:
 
 		Distance in meters (double float)
+		or nil if given text cannot be interpreted
+
+UI.Format.SpeedToText( speedInMeters ) -- Tacview 1.8.3
+
+	Format the given speed (in meter per second) in format and units specified by the user.
+	Use this function to automatically display readable speed numbers in your UI.
+
+	Return value:
+
+		Text which represent the speed in the units currently selected in Tacview options
+
+UI.Format.TextToSpeed( formatedSpeed ) -- Tacview 1.8.3
+UI.Format.TextToSpeedLocalized( formatedSpeed ) -- Tacview 1.8.3
+
+	Convert the given text into a speed in meter per second.
+	Use this function to convert user input into a speed number usable in Tacview telemetry.
+	This function will automatically recognize suffix such as "km/h" or "kts" for example
+
+	If no prefix is specified:
+		TextToSpeed will assume the speed is in meters (appropriate to read data from files)
+		TextToSpeedLocalized will assume the speed is in the user current unit system (appropriate to read data from UI input boxes)
+
+	Return value:
+
+		Speed in meter per second (double float)
 		or nil if given text cannot be interpreted
 
 UI.Format.LongitudeToText( longitudeInRadian ) -- Tacview 1.8.2
@@ -281,6 +306,31 @@ UI.Format.TextToSpherical( formatedLongitudeOrLatitude ) -- Tacview 1.8.2
 	Return value:
 
 		Latitude or longitude in radian (double float)
+		or nil if given text cannot be interpreted
+
+UI.Format.AbsoluteTimeToISOText( absoluteTimeInSeconds [, outputDecimals ] ) -- Tacview 1.8.3
+
+	Format the given absolute time (seconds since 1970-01-01) in ISO format.
+	Use this function to automatically display readable date-time in your UI.
+
+	The optional outputDecimals boolean can be set to true if you want sub-second accuracy.
+
+	Return value:
+
+		Text which represent the absolute time in ISO date format.
+
+UI.Format.TextToAbsoluteTime( formatedSpeed ) -- Tacview 1.8.3
+
+	Convert the given text into an absolute time.
+	Use this function to convert user input into a date-time usable in Tacview telemetry.
+
+	NOTE: This function currently support only ISO date-time format.
+
+	If the provided text contains only time, then this function will attempt to attach it to the current telemetry date range.
+
+	Return value:
+
+		Absolute time in seconds since 1970-01-01 (double float)
 		or nil if given text cannot be interpreted
 
 --------------------------------------------------------------------------------------------------------------------------------

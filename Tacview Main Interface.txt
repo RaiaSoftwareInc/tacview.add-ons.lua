@@ -1,7 +1,7 @@
 --------------------------------------------------------------------------------------------------------------------------------
 
 	Tacview 1.8.3 Lua General Interface
-	Last update: 2020-03-18
+	Last update: 2020-04-17
 
 --------------------------------------------------------------------------------------------------------------------------------
 
@@ -59,12 +59,12 @@ UI.GetWindowHandle() -- Tacview 1.7.5
 
 UI.Update() -- Tacview 1.8.3
 
-	Ask Tacview to update UI contant and to redraw the 3D view at the next opportunity.
+	Ask Tacview to update UI contant and to redraw the 3D view and all controls at the next opportunity.
 
 	To save CPU/energy, Tacview pauses the 3D rendering when possible. In that case, you may want to call this method if you have added or significantly modified an object,
 	and want to make sure that the changes are displayed in the 3D view.
 
-	To maximize performance, the redraw will be asynchronous, i.e.: done at a later time, *not* when this method is called.
+	To maximize performance, the redraw may be asynchronous, i.e.: done at a later time, *not* when this method is called.
 
 --------------------------------------------------------------------------------------------------------------------------------
 UI.MessageBox
