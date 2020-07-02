@@ -1,7 +1,7 @@
 --------------------------------------------------------------------------------------------------------------------------------
 
 	Tacview 1.8.3 Lua Core Interface
-	Last update: 2020-04-17
+	Last update: 2020-05-21
 
 --------------------------------------------------------------------------------------------------------------------------------
 
@@ -857,6 +857,26 @@ Telemetry.GetCurrentAbsoluteGForce( objectHandle ) -- Tacview 1.8.0
 	Return value:
 
 		absolute g-Force if available.
+		nil when not enough data is available (or object does not exist at this time).
+
+Telemetry.GetTurnRadius( objectHandle , absoluteTime ) -- Tacview 1.8.4
+Telemetry.GetCurrentTurnRadius( objectHandle ) -- Tacview 1.8.4
+
+	Returns given object turn radius in meters.
+
+	Return value:
+
+		turn radius if available.
+		nil when not enough data is available (or object does not exist at this time).
+
+Telemetry.GetTurnRate( objectHandle , absoluteTime ) -- Tacview 1.8.4
+Telemetry.GetCurrentTurnRate( objectHandle ) -- Tacview 1.8.4
+
+	Returns given object turn rate in degrees per second.
+
+	Return value:
+
+		turn rate if available.
 		nil when not enough data is available (or object does not exist at this time).
 
 Telemetry.GetGlobalNumericPropertyIndex( propertyName , autoCreate ) -- Tacview 1.7.6
