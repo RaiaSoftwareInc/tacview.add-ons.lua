@@ -39,6 +39,8 @@ local Tacview = require("Tacview184")
 
 local instantaneousTurnRateReportRequested = false
 local sustainedTurnRateReportRequested = false
+local turnRateReportDisabled = true
+
 
 -- Special control characters to change the chartData color on the fly
 
@@ -54,9 +56,9 @@ local FontColor = 0xffffffff
 
 -- chart options
 
-local AltitudeMax = 6000	
-local AltitudeStep=500		-- AltitudeMax should be a multiple of AltitudeStep
-local yEntries = 12
+local AltitudeMax = 15000	
+local AltitudeStep=1000		-- AltitudeMax should be a multiple of AltitudeStep
+local yEntries = 15
 
 local MachMax=1.2
 local MachStep=0.1	-- MachMax should be a multiple of MachStep
@@ -209,9 +211,9 @@ function calculateChart(selectedObjectHandle, startTime, endTime)
 			y = clamp(y,0,yEntries-1)
 		end
 
-		if instantaneousTurnRateReportRequested and instantaneousTurnRate then
+		if instantaneousTurnRateReportRequested and instantaneousTurnRate and instantaneousTurnRate*rad2deg >= 5 then
 			chart[y][x] = math.max(chart[y][x],instantaneousTurnRate * rad2deg)
-		elseif sustainedTurnRateReportRequested and sustainedTurnRate then
+		elseif sustainedTurnRateReportRequested and sustainedTurnRate and sustainedTurnRate*rad2deg >=5 then
 			chart[y][x] = math.max(chart[y][x],sustainedTurnRate * rad2deg)
 		end
 
@@ -310,7 +312,7 @@ function DisplayBackground()
 	local backgroundTransform =
 	{
 		x = Margin,
-		y = Tacview.UI.Renderer.GetHeight() / 2 + FontSize * 2,
+		y = Tacview.UI.Renderer.GetHeight() * 2/3 + FontSize * 2,
 		scale = 1,
 	}
 
@@ -339,7 +341,7 @@ function DisplayChartData()
 	local chartDataTransform =
 	{
 		x = Margin,
-		y = Tacview.UI.Renderer.GetHeight() / 2,
+		y = Tacview.UI.Renderer.GetHeight() * 2/3,
 		scale = FontSize,
 	}
 
@@ -354,7 +356,7 @@ function DisplayChartData()
 
 	for y=yEntries-1,0,-1 do
 
-		if((y+1)*AltitudeStep>=1000) then
+		if((y+1)*AltitudeStep>=10000) then
 			chartData = chartData .. "\n  " .. (y+1)*AltitudeStep .."|"
 		else
 			chartData = chartData .. "\n   " .. (y+1)*AltitudeStep .."|"
@@ -366,27 +368,30 @@ function DisplayChartData()
 				chartData = chartData .. "  -   |" 
 			elseif chart[y][x]<10 then
 				if chart[y][x]>=flagHighValue then
-					chartData = chartData .. " "..OrangeColor..string.format("%.2f", tostring(chart[y][x])) ..DefaultColor.." |"
+					chartData = chartData .. " "..GreenColor..tostring(math.floor(chart[y][x]*10)/10) ..DefaultColor.."  |"
 				elseif chart[y][x]<=flagLowValue then
-					chartData = chartData .. " "..GreenColor..string.format("%.2f", tostring(chart[y][x])) ..DefaultColor.." |"
+					chartData = chartData .. " "..OrangeColor..tostring(math.floor(chart[y][x]*10)/10) ..DefaultColor.."  |"
 				else
-					chartData = chartData .. " "..string.format("%.2f", tostring(chart[y][x])) .." |"
+					chartData = chartData .. " "..tostring(math.floor(chart[y][x]*10)/10) .."  |"
 				end
 			else
 				if chart[y][x]>=flagHighValue then
-					chartData = chartData .. OrangeColor .. string.format("%.2f", tostring(chart[y][x])) .. DefaultColor.." |"
+					chartData = chartData .. " " .. GreenColor .. tostring(math.floor(chart[y][x]*10)/10) .. DefaultColor.." |"
 				elseif chart[y][x]<=flagLowValue then
-					chartData = chartData .. GreenColor.. string.format("%.2f", tostring(chart[y][x])) ..DefaultColor.." |"
+					chartData = chartData .. " " .. OrangeColor.. tostring(math.floor(chart[y][x]*10)/10) ..DefaultColor.." |"
 				else
-					chartData = chartData .. string.format("%.2f", tostring(chart[y][x])) .." |"
+					chartData = chartData .. " " .. tostring(math.floor(chart[y][x])*10/10) .." |"
 				end
 			end
 
-		end
+		--	if(chart[y][x]) then
+		--		print("y=".. tostring(y) .. ", x=" .. tostring(x) .. ", chart[y][x]="..tostring(chart[y][x]))
+		--	end
 
+		end
 	end
 
-		chartData = chartData .. "\n       "
+	chartData = chartData .. "\n       "
 
 	for x = 1, xEntries do 
 
@@ -450,19 +455,20 @@ local instantaneousTurnRateReportRequestedMenuId
 local sustainedTurnRateReportRequestedSettingName = "Sustained Turn Rate Report Requested"
 local sustainedTurnRateReportRequestedMenuId
 
+local turnRateReportDisbaledSettingName = "Sustained Turn Rate Report Requested"
+local turnRateReportDisabledMenuId
+
 function OnInstantaneousTurnRateReportRequested()
+
+	-- if it's already selected do nothing
+
+	if instantaneousTurnRateReportRequested then
+		return
+	end
 
 	-- Change the option
 
 	instantaneousTurnRateReportRequested = not instantaneousTurnRateReportRequested
-
-	if instantaneousTurnRateReportRequested and sustainedTurnRateReportRequested then
-		
-		sustainedTurnRateReportRequested = false;
-		Tacview.AddOns.Current.Settings.SetBoolean(sustainedTurnRateReportRequestedSettingName, false)
-		Tacview.UI.Menus.SetOption(sustainedTurnRateReportRequestedMenuId, false)
-
-	end
 
 	-- Save it in the registry
 
@@ -472,21 +478,32 @@ function OnInstantaneousTurnRateReportRequested()
 
 	Tacview.UI.Menus.SetOption(instantaneousTurnRateReportRequestedMenuId, instantaneousTurnRateReportRequested)
 
+	-- Modify other options as necessary
+
+	if instantaneousTurnRateReportRequested and turnRateReportDisabled then
+		turnRateReportDisabled = false;
+		Tacview.AddOns.Current.Settings.SetBoolean(turnRateReportDisbaledSettingName, false)
+		Tacview.UI.Menus.SetOption(turnRateReportDisabledMenuId, false)		
+	end
+
+	if instantaneousTurnRateReportRequested and sustainedTurnRateReportRequested then
+		sustainedTurnRateReportRequested = false;
+		Tacview.AddOns.Current.Settings.SetBoolean(sustainedTurnRateReportRequestedSettingName, false)
+		Tacview.UI.Menus.SetOption(sustainedTurnRateReportRequestedMenuId, false)
+	end
 end
 
 function OnSustainedTurnRateReportRequested()
 
+	-- if it's already selected do nothing
+
+	if sustainedTurnRateReportRequested then
+		return
+	end
+
 	-- Change the option
 
 	sustainedTurnRateReportRequested = not sustainedTurnRateReportRequested
-
-	if instantaneousTurnRateReportRequested and sustainedTurnRateReportRequested then
-
-		instantaneousTurnRateReportRequested = false;
-		Tacview.AddOns.Current.Settings.SetBoolean(instantaneousTurnRateReportRequestedSettingName, false)
-		Tacview.UI.Menus.SetOption(instantaneousTurnRateReportRequestedMenuId, false)
-
-	end
 
 	-- Save it in the registry
 
@@ -496,8 +513,57 @@ function OnSustainedTurnRateReportRequested()
 
 	Tacview.UI.Menus.SetOption(sustainedTurnRateReportRequestedMenuId, sustainedTurnRateReportRequested)
 
+	-- Modify other options as necessary
+
+	if sustainedTurnRateReportRequested and turnRateReportDisabled then
+		turnRateReportDisabled = false;
+		Tacview.AddOns.Current.Settings.SetBoolean(turnRateReportDisbaledSettingName, false)
+		Tacview.UI.Menus.SetOption(turnRateReportDisabledMenuId, false)		
+	end
+
+	if instantaneousTurnRateReportRequested and sustainedTurnRateReportRequested then
+		instantaneousTurnRateReportRequested = false;
+		Tacview.AddOns.Current.Settings.SetBoolean(instantaneousTurnRateReportRequestedSettingName, false)
+		Tacview.UI.Menus.SetOption(instantaneousTurnRateReportRequestedMenuId, false)
+	end
 end
 
+function OnTurnRateReportDisabled()
+
+	-- if it's already selected do nothing
+
+	if turnRateReportDisabled then
+		return
+	end
+
+	-- Change the option
+
+	  turnRateReportDisabled = not turnRateReportDisabled
+
+	-- Save it in the registry
+
+	Tacview.AddOns.Current.Settings.SetBoolean(turnRateReportDisbaledSettingName, turnRateReportDisabled)
+
+	-- Update menu
+
+	Tacview.UI.Menus.SetOption(turnRateReportDisabledMenuId, turnRateReportDisabled)
+
+	-- Modify other options as necessary
+
+	if turnRateReportDisabled and instantaneousTurnRateReportRequested then
+
+		instantaneousTurnRateReportRequested = false;
+		Tacview.AddOns.Current.Settings.SetBoolean(instantaneousTurnRateReportRequestedSettingName, false)
+		Tacview.UI.Menus.SetOption(instantaneousTurnRateReportRequestedMenuId, false)
+	end
+	
+	if turnRateReportDisabled and sustainedTurnRateReportRequested then
+			
+		sustainedTurnRateReportRequested = false;
+		Tacview.AddOns.Current.Settings.SetBoolean(sustainedTurnRateReportRequestedSettingName, false)
+		Tacview.UI.Menus.SetOption(sustainedTurnRateReportRequestedMenuId, false)
+	end
+end
 ----------------------------------------------------------------
 -- Initialize this addon
 ----------------------------------------------------------------
@@ -519,9 +585,11 @@ function Initialize()
 
 	instantaneousTurnRateReportRequested = Tacview.AddOns.Current.Settings.GetBoolean(instantaneousTurnRateReportRequestedSettingName, instantaneousTurnRateReportRequested)
 	sustainedTurnRateReportRequested = Tacview.AddOns.Current.Settings.GetBoolean(sustainedTurnRateReportRequestedSettingName, sustainedTurnRateReportRequested)
+	turnRateReportDisabled = Tacview.AddOns.Current.Settings.GetBoolean(turnRateReportDisbaledSettingName, turnRateReportDisabled)
 
 	instantaneousTurnRateReportRequestedMenuId = Tacview.UI.Menus.AddExclusiveOption(mainMenuHandle, "Instantaneous Turn Rate Report", instantaneousTurnRateReportRequested, OnInstantaneousTurnRateReportRequested)
 	sustainedTurnRateReportRequestedMenuId = Tacview.UI.Menus.AddExclusiveOption(mainMenuHandle, "Sustained Turn Rate Report", sustainedTurnRateReportRequested, OnSustainedTurnRateReportRequested)
+	turnRateReportDisabledMenuId = Tacview.UI.Menus.AddExclusiveOption(mainMenuHandle, "Turn Rate Report Disabled", turnRateReportDisabled, OnTurnRateReportDisabled)
 
 	-- Register callbacks
 
