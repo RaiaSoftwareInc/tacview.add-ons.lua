@@ -37,9 +37,9 @@ require("lua-strict")
 
 local Tacview = require("Tacview184")
 
-local instantaneousTurnRateReportRequested = false
-local sustainedTurnRateReportRequested = false
-local turnRateReportDisabled = true
+local instantaneous = false
+local sustained = false
+local disabled = true
 
 
 -- Special control characters to change the chartData color on the fly
@@ -110,8 +110,8 @@ function InitializeCharts()
 	end
 end
 
-local previouslyInstantaneousTurnRateReportRequested = instantaneousTurnRateReportRequested
-local previouslySustainedTurnRateReportRequested = sustainedTurnRateReportRequested
+local previousInstantaneous = instantaneous
+local previousSustained = sustained
 
 -- Update is called once a frame by Tacview
 
@@ -127,11 +127,9 @@ function OnUpdate(dt, absoluteTime)
 
 	local firstSampleTime, lastSampleTime= Tacview.Telemetry.GetTransformTimeRange(selectedObjectHandle)
 
-	if selectedObjectHandle and selectedObjectHandle ~= previousSelectedObjectHandle then
-		
-		print"TURN RATE REPORT: New object found, calculating turn rate report"
+	if selectedObjectHandle ~= previousSelectedObjectHandle and not disabled then
 
-		InitializeCharts()
+        InitializeCharts()
 		lastStatTime=firstSampleTime
 
 	end
@@ -142,10 +140,8 @@ function OnUpdate(dt, absoluteTime)
 
 	-- Report type changed?
 
-	if	(previouslyInstantaneousTurnRateReportRequested ~= instantaneousTurnRateReportRequested) or
-		(previouslySustainedTurnRateReportRequested ~= sustainedTurnRateReportRequested) then
-
-		print"TURN RATE REPORT: New report type selected, calculating turn rate report"
+	if	(previousInstantaneous ~= instantaneous) or
+		(previousSustained ~= sustained) then
 
 		InitializeCharts()
 		lastStatTime=firstSampleTime
@@ -154,8 +150,8 @@ function OnUpdate(dt, absoluteTime)
 
 	-- keep track of report type
 		
-	previouslyInstantaneousTurnRateReportRequested = instantaneousTurnRateReportRequested
-	previouslySustainedTurnRateReportRequested = sustainedTurnRateReportRequested
+	previousInstantaneous = instantaneous
+	previousSustained = sustained
 
 	-- Update stats if enough new data is available 
 	
@@ -191,10 +187,14 @@ function calculateChart(selectedObjectHandle, startTime, endTime)
 		local currentAltitude = values[i].currentAltitude
 		local machNumber = values[i].machNumber
 
-		if instantaneousTurnRateReportRequested and (currentAltitude - previousAltitude > MaxChangeInAltitudeInstantaneous) then
+		if instantaneous and (currentAltitude - previousAltitude > MaxChangeInAltitudeInstantaneous) then
 			goto continue
-		elseif sustainedTurnRateReportRequested and (currentAltitude - previousAltitude > MaxChangeInAltitudeSustained) then
+		elseif sustained and (currentAltitude - previousAltitude > MaxChangeInAltitudeSustained) then
 			goto continue
+		end
+
+		if not machNumber then
+			return
 		end
 
 		local x = clamp(math.floor(machNumber/MachStep),0,xEntries-1)
@@ -211,9 +211,9 @@ function calculateChart(selectedObjectHandle, startTime, endTime)
 			y = clamp(y,0,yEntries-1)
 		end
 
-		if instantaneousTurnRateReportRequested and instantaneousTurnRate and instantaneousTurnRate*rad2deg >= 5 then
+		if instantaneous and instantaneousTurnRate and instantaneousTurnRate*rad2deg >= 5 then
 			chart[y][x] = math.max(chart[y][x],instantaneousTurnRate * rad2deg)
-		elseif sustainedTurnRateReportRequested and sustainedTurnRate and sustainedTurnRate*rad2deg >=5 then
+		elseif sustained and sustainedTurnRate and sustainedTurnRate*rad2deg >=5 then
 			chart[y][x] = math.max(chart[y][x],sustainedTurnRate * rad2deg)
 		end
 
@@ -348,10 +348,10 @@ function DisplayChartData()
 	-- draw chart
 	local chartData
 
-	if(instantaneousTurnRateReportRequested) then
-		chartData = " ALTITUDE(M)               INSTANTANEOUS TURN RATE\n"
-	elseif(sustainedTurnRateReportRequested) then
-		chartData = " ALTITUDE(M)               SUSTAINED TURN RATE\n"
+	if(instantaneous) then
+		chartData = " ASL (M)               INSTANTANEOUS TURN RATE\n"
+	elseif(sustained) then
+		chartData = " ASL (M)               SUSTAINED TURN RATE\n"
 	end
 
 	for y=yEntries-1,0,-1 do
@@ -391,7 +391,7 @@ function DisplayChartData()
 		end
 	end
 
-	chartData = chartData .. "\n       "
+	chartData = chartData .. "\n        "
 
 	for x = 1, xEntries do 
 
@@ -409,7 +409,7 @@ end
 
 function OnDrawTransparentUI()
 
-	if not instantaneousTurnRateReportRequested and not sustainedTurnRateReportRequested then
+	if not instantaneous and not sustained then
 		return
 	end
 
@@ -419,149 +419,119 @@ function OnDrawTransparentUI()
 
 end
 
---[[function GetSphericalDistance(x0, y0, x1, y1)
-		
-	-- WGS84 semi-major axis size in meters
-	-- https://en.wikipedia.org/wiki/Geodetic_datum
+local instantaneousSettingName = "Instantaneous"
+local instantaneousMenuId
 
-	local WGS84_EARTH_RADIUS = 6378137.0;
+local sustainedSettingName = "Sustained"
+local sustainedMenuId
 
-	return GetSphericalAngle(x0, y0, x1, y1) * WGS84_EARTH_RADIUS;
+local disabledSettingName = "Disabled"
+local disabledMenuId
 
-end
-
--- Calculate angle between two points on a sphere.
--- http://williams.best.vwh.net/avform.htm
-
-function GetSphericalAngle(x0, y0, x1, y1)
-
-	local arcX = x1 - x0
-	local HX = math.sin(arcX * 0.5)
-	HX = HX * HX;
-
-	local arcY = y1 - y0
-	local HY = math.sin(arcY * 0.5)
-	HY = HY * HY
-
-	local tmp = math.cos(y0) * math.cos(y1);
-
-	return 2.0 * math.asin(math.sqrt(HY + tmp * HX));
-
-end--]]
-
-local instantaneousTurnRateReportRequestedSettingName = "Instantaneous Turn Rate Report Requested"
-local instantaneousTurnRateReportRequestedMenuId
-
-local sustainedTurnRateReportRequestedSettingName = "Sustained Turn Rate Report Requested"
-local sustainedTurnRateReportRequestedMenuId
-
-local turnRateReportDisbaledSettingName = "Sustained Turn Rate Report Requested"
-local turnRateReportDisabledMenuId
-
-function OnInstantaneousTurnRateReportRequested()
+function OnInstantaneousRequested()
 
 	-- if it's already selected do nothing
 
-	if instantaneousTurnRateReportRequested then
+	if instantaneous then
 		return
 	end
 
 	-- Change the option
 
-	instantaneousTurnRateReportRequested = not instantaneousTurnRateReportRequested
+	instantaneous = not instantaneous
 
 	-- Save it in the registry
 
-	Tacview.AddOns.Current.Settings.SetBoolean(instantaneousTurnRateReportRequestedSettingName, instantaneousTurnRateReportRequested)
+	Tacview.AddOns.Current.Settings.SetBoolean(instantaneousSettingName, instantaneous)
 
 	-- Update menu
 
-	Tacview.UI.Menus.SetOption(instantaneousTurnRateReportRequestedMenuId, instantaneousTurnRateReportRequested)
+	Tacview.UI.Menus.SetOption(instantaneousMenuId, instantaneous)
 
 	-- Modify other options as necessary
 
-	if instantaneousTurnRateReportRequested and turnRateReportDisabled then
-		turnRateReportDisabled = false;
-		Tacview.AddOns.Current.Settings.SetBoolean(turnRateReportDisbaledSettingName, false)
-		Tacview.UI.Menus.SetOption(turnRateReportDisabledMenuId, false)		
+	if instantaneous and disabled then
+		disabled = false;
+		Tacview.AddOns.Current.Settings.SetBoolean(disabledSettingName, false)
+		Tacview.UI.Menus.SetOption(disabledMenuId, false)		
 	end
 
-	if instantaneousTurnRateReportRequested and sustainedTurnRateReportRequested then
-		sustainedTurnRateReportRequested = false;
-		Tacview.AddOns.Current.Settings.SetBoolean(sustainedTurnRateReportRequestedSettingName, false)
-		Tacview.UI.Menus.SetOption(sustainedTurnRateReportRequestedMenuId, false)
+	if instantaneous and sustained then
+		sustained = false;
+		Tacview.AddOns.Current.Settings.SetBoolean(sustainedSettingName, false)
+		Tacview.UI.Menus.SetOption(sustainedMenuId, false)
 	end
 end
 
-function OnSustainedTurnRateReportRequested()
+function OnSustainedRequested()
 
 	-- if it's already selected do nothing
 
-	if sustainedTurnRateReportRequested then
+	if sustained then
 		return
 	end
 
 	-- Change the option
 
-	sustainedTurnRateReportRequested = not sustainedTurnRateReportRequested
+	sustained = not sustained
 
 	-- Save it in the registry
 
-	Tacview.AddOns.Current.Settings.SetBoolean(sustainedTurnRateReportRequestedSettingName, sustainedTurnRateReportRequested)
+	Tacview.AddOns.Current.Settings.SetBoolean(sustainedSettingName, sustained)
 
 	-- Update menu
 
-	Tacview.UI.Menus.SetOption(sustainedTurnRateReportRequestedMenuId, sustainedTurnRateReportRequested)
+	Tacview.UI.Menus.SetOption(sustainedMenuId, sustained)
 
 	-- Modify other options as necessary
 
-	if sustainedTurnRateReportRequested and turnRateReportDisabled then
-		turnRateReportDisabled = false;
-		Tacview.AddOns.Current.Settings.SetBoolean(turnRateReportDisbaledSettingName, false)
-		Tacview.UI.Menus.SetOption(turnRateReportDisabledMenuId, false)		
+	if sustained and disabled then
+		disabled = false;
+		Tacview.AddOns.Current.Settings.SetBoolean(disabledSettingName, false)
+		Tacview.UI.Menus.SetOption(disabledMenuId, false)		
 	end
 
-	if instantaneousTurnRateReportRequested and sustainedTurnRateReportRequested then
-		instantaneousTurnRateReportRequested = false;
-		Tacview.AddOns.Current.Settings.SetBoolean(instantaneousTurnRateReportRequestedSettingName, false)
-		Tacview.UI.Menus.SetOption(instantaneousTurnRateReportRequestedMenuId, false)
+	if instantaneous and sustained then
+		instantaneous = false;
+		Tacview.AddOns.Current.Settings.SetBoolean(instantaneousSettingName, false)
+		Tacview.UI.Menus.SetOption(instantaneousMenuId, false)
 	end
 end
 
-function OnTurnRateReportDisabled()
+function OnDisabled()
 
 	-- if it's already selected do nothing
 
-	if turnRateReportDisabled then
+	if disabled then
 		return
 	end
 
 	-- Change the option
 
-	  turnRateReportDisabled = not turnRateReportDisabled
+	  disabled = not disabled
 
 	-- Save it in the registry
 
-	Tacview.AddOns.Current.Settings.SetBoolean(turnRateReportDisbaledSettingName, turnRateReportDisabled)
+	Tacview.AddOns.Current.Settings.SetBoolean(disabledSettingName, disabled)
 
 	-- Update menu
 
-	Tacview.UI.Menus.SetOption(turnRateReportDisabledMenuId, turnRateReportDisabled)
+	Tacview.UI.Menus.SetOption(disabledMenuId, disabled)
 
 	-- Modify other options as necessary
 
-	if turnRateReportDisabled and instantaneousTurnRateReportRequested then
+	if disabled and instantaneous then
 
-		instantaneousTurnRateReportRequested = false;
-		Tacview.AddOns.Current.Settings.SetBoolean(instantaneousTurnRateReportRequestedSettingName, false)
-		Tacview.UI.Menus.SetOption(instantaneousTurnRateReportRequestedMenuId, false)
+		instantaneous = false;
+		Tacview.AddOns.Current.Settings.SetBoolean(instantaneousSettingName, false)
+		Tacview.UI.Menus.SetOption(instantaneousMenuId, false)
 	end
 	
-	if turnRateReportDisabled and sustainedTurnRateReportRequested then
+	if disabled and sustained then
 			
-		sustainedTurnRateReportRequested = false;
-		Tacview.AddOns.Current.Settings.SetBoolean(sustainedTurnRateReportRequestedSettingName, false)
-		Tacview.UI.Menus.SetOption(sustainedTurnRateReportRequestedMenuId, false)
+		sustained = false;
+		Tacview.AddOns.Current.Settings.SetBoolean(sustainedSettingName, false)
+		Tacview.UI.Menus.SetOption(sustainedMenuId, false)
 	end
 end
 ----------------------------------------------------------------
@@ -583,13 +553,13 @@ function Initialize()
 
 	local mainMenuHandle = Tacview.UI.Menus.AddMenu(nil, "Turn Rate")
 
-	instantaneousTurnRateReportRequested = Tacview.AddOns.Current.Settings.GetBoolean(instantaneousTurnRateReportRequestedSettingName, instantaneousTurnRateReportRequested)
-	sustainedTurnRateReportRequested = Tacview.AddOns.Current.Settings.GetBoolean(sustainedTurnRateReportRequestedSettingName, sustainedTurnRateReportRequested)
-	turnRateReportDisabled = Tacview.AddOns.Current.Settings.GetBoolean(turnRateReportDisbaledSettingName, turnRateReportDisabled)
+	instantaneous = Tacview.AddOns.Current.Settings.GetBoolean(instantaneousSettingName, instantaneous)
+	sustained = Tacview.AddOns.Current.Settings.GetBoolean(sustainedSettingName, sustained)
+	disabled = Tacview.AddOns.Current.Settings.GetBoolean(disabledSettingName, disabled)
 
-	instantaneousTurnRateReportRequestedMenuId = Tacview.UI.Menus.AddExclusiveOption(mainMenuHandle, "Instantaneous Turn Rate Report", instantaneousTurnRateReportRequested, OnInstantaneousTurnRateReportRequested)
-	sustainedTurnRateReportRequestedMenuId = Tacview.UI.Menus.AddExclusiveOption(mainMenuHandle, "Sustained Turn Rate Report", sustainedTurnRateReportRequested, OnSustainedTurnRateReportRequested)
-	turnRateReportDisabledMenuId = Tacview.UI.Menus.AddExclusiveOption(mainMenuHandle, "Turn Rate Report Disabled", turnRateReportDisabled, OnTurnRateReportDisabled)
+	disabledMenuId = Tacview.UI.Menus.AddExclusiveOption(mainMenuHandle, "Disabled", disabled, OnDisabled)
+	instantaneousMenuId = Tacview.UI.Menus.AddExclusiveOption(mainMenuHandle, "Instantaneous", instantaneous, OnInstantaneousRequested)
+	sustainedMenuId = Tacview.UI.Menus.AddExclusiveOption(mainMenuHandle, "Sustained", sustained, OnSustainedRequested)
 
 	-- Register callbacks
 
