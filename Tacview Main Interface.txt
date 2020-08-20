@@ -1,7 +1,7 @@
 --------------------------------------------------------------------------------------------------------------------------------
 
-	Tacview 1.8.3 Lua General Interface
-	Last update: 2020-05-21
+	Tacview 1.8.4 Lua General Interface
+	Last update: 2020-07-14
 
 --------------------------------------------------------------------------------------------------------------------------------
 
@@ -196,11 +196,15 @@ UI.Menus.AddCommand( parentMenuId , textLabel , function ) -- Tacview 1.7.2
 		a menu id (integer) which can be used late to insert sub items or to remove the menu.
 
 UI.Menus.AddOption( parentMenuId , textLabel , optionBoolean , function ) -- Tacview 1.7.2
+UI.Menus.AddExclusiveOption( parentMenuId , textLabel , optionBoolean , function ) -- Tacview 1.8.4
 
 	Insert a command with a tick mark in the given menu.
-	If optionBoolean is true, then a tick mark will be displayed after the command label.
+
+	If optionBoolean is true, then a tick mark will be displayed next to the command label.
 	You can specify the id of a parent menu, or you can use nil to insert your menu in Tacview addons main menu.
 	function will be called whenever this menu option has been clicked.
+
+	Exclusive options tick marks are displayed differently so the use knows that he can only make one choose amongst several.
 
 	Return value:
 
@@ -314,6 +318,38 @@ UI.Renderer.ReleaseRenderState( renderStateHandle ) -- Tacview 1.7.2
 	Return value:
 
 		handle (integer) of the compiled state or nil if the array is invalid.
+
+UI.Renderer.DrawLines( renderStateHandle , thickness , vertexArray ) -- Tacview 1.8.4
+UI.Renderer.DrawLineStrip( renderStateHandle , thickness , vertexArray ) -- Tacview 1.8.4
+
+	Draw the given lines or linestrip. Can be used during opaque and transparent rendering phase.
+	Will work for both 2D and 3D rendering.
+
+	For 3D rendering you can use Math.Vector.LongitudeLatitudeToCartesian() to convert latitude/longitude coordinates in cartesian (x,y,z) coordinates.
+
+	Note that alpha channel of your colors and the blendMode of renderState will work only during the transparent phase.
+	Textures are not supported.
+
+	DrawLines will display independent lines listed in the vertex array which must have an even number of vertices.
+	DrawLineStrip will display one strip starting at the first vertex up to the last vertex point.
+
+	Thickness can be used to display thick lines. Its normal value is 1.
+
+	You can optionally specify a rgba attribute per line:
+
+	vertexArray =
+	{
+		{x, y, z},
+		...
+	}
+
+	or
+
+	vertexArray =
+	{
+		{x, y, z, rgba_color},
+		...
+	}
 
 UI.Renderer.DrawObjectVertexArray( transform , renderStateHandle , vertexArrayHandle ) -- Tacview 1.7.2
 UI.Renderer.DrawObjectVertexArray( transform , renderStateHandle , vertexArrayHandle [, textureCoordinateArrayHandle] ) -- Tacview 1.7.3

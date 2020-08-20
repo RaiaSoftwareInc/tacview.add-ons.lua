@@ -1,7 +1,7 @@
 --------------------------------------------------------------------------------------------------------------------------------
 
-	Tacview 1.8.3 Lua Core Interface
-	Last update: 2020-05-21
+	Tacview 1.8.4 Lua Core Interface
+	Last update: 2020-07-14
 
 --------------------------------------------------------------------------------------------------------------------------------
 
@@ -334,6 +334,26 @@ UI.Format.TextToAbsoluteTime( formatedSpeed ) -- Tacview 1.8.3
 		or nil if given text cannot be interpreted
 
 --------------------------------------------------------------------------------------------------------------------------------
+SoundPlayer
+
+	This module can be used to play sounds so the user can hear feedback about what is going on
+	without looking at all the telemetry windows.
+
+SoundPlayer.Play( fileName ) -- Tacview 1.8.4
+
+	Plays in background the sound specified by the given WAV file name.
+	Only one sound can be played at a time.
+	Any new sound will override any currently playing one.
+
+	Example:
+
+		Tacview.SoundPlayer.Play( Tacview.AddOns.Current.GetPath() .. "minimums.wav" )
+
+SoundPlayer.Stop() -- Tacview 1.8.4
+
+	Stops playback of the sound if playback is occurring.
+
+--------------------------------------------------------------------------------------------------------------------------------
 Math
 
 	This module contains all the necessary tools to convert and modify typical telemetry data.
@@ -363,7 +383,7 @@ Math.Units.NauticalMilesToMeters( value ) -- Tacview 1.8.0
 
 	Converts nautical miles distances in meters
 
-Math.Vector.LongitudeLatitudeToCartesian( {longitude = number , latitude = number , altitude = number} ) -- Tacview 1.7.2
+Math.Vector.LongitudeLatitudeToCartesian( {longitude = radian , latitude = radian , altitude = meter} ) -- Tacview 1.7.2
 
 	Converts Earth spherical coordinates into cartesian coordinates.
 	It is possible to direcly give an object transform to this function (see Telemetry.GetCurrentTransform).
@@ -440,6 +460,14 @@ Math.Vector.GetDistance( pt1 , pt2 ) -- Tacview 1.8.0
 
 	Retrieve the distance between given 3D cartesian points.
 
+Math.Vector.GetDistanceBetweenObjects( ObjectTransform1 , ObjectTransform2 ) -- Tacview 1.8.4
+
+	Retrieve the distance between two objects.
+
+	This function gives the most accurate result,
+	considering projection errors when – for example – analyzing data from a flight simulator such as DCS World or Falcon.
+	In that case native coordinates will be used to calculate the distance.
+
 Math.Vector.GetDistanceOnEarth( longitude1 , latitude1 , longitude2 , latitude2 , altitude ) -- Tacview 1.8.0
 
 	Retrieve the distance between the specified coordinates on earth at the given above sea level altitude.
@@ -510,6 +538,16 @@ Events.DocumentLoaded.RegisterListener( function ) -- Tacview 1.8.2
 
 			Called right after more telemetry data has been loaded via the File->Load/Merge option.
 			Called once at the end of a real-time telemetry recording.
+
+Events.DocumentUnload.RegisterListener( function ) -- Tacview 1.8.2
+
+	Tacview will call the given function right before unloading the current document.
+	Because the telemetry data will become invalid right after,
+	this callback gives the opportunity to your addon to cleanup any data such as object handles.
+
+		OnDocumentUnload()
+
+			Called right before the telemetry data becomes invalid (purged).
 
 Events.Shutdown.RegisterListener( function ) -- Tacview 1.8.0
 
@@ -870,13 +908,29 @@ Telemetry.GetCurrentTurnRadius( objectHandle ) -- Tacview 1.8.4
 		nil when not enough data is available (or object does not exist at this time).
 
 Telemetry.GetTurnRate( objectHandle , absoluteTime ) -- Tacview 1.8.4
+Telemetry.GetTurnRate( objectHandle , absoluteTime , dt ) -- Tacview 1.8.4
 Telemetry.GetCurrentTurnRate( objectHandle ) -- Tacview 1.8.4
+Telemetry.GetCurrentTurnRate( objectHandle , dt ) -- Tacview 1.8.4
 
 	Returns given object turn rate in degrees per second.
+	Specify dt if you want a turn-rate over a specific period of time (typically to get instantaneous vs sustained turn-rate)
 
 	Return value:
 
 		turn rate if available.
+		nil when not enough data is available (or object does not exist at this time).
+
+Telemetry.GetMachNumber( objectHandle , absoluteTime ) -- Tacview 1.8.4
+Telemetry.GetCurrentMachNumber( objectHandle ) -- Tacview 1.8.4
+
+	Returns given object Mach number at current time.
+
+	If vertical the Mach number has been recorded, then Tacview will return the interpolated sample.
+	If vertical the Mach number has not been recorded, Tacview will calculate an approximation of it.
+
+	Return value:
+
+		Mach number if available.
 		nil when not enough data is available (or object does not exist at this time).
 
 Telemetry.GetGlobalNumericPropertyIndex( propertyName , autoCreate ) -- Tacview 1.7.6
@@ -992,7 +1046,7 @@ Telemetry.GetTransformTimeRange( objectHandle ) -- Tacview 1.8.0
 Telemetry.GetLifeTime( objectHandle ) -- Tacview 1.7.6
 
 	Return absolute time of the object first appearance and its time of disappearance if applicable.
-	Unlike GetObjectDataTimeRange(), this function may return a wider range which can goes up to Telemetry.EndOfTime if the object has never been destroyed or removed from the battlefield.
+	Unlike GetTransformTimeRange(), this function may return a wider range which can goes up to Telemetry.EndOfTime if the object has never been destroyed or removed from the battlefield.
 	Prefer the function GetTransformTimeRange() if you want to iterate over the object telemetry samples via a time counter.
 
 	Return value:
