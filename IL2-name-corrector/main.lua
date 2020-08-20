@@ -39,7 +39,7 @@ require("lua-strict")
 
 -- Request Tacview API
 
-local Tacview = require("Tacview182")
+local Tacview = require("Tacview183")
 
 ----------------------------------------------------------------
 -- Constants
@@ -109,80 +109,11 @@ function FixPilotNamesNow()
 
 				if sampleIsValid then
 
-			--[[	-- Retrieve short name
-
-					local shortName = telemetry.GetCurrentShortName( objectHandle )
-
-					-- Retrieve full name
-
-					local fullName
-
-					local fullNamePropertyIndex = telemetry.GetObjectsTextPropertyIndex( "FullName" , false )
-
-					if fullNamePropertyIndex ~= telemetry.InvalidPropertyIndex then
-
-						local sampleIsValid
-
-						fullName, sampleIsValid = telemetry.GetTextSample(objectHandle, Tacview.Telemetry.BeginningOfTime, fullNamePropertyIndex)
-							
-						if not sampleIsValid then
-
-							fullName = nil
-						end
-					end
-
-					-- Retrieve long name
-
-					local longName
-
-					local longNamePropertyIndex = telemetry.GetObjectsTextPropertyIndex( "LongName" , false )
-
-					if longNamePropertyIndex ~= telemetry.InvalidPropertyIndex then
-
-						local sampleIsValid
-
-						longName, sampleIsValid = telemetry.GetTextSample(objectHandle, Tacview.Telemetry.BeginningOfTime, longNamePropertyIndex)
-							
-						if not sampleIsValid then
-
-							longName = nil
-
-						end
-					end
-
-					if longName and StartsWith(IL2GeneratedName, longName) then
-
-						pilotName = string.sub(IL2GeneratedName, #longName+1)
-
-
-					elseif shortName and StartsWith(IL2GeneratedName, shortName) then
-
-						pilotName = string.sub(IL2GeneratedName, #shortName+1)
-
-
-					elseif fullName and StartsWith(IL2GeneratedName, fullName)  then
-
-						pilotName = string.sub(IL2GeneratedName, #fullName+1)
-
-
-
-					else
-
-						local startChar = string.find(IL2GeneratedName," - ", 1, true)
-						pilotName = string.sub(IL2GeneratedName,startChar + 3)
-
-					end
-
-					if StartsWith(pilotName, " - ") then
-						pilotName = string.sub(pilotName,4)
-					end	--]]
-
 					--------------------------------------------------------------------
 					-- Determine which part of the IL2 Generated Name is the pilot name,
 					-- and set Pilot Text Sample accordingly.
 					--------------------------------------------------------------------
 
-					-- local startChar = string.find(IL2GeneratedName," - ", 1, true)
 
 					if IL2GeneratedName:reverse():find("%s+%-+%s+") then
 
@@ -199,9 +130,15 @@ function FixPilotNamesNow()
 						end
 					end
 				end
+				
+
+				
 			end
 		end
 	end
+	
+	Tacview.UI.Update()
+
 end
 
 function OnMenuAutomaticallyFixPilotNames()
