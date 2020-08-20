@@ -132,8 +132,6 @@ function OnUpdate(dt, absoluteTime)
 
 	if selectedObjectHandle and selectedObjectHandle ~= previousSelectedObjectHandle then
 		
-		print"New object found, calculating fuel consumption chart"
-
 		InitializeCharts()
 		lastStatTime=firstSampleTime
 	
