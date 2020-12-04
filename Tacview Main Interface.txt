@@ -1,7 +1,7 @@
 --------------------------------------------------------------------------------------------------------------------------------
 
-	Tacview 1.8.4 Lua General Interface
-	Last update: 2020-07-14
+	Tacview 1.8.5 Lua General Interface
+	Last update: 2020-09-29
 
 --------------------------------------------------------------------------------------------------------------------------------
 
@@ -72,6 +72,21 @@ UI.MessageBox
 	Message boxes can be used to display modal notifications and ask for simple questions to the user.
 	It is suggested to not use too many message boxes as they are breaking the productivity flow of the user.
 	Whenever possible, you can use the log to output most of you messages and rely on settings to choose the appropriate behavior depending on the circumstances.
+
+UI.MessageBox.InputText( title , message , defaultValue ) -- Tacview 1.8.5
+
+	Display a message box which wait for the user to answer a question by a text.
+
+	Return value:
+
+		Text typed by the user (an empty text is legal)
+		nil if the user cancels the operation
+
+	Example:
+
+		local apiKey = Tacview.UI.MessageBox.InputText("Terrain Texture Downloader",
+										"Please enter your Thunderforest API key.\n\nSee https://www.thunderforest.com/docs/apikeys/ for more details.",
+										"abcd1234abcd1234abcd1234abcd1234")
 
 UI.MessageBox.GetOpenFileName( options ) -- Tacview 1.8.2
 
@@ -472,6 +487,73 @@ UI.Renderer.DrawTransparentObject( objectHandle , transform [, alpha ]] ) -- Tac
 	You can scale the object or set scale to -1 for automatic scale (depending on user settings)
 	You can force the transparency of the object or set alpha to -1 for automatic (depending on dead/alive status)
 
+UI.Renderer.Load3DModel( fileName ) -- Tacview 1.8.5
+
+	Loads the specified 3D model in memory.
+
+	transform =
+	{
+		-- If the spherical position in not provided, Tacview will use cartesian xyz position in the Earth global space
+
+		x = number,
+		y = number,
+		z = number,
+
+		-- Spherical position will be used in priority to render the object
+
+		longitude = radian,
+		latitude = radian,
+		altitude = meters,
+
+		-- Optional rotation info
+
+		roll = radian,
+		pitch = radian,
+		yaw = radian,
+
+		-- Optional scale
+
+		scale = number
+	}
+
+	You can scale the object or set scale to -1 for automatic scale (depending on user settings)
+
+	Note this is an asynchronous operation. If this is the first time, the model is requested,
+	this function will return null until the model has been successfully loaded. So, you may want to retry the next frame.
+
+	The 3D model is cached by Tacview and does not need to be freed.
+
+	Return value:
+
+		handle of the 3D model,
+		or nil if the given file is still being loaded in background,
+		or nil if the given file could not be found or loaded because of invalid format.
+
+	Example:
+
+		if not cockpitModel then
+			cockpitModel = Tacview.UI.Renderer.Load3DModel( Tacview.AddOns.Current.GetPath() .. "f5-cockpit.obj" )
+		end
+
+		if cockpitModel then
+			Tacview.UI.Renderer.Draw3DModel( cockpitModel , transform , color )
+		end
+
+UI.Renderer.Draw3DModel( modelHandle , transform , color ) -- Tacview 1.8.5
+
+	Draw a 3D model previously loaded via Load3DModel().
+
+	The model will be displayed in the one uniform 32-bit color provided. However, it will be shaded according to the default lightning so it will not appear flat.
+	Textures are not supported, and normal maps are (re)calculated by Tacview on object load.
+
+	Do not forget to properly set the alpha channel (0x00 = invisible, 0xff = opaque) to display the object either opaque or translucent.
+
+	This function must be called only during rendering callbacks:
+	 - Make sure you render opaque objects in your Events.DrawOpaqueObjects callback.
+	 - And you render translucent objects in your Events.DrawTransparentObjects callback.
+
+	Otherwise you will get waste performance in the best case, and display errors or artifacts in the worst case.
+
 UI.Renderer.Print( transform , renderStateHandle , text ) -- Tacview 1.7.3
 
 	Print the given text at the corresponding x,y coordinates.
@@ -533,6 +615,20 @@ Events.DrawTransparentUI.RegisterListener( function ) -- Tacview 1.7.2
 	You function will not receive any parameter.
 	See UI.Renderer.DrawUIVertexArray() to draw your UI on top of the 3D view.
 
+Events.PowerSave.RegisterListener( function ) -- Tacview 1.8.5
+
+	Use this callback if you addon need several updates to complete a specific task.
+	If your addon task needs at least another update to complete its job, you can return false, to prevent Tacview from idling.
+
+	NOTE: This callback may never be called or be called at "random" times.
+	Do not count on it to update data or to make any calculations. You must only return a status.
+	Calculations must be made via the Events.Update() callback.
+
+	WARNING: DO NOT abuse this function.
+	Return false, only if necessary. For instance, whenever the user is waiting for the result of a calculation which takes several updates.
+	If you abuse this feature, this will prevent Tacview from sleeping, and by doing so, this may put heavy load on one or several cores of the computer,
+	depleting precious laptops batteries for nothing…
+
 --------------------------------------------------------------------------------------------------------------------------------
 Context
 
@@ -577,6 +673,17 @@ Context.Camera.GetMode() -- Tacview 1.7.2
 		Camera.External
 		Camera.Satellite
 		Camera.Free
+
+Context.Camera.GetSphericalPosition() -- Tacview 1.8.5
+
+	Retrieve current camera spherical position.
+
+	Return value:
+
+		{ longitude , latitude , altitude }
+
+		Longitude & latitude are in radian,
+		altitude is in meters above mean sea level.
 
 Context.Camera.SetRotation( roll , pitch , yaw ) -- Tacview 1.8.0
 
@@ -639,3 +746,21 @@ Context.Playback.Pause() -- Tacview 1.7.6
 Context.Playback.IsPlaying() -- Tacview 1.7.6
 
 	returns false if the playback is currently paused.
+
+--------------------------------------------------------------------------------------------------------------------------------
+Media
+
+	Functions to control synchronized audio/video media playback
+
+Media.Load( playerId , fileName , absoluteTime ) -- Tacview 1.8.5
+
+	Loads the specified media file in one of Tacview audio/video media player.
+
+	playerId: Index of the player (0 to 3) where the media file must be loaded. This may replace any media previously loaded in the corresponding player.
+	fileName: Full qualified path to the media file to be loaded.
+	absoluteTime: Unix timestamp corresponding to the beginning of the media. Tacview will automatically synchronize the media playback with any telemetry data currently loaded.
+
+	Returns true if the media file has been successfully loaded. A failure may indicate an invalid path or a missing audio/video codec.
+
+	Because Tacview uses audio/video codecs installed on your system to playback media, make sure that you have installed any necessary pack. 
+	Recommended codec pack: https://codecguide.com/download_k-lite_codec_pack_basic.htm

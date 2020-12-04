@@ -1,7 +1,7 @@
 --------------------------------------------------------------------------------------------------------------------------------
 
-	Tacview 1.8.4 Lua Core Interface
-	Last update: 2020-07-14
+	Tacview 1.8.5 Lua Core Interface
+	Last update: 2020-09-29
 
 --------------------------------------------------------------------------------------------------------------------------------
 
@@ -96,6 +96,26 @@ Settings.GetString( settingFullPath ) -- Tacview 1.7.2
 	Return value:
 
 		Corresponding setting string value.
+
+Settings.GetAltitudeUnit() -- Tacview 1.8.5
+
+	Retrieve the current unit of measure selected by the user to represent altitude.
+
+	Return value:
+
+		one of Settings.Unit
+
+Settings.Units -- Tacview 1.8.5
+
+	Unit of measurement. Typically based on user preferences, to display output values on screen.
+
+	To simplify programing and avoid bugs, it is strongly recommended to use metric system units only
+	for calculations as well as file input and output.
+
+	You should convert to/from user preferences only during UI input/output operations.
+
+		Settings.Units.Meters
+		Settings.Units.Feet
 
 --------------------------------------------------------------------------------------------------------------------------------
 AddOns
@@ -203,7 +223,9 @@ UI.MessageBox.Error( textMessage ) -- Tacview 1.7.2
 
 UI.MessageBox.Question( textMessage ) -- Tacview 1.7.2
 
-	Displays a question.
+	Displays a question and wait for the user to answer either OK or Cancel.
+
+	Depending on the OS, any other interaction than clicking OK, such as clocking the dialogbox, will return Cancel.
 
 	Return value:
 
@@ -319,7 +341,7 @@ UI.Format.AbsoluteTimeToISOText( absoluteTimeInSeconds [, outputDecimals ] ) -- 
 
 		Text which represent the absolute time in ISO date format.
 
-UI.Format.TextToAbsoluteTime( formatedSpeed ) -- Tacview 1.8.3
+UI.Format.TextToAbsoluteTime( dateTimeText ) -- Tacview 1.8.3
 
 	Convert the given text into an absolute time.
 	Use this function to convert user input into a date-time usable in Tacview telemetry.
@@ -354,6 +376,18 @@ SoundPlayer.Stop() -- Tacview 1.8.4
 	Stops playback of the sound if playback is occurring.
 
 --------------------------------------------------------------------------------------------------------------------------------
+String
+
+String.Crc32( text )
+
+	Calculate zip compatible CRC-32 of the given text.
+	Note: The given text is considered as a C string terminated by a \0.
+
+	Return value:
+
+		32-bit CRC-32 of the given C string
+
+--------------------------------------------------------------------------------------------------------------------------------
 Math
 
 	This module contains all the necessary tools to convert and modify typical telemetry data.
@@ -373,7 +407,15 @@ Math.Angle.Subtract( leftAngle , rightAngle ) -- Tacview 1.7.2
 	Return value:
 
 		Difference between leftAngle and rightAngle.
-		The result is normalized to (-pi, +pi].
+		The result is normalized to ]-π,+π]
+
+Math.Angle.NormalizePi( angle ) -- Tacview 1.8.5
+
+	Returns given angle normalized to ]-π,+π]
+
+Math.Angle.Normalize2Pi( angle ) -- Tacview 1.8.5
+
+	Returns given angle normalized to [0,2*π[
 
 Math.Units.FeetToMeters( value ) -- Tacview 1.8.0
 
@@ -465,7 +507,7 @@ Math.Vector.GetDistanceBetweenObjects( ObjectTransform1 , ObjectTransform2 ) -- 
 	Retrieve the distance between two objects.
 
 	This function gives the most accurate result,
-	considering projection errors when � for example � analyzing data from a flight simulator such as DCS World or Falcon.
+	considering projection errors when – for example – analyzing data from a flight simulator such as DCS World or Falcon.
 	In that case native coordinates will be used to calculate the distance.
 
 Math.Vector.GetDistanceOnEarth( longitude1 , latitude1 , longitude2 , latitude2 , altitude ) -- Tacview 1.8.0
@@ -1000,10 +1042,10 @@ Telemetry.SetTransform( objectHandle , absoluteTime , transform ) -- Tacview 1.7
 
 	absoluteTime is a 64-bit floating point number which represents the number of seconds elapsed to 1970-01-01T00:00:00Z
 
-	Injected angles (including longitude and latitude) MUST be normalized between ]-pi,+pi]
+	Injected angles (including longitude and latitude) MUST be normalized between ]-π,+π]
 	Failure to do so may produce undefined results with some formulas.
 
-	For performance reasons, angles retrieved by the telemetry manager are *NOT* always normalized between ]-pi,+pi]
+	For performance reasons, angles retrieved by the telemetry manager are *NOT* always normalized between ]-π,+π]
 	Do not forget to normalize angles before displaying then as text to the final user!
 
 	-- non specified members will be set to the interpolated value of the preceding and following samples.
@@ -1102,6 +1144,64 @@ Telemetry.GetObjectId( objectHandle ) -- Tacview 1.7.6
 
 	Beware that object ids can be recycled and cannot uniquely identify objects.
 	For that reason, avoid using them, unless it is for telemetry injection (event creation) or export.
+
+Telemetry.OnLoadStart( mergeWithExistingData ) -- Tacview 1.8.5
+
+	Notifies Tacview that telemetry data is going to be loaded.
+
+	You should call this function whenever your addon is going to load any significant amount of data in the telemetry manager.
+
+	This will give Tacview the opportunity to:
+
+		- if mergeWithExistingData is false:
+			- ask the user if currently loaded data needs to be saved
+			- purge any telemetry data currently loaded in memory
+			- prepare data and UI layers to receive new data (to avoid any undefined behaviors from tools and addons)
+
+		- if mergeWithExistingData is true:
+			- prepare data and UI layers to receive new data (to avoid any undefined behaviors from tools and addons)
+
+	NOTE: You must call Telemetry.OnLoadEnd() after the loading is complete (whether it is a success or a failure).
+
+	Return value:
+
+		Returns true if you can process with the loading of new data.
+		Returns false if the operation has been canceled by the user or if it is not possible because of other operations currently in progress.
+
+	Typical use:
+
+	if ( Telemetry.OnLoadStart( false ) )
+
+		local fileNames = UI.MessageBox.GetOpenFileName( ... )
+
+		if ( CustomImport( fileNames ) )
+
+			-- Success
+			Telemetry.OnLoadEnd( fileNames[1] )
+
+		else
+
+			-- Failed to load the data
+			Telemetry.OnLoadEnd()
+
+		end
+
+	end
+
+Telemetry.OnLoadEnd( documentName ) -- Tacview 1.8.5
+
+	Notifies Tacview that telemetry loading process is complete (whether it is a success or a failure).
+
+	You must call Telemetry.OnLoadStart() prior to this function.
+
+	Whenever the loading process is complete, call this function to notify Tacview about the success or failure of the operation.
+
+	If the operation is successful, set documentName to the file name loaded.
+	If you have loaded multiple files, then you can use the name of the first file for example.
+		- Tacview will start an analysis of the newly loaded data and display relevant information in the UI so the user can start debriefing with the new data.
+
+	If the operation has failed, then do not pass any file name to the function.
+		- Tacview will reset the UI to a stable empty document state.
 
 --------------------------------------------------------------------------------------------------------------------------------
 Database

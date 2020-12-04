@@ -1,7 +1,7 @@
 
 -- Fuel Consumption Report
 -- Author: Erin 'BuzyBee' O'REILLY
--- Last update: 2019-10-10 (Tacview 1.8.0)
+-- Last update: 2020-10-26 (Tacview 1.8.5)
 
 --[[
 
@@ -35,7 +35,7 @@ SOFTWARE.
 
 require("lua-strict")
 
-local Tacview = require("Tacview180")
+local Tacview = require("Tacview185")
 
 local fuelReportEnabled = false
 
@@ -53,20 +53,28 @@ local FontColor = 0xffffffff
 
 -- chart options
 
-local AltitudeMax = 6000	
-local AltitudeStep=500		-- AltitudeMax should be a multiple of AltitudeStep
-local yEntries = 12
+local AltitudeMaxMeters = 15000	
+local AltitudeStepMeters=1000
+local yEntriesMeters = 15		-- Entries * Step = Max
+
+local AltitudeMaxFeet = 45000	
+local AltitudeStepFeet=3000
+local yEntriesFeet = 15			-- Entries * Step = Max
+
+local AltitudeMax	
+local AltitudeStep				
+local yEntries
 
 local ThrottleMax=1.2
-local ThrottleStep=0.1	-- ThrottleMax should be a multiple of ThrottleStep
+local ThrottleStep=0.1			-- Entries * Step = Max
 local xEntries = 12
 
 --constants
 
 local m2ft = 3.28084
-local m2km = 1/1000
-local s2h = 1/3600
-local kgph2gps = 1000/3600 	-- kilograms per hour to grams per second (1 kg / h = 1000 g / 3600 s)
+local kg2lb = 2.20462
+local mps2mph = 2.23694		-- meters per second to miles per hour
+local mps2kph = 3.6			-- meters per second to kilometers per hour
 
 -- What minimum speed in mps
 
@@ -75,8 +83,8 @@ local minGroundSpeed = 28	-- 100kph = 28mps
 -- the calculation of the following 2 constants is based on the way the chart is drawn 
 -- The chart has yEntries lines and xEntries columns plus axes and legends
 
-local BackgroundHeight = (yEntries + 7)*FontSize
-local BackgroundWidth = (xEntries + 3) * 6 * FontSize/2
+local BackgroundHeight = 350
+local BackgroundWidth = 750
 
 -- percentiles above and below which values will be flagged red and green respectively
 
@@ -90,6 +98,10 @@ local minDistance = 1		-- minimum distance in meters over which to calculate fue
 -- keep track of existing object
 
 local previousSelectedObjectHandle
+
+-- keep track of whether data collection is done
+
+local done
 
 -- Cumulative Statistic
 
@@ -116,9 +128,17 @@ end
 
 -- Update is called once a frame by Tacview
 
+local previousUnits
+
 function OnUpdate(dt, absoluteTime)
 
-	-- find selected object and determine if it has changed in this update
+	-- Do nothing if add-on is not in use.
+
+	if not fuelReportEnabled then
+		return
+	end
+
+	-- Find selected object and its time range
 
 	local selectedObjectHandle = Tacview.Context.GetSelectedObject(0) or Tacview.Context.GetSelectedObject(1)
 
@@ -128,24 +148,49 @@ function OnUpdate(dt, absoluteTime)
 
 	local firstSampleTime, lastSampleTime= Tacview.Telemetry.GetTransformTimeRange(selectedObjectHandle)
 
-	-- Object changed?
+	-- Do not perform calculations on intemporal objects.
+
+	if firstSampleTime <= Tacview.Telemetry.BeginningOfTime then 
+		return 
+	end
+
+	-- If object has changed, reinitialize charts.
 
 	if selectedObjectHandle and selectedObjectHandle ~= previousSelectedObjectHandle then
 		
 		InitializeCharts()
 		lastStatTime=firstSampleTime
 	
-		-- keep track of selected object
+	end
 
-		previousSelectedObjectHandle = selectedObjectHandle
+	-- keep track of selected object
+
+	previousSelectedObjectHandle = selectedObjectHandle
+
+	-- If units have changed, reinitialize charts.
+
+	local currentUnits = Tacview.Settings.GetAltitudeUnit()
+
+	if previousUnits ~= currentUnits then
+
+		InitializeCharts()
+		lastStatTime=firstSampleTime
+		SetUnits()
 
 	end
+
+	-- keep track of units
+
+	previousUnits = currentUnits
 
 	-- Update stats if enough new data is available 
 	
 	if lastStatTime+updatePeriod <= lastSampleTime then
+		done = false
 		calculateChart(selectedObjectHandle, lastStatTime,lastStatTime+updatePeriod)
 		lastStatTime = lastStatTime + updatePeriod
+	else
+		done = true
 	end
 end
 
@@ -157,8 +202,6 @@ function clamp(x,min,max)
 	return math.max(math.min(x,max),min)
 
 end
-
-
 
 function calculateChart(selectedObjectHandle, startTime, endTime)
 
@@ -174,24 +217,39 @@ function calculateChart(selectedObjectHandle, startTime, endTime)
 		local groundSpeed = values[i].groundSpeed
 		local fuelConsumption	
 
+		if Tacview.Settings.GetAltitudeUnit() == Tacview.Settings.Units.Feet then
+			altitude = altitude * m2ft
+		end
+
 		if groundSpeed > minGroundSpeed then
+
+			if Tacview.Settings.GetAltitudeUnit() == Tacview.Settings.Units.Feet then
+				fuelConsumption = 	fuelFlowWeight 					-- in kg/h	
+									* kg2lb							-- convert from kilograms per hour to pounds per hour (pph)
+									/(groundSpeed * mps2mph)		-- convert from meters per second to miles per hour  
+																	-- then (lb/h) / (mi/h) = lb/mi
+			else
 			
-			fuelConsumption = fuelFlowWeight * kgph2gps/groundSpeed	-- fuel flow weight is in kg/h and ground speed is in m/s
-																	-- after conversion, fuel consumption is in g/m.
+			fuelConsumption = 	fuelFlowWeight 				-- in kg/h	
+								/(groundSpeed * mps2kph)	-- ground speed in km/h 
+															-- kg/h / km/h = kg/km
+			end
 
 			local x = math.floor(throttle/ThrottleStep)
 
 			if throttle > 0 and throttle/ThrottleStep - math.floor(throttle/ThrottleStep) == 0 then
 				x = x-1
-				x = clamp(x,0,xEntries-1)
 			end
+
+			x = clamp(x,0,xEntries-1)
 				
 			local y = math.floor(altitude/AltitudeStep)
 
 			if altitude > 0 and altitude/AltitudeStep - math.floor(altitude/AltitudeStep) == 0 then
 				y = y-1
-				y = clamp(y,0,yEntries-1)
 			end
+
+			y = clamp(y,0,yEntries-1)
 
 			chartEntriesSum[y][x] = chartEntriesSum[y][x] + fuelConsumption
 			chartEntriesCount[y][x] = chartEntriesCount[y][x] + 1
@@ -326,7 +384,7 @@ function DisplayBackground()
 	local backgroundTransform =
 	{
 		x = Margin,
-		y = Tacview.UI.Renderer.GetHeight() / 2 + FontSize * 2,
+		y = 395,
 		scale = 1,
 	}
 
@@ -356,20 +414,28 @@ function DisplayChartData()
 	local chartDataTransform =
 	{
 		x = Margin,
-		y = Tacview.UI.Renderer.GetHeight() / 2,
+		y = 364,
 		scale = FontSize,
 	}
 
 	-- draw chart
 
-	local chartData = " ALTITUDE(M)               FUEL CONSUMPTION G / M\n"
+	local chartData = ""
+
+	if Tacview.Settings.GetAltitudeUnit() == Tacview.Settings.Units.Feet then
+		chartData = " ASL(ft)                              FUEL CONSUMPTION lb/mi\n"
+	else
+		chartData = " ASL(m)                               FUEL CONSUMPTION kg/km\n"
+	end
 
 	for y=yEntries-1,0,-1 do
 
-		if((y+1)*AltitudeStep>=1000) then
+		if((y+1)*AltitudeStep>=10000) then
 			chartData = chartData .. "\n  " .. (y+1)*AltitudeStep .."|"
+		elseif((y+1)*AltitudeStep>=1000) then
+			chartData = chartData .. "\n  " .. (y+1)*AltitudeStep .." |"
 		else
-			chartData = chartData .. "\n   " .. (y+1)*AltitudeStep .."|"
+			chartData = chartData .. "\n   " .. (y+1)*AltitudeStep .."  |"
 		end
 	
 		for x = 0,xEntries-1 do
@@ -378,19 +444,27 @@ function DisplayChartData()
 				chartData = chartData .. "  -   |" 
 			elseif chart[y][x]<10 then
 				if chart[y][x]>=flagHighValue then
-					chartData = chartData .. " "..OrangeColor..string.format("%.2f", tostring(chart[y][x])) ..DefaultColor.." |"
+					chartData = chartData .. "  "..OrangeColor..string.format("%.2f", tostring(chart[y][x])) ..DefaultColor.."|"
 				elseif chart[y][x]<=flagLowValue then
-					chartData = chartData .. " "..GreenColor..string.format("%.2f", tostring(chart[y][x])) ..DefaultColor.." |"
+					chartData = chartData .. "  "..GreenColor..string.format("%.2f", tostring(chart[y][x])) ..DefaultColor.."|"
 				else
-					chartData = chartData .. " "..string.format("%.2f", tostring(chart[y][x])) .." |"
+					chartData = chartData .. "  "..string.format("%.2f", tostring(chart[y][x])) .."|"
 				end
-			else
+			elseif chart[y][x]<100 then
 				if chart[y][x]>=flagHighValue then
-					chartData = chartData .. OrangeColor .. string.format("%.2f", tostring(chart[y][x])) .. DefaultColor.." |"
+					chartData = chartData .. " " .. OrangeColor .. string.format("%.2f", tostring(chart[y][x])) .. DefaultColor.."|"
 				elseif chart[y][x]<=flagLowValue then
-					chartData = chartData .. GreenColor.. string.format("%.2f", tostring(chart[y][x])) ..DefaultColor.." |"
+					chartData = chartData .. " " .. GreenColor.. string.format("%.2f", tostring(chart[y][x])) ..DefaultColor.."|"
 				else
-					chartData = chartData .. string.format("%.2f", tostring(chart[y][x])) .." |"
+					chartData = chartData .. " " .. string.format("%.2f", tostring(chart[y][x])) .."|"
+				end
+			else 
+				if chart[y][x]>=flagHighValue then
+					chartData = chartData .. OrangeColor .. string.format("%.2f", tostring(chart[y][x])) .. DefaultColor.."|"
+				elseif chart[y][x]<=flagLowValue then
+					chartData = chartData .. GreenColor.. string.format("%.2f", tostring(chart[y][x])) ..DefaultColor.."|"
+				else
+					chartData = chartData .. string.format("%.2f", tostring(chart[y][x])) .."|"
 				end
 			end
 
@@ -406,7 +480,7 @@ function DisplayChartData()
 
 	end 
 
-		chartData = chartData .. "\n\n               THROTTLE(%)"
+		chartData = chartData .. "\n\n                                           THROTTLE(%)"
 	
 	-- print chart
 	
@@ -477,6 +551,38 @@ function OnFuelReportEnabledMenuOption()
 
 end
 
+function OnDocumentLoaded()
+
+	done = false
+
+	InitializeCharts()
+
+end
+
+function SetUnits()
+
+	-- print("Tacview.Settings.GetAltitudeUnit()"..Tacview.Settings.GetAltitudeUnit())
+
+	if Tacview.Settings.GetAltitudeUnit() == Tacview.Settings.Units.Feet then
+
+		AltitudeMax = AltitudeMaxFeet
+		AltitudeStep = AltitudeStepFeet
+		yEntries = yEntriesFeet
+	
+	else 
+
+		AltitudeMax = AltitudeMaxMeters
+		AltitudeStep = AltitudeStepMeters
+		yEntries = yEntriesMeters 
+
+	end
+	
+end
+
+function OnPowerSaveOK()
+
+	return done
+end
 
 ----------------------------------------------------------------
 -- Initialize this addon
@@ -487,6 +593,8 @@ function Initialize()
 	-- Declare addon properties
 
 	local currentAddOn = Tacview.AddOns.Current
+
+	SetUnits()	
 
 	InitializeCharts()
 
@@ -501,6 +609,9 @@ function Initialize()
 
 	Tacview.Events.Update.RegisterListener(OnUpdate)
 	Tacview.Events.DrawTransparentUI.RegisterListener(OnDrawTransparentUI)
+	Tacview.Events.DocumentLoaded.RegisterListener(OnDocumentLoaded)
+	Tacview.Events.DocumentUnload.RegisterListener(OnDocumentLoaded)
+	Tacview.Events.PowerSave.RegisterListener(OnPowerSaveOK)
 
 end
 

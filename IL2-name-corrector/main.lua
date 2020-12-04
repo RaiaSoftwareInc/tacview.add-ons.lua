@@ -58,8 +58,6 @@ local oneTimeFixIL2PilotNames=false
 function FixPilotNamesNow()
 
 	if not IsIL2Flight() then
-		Tacview.Log.Debug("IL-2 NAME CORRECTOR: Not an IL-2 flight - unable to proceed with fixing any pilot names")
-		
 		return
 	end
 	
@@ -172,17 +170,17 @@ end
 function OnDocumentLoaded()
 
 	if not IsIL2Flight() then
-		Tacview.Log.Debug("IL-2 NAME CORRECTOR: Not an IL-2 Flight")
+
 		return
 	end
 
-	Tacview.Log.Debug("IL-2 NAME CORRECTOR: New document has been loaded")
+	Tacview.Log.Info("IL-2 NAME CORRECTOR: New document has been loaded")
 
 	-- Check if the user wants to correct IL2 names automatically
 
 	if automaticallyFixIL2PilotNames then
 
-		Tacview.Log.Info("IL-2 NAME CORRECTOR: Fixing pilot names automatically")
+		Tacview.Log.Info("IL-2 NAME CORRECTOR: Automatically fixing pilot names")
 
 		FixPilotNamesNow()
 
@@ -196,13 +194,10 @@ function IsIL2Flight()
 	local sourcePropertyIndex = Tacview.Telemetry.GetGlobalTextPropertyIndex( "DataSource" , false )
 
 	if sourcePropertyIndex == Tacview.Telemetry.InvalidPropertyIndex then
-		Tacview.Log.Debug("IL-2 NAME CORRECTOR: Data Source Index invalid")
 		return false
 	end
 
 	local simulator, sampleIsValid = Tacview.Telemetry.GetTextSample( 0, Tacview.Telemetry.BeginningOfTime , sourcePropertyIndex) 
-
-	Tacview.Log.Debug("IL-2 NAME CORRECTOR: Using simulator ",simulator)
 
 	if simulator == "IL-2 Sturmovik" then
 

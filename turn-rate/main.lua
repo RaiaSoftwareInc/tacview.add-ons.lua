@@ -1,13 +1,13 @@
 
 -- Turn Rate Report
 -- Author: Erin 'BuzyBee' O'REILLY
--- Last update: 2020-07-08 (Tacview 1.8.3)
+-- Last update: 2020-09-09 (Tacview 1.8.4)
 
 --[[
 
 MIT License
 
-Copyright (c) 2019 Raia Software Inc.
+Copyright (c) 2020 Raia Software Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -35,12 +35,10 @@ SOFTWARE.
 
 require("lua-strict")
 
-local Tacview = require("Tacview184")
+local Tacview = require("Tacview185")
 
 local instantaneous = false
 local sustained = false
-local disabled = true
-
 
 -- Special control characters to change the chartData color on the fly
 
@@ -56,27 +54,46 @@ local FontColor = 0xffffffff
 
 -- chart options
 
-local AltitudeMax = 15000	
-local AltitudeStep=1000		-- AltitudeMax should be a multiple of AltitudeStep
-local yEntries = 15
+local AltitudeMaxMeters = 15000	
+local AltitudeStepMeters=1000
+local yEntriesMeters = 15				-- Entries * Step = Max
 
-local MachMax=1.2
-local MachStep=0.1	-- MachMax should be a multiple of MachStep
-local xEntries = 12
+local AltitudeMaxFeet = 45000	
+local AltitudeStepFeet=3000
+local yEntriesFeet = 15					-- Entries * Step = Max
+
+local AltitudeMax = AltitudeMaxMeters	-- default
+local AltitudeStep = AltitudeStepMeters	-- default
+local yEntries = yEntriesMeters			-- default
+
+local MachMin=0.3
+local MachMax=1.0
+local MachStep=0.05	
+local xEntries = 15						-- Min + (Entries - 1)*Step = Max
 
 --constants
 
-local rad2deg = 180/math.pi
+local m2ft = 3.28084
+
 local InstantaneousTurnRatePeriod = 1
-local SustainedTurnRatePeriod = 10
-local MaxChangeInAltitudeInstantaneous = 20
-local MaxChangeInAltitudeSustained = 200
+local SustainedTurnRatePeriod = 5
+
+local MaxChangeInAltitudeInstantaneousMeters = 20
+local MaxChangeInAltitudeSustainedMeters = 200
+
+local MinimumTurnRate = 5
+
+local MaxChangeInAltitudeInstantaneousFeet = MaxChangeInAltitudeInstantaneousMeters * m2ft
+local MaxChangeInAltitudeSustainedFeet = MaxChangeInAltitudeSustainedMeters * m2ft
+
+local MaxChangeInAltitudeInstantaneous = MaxChangeInAltitudeInstantaneousMeters	--default
+local MaxChangeInAltitudeSustained = MaxChangeInAltitudeSustainedMeters			--default
 
 -- the calculation of the following 2 constants is based on the way the chart is drawn 
 -- The chart has yEntries lines and xEntries columns plus axes and legends
 
-local BackgroundHeight = (yEntries + 7)*FontSize
-local BackgroundWidth = (xEntries + 3) * 6 * FontSize/2
+local BackgroundHeight = 350
+local BackgroundWidth = 750
 
 -- percentiles above and below which values will be flagged red and green respectively
 
@@ -90,34 +107,51 @@ local samplePeriod = 1		-- how often to record turn rate data
 
 local previousSelectedObjectHandle
 
+-- keep track of whether data collection is done
+
+local done
+
 -- Cumulative Statistic
 
 local chartEntriesSum = {}
 local chartEntriesCount = {}
-local chart = {}
+local sustainedChart = {}
+local instantaneousChart={}
+local displayChart={}
 local lastStatTime = 0.0
 
 function InitializeCharts()
 
 	for y=0,yEntries-1 do
 			
-		chart[y]={}
+		sustainedChart[y]={}
+		instantaneousChart[y]={}
+		displayChart[y]={}
 			
 		for x=0,xEntries-1 do
-			chart[y][x]=0
-
+			sustainedChart[y][x]=0
+			instantaneousChart[y][x]=0
+			displayChart[y][x]=0
 		end
 	end
+
 end
 
 local previousInstantaneous = instantaneous
 local previousSustained = sustained
+local previousUnits 
 
 -- Update is called once a frame by Tacview
 
 function OnUpdate(dt, absoluteTime)
 
-	-- find selected object and determine if it has changed in this update
+	-- Do nothing if add-on is not in use.
+
+	if not instantaneous and not sustained then
+		return
+	end
+
+	-- Find selected object and its time range
 
 	local selectedObjectHandle = Tacview.Context.GetSelectedObject(0) or Tacview.Context.GetSelectedObject(1)
 
@@ -127,18 +161,26 @@ function OnUpdate(dt, absoluteTime)
 
 	local firstSampleTime, lastSampleTime= Tacview.Telemetry.GetTransformTimeRange(selectedObjectHandle)
 
-	if selectedObjectHandle ~= previousSelectedObjectHandle and not disabled then
+	-- Do not perform calculations on intemporal objects.
+
+	if firstSampleTime <= Tacview.Telemetry.BeginningOfTime then 
+		return 
+	end
+
+	-- If object has changed, reinitialize charts.
+
+	if selectedObjectHandle ~= previousSelectedObjectHandle and (instantaneous or sustained) then
 
         InitializeCharts()
 		lastStatTime=firstSampleTime
 
 	end
 
-	-- keep track of selected object
+	-- Keep track of selected object.
 
 	previousSelectedObjectHandle = selectedObjectHandle
 
-	-- Report type changed?
+	-- If report type has changed, reinitialize charts.
 
 	if	(previousInstantaneous ~= instantaneous) or
 		(previousSustained ~= sustained) then
@@ -148,23 +190,43 @@ function OnUpdate(dt, absoluteTime)
 
 	end	
 
-	-- keep track of report type
+	-- Keep track of report type.
 		
 	previousInstantaneous = instantaneous
 	previousSustained = sustained
 
-	-- Update stats if enough new data is available 
-	
-	if lastStatTime+updatePeriod <= lastSampleTime then
+	-- If units have changed, reinitialize charts.
 
+	local currentUnits = Tacview.Settings.GetAltitudeUnit()
+
+	if previousUnits ~= currentUnits then
+
+		InitializeCharts()
+		lastStatTime=firstSampleTime
+		SetUnits()
+
+	end
+
+	-- Keep track of units.
+
+	previousUnits = currentUnits
+
+	-- Update stats if enough new data is available.
+
+	if lastStatTime+updatePeriod <= lastSampleTime then
+		done = false
 		calculateChart(selectedObjectHandle, lastStatTime,lastStatTime+updatePeriod)
 		lastStatTime = lastStatTime + updatePeriod
+	else
+		done = true
 	end
 
 end
 
-local flagLowValue = 0
-local flagHighValue = 100
+local flagLowValueInstantaneous = 0
+local flagHighValueInstantaneous = 100
+local flagLowValueSustained = 0
+local flagHighValueSustained = 100
 
 function clamp(x,min,max)
 
@@ -187,34 +249,44 @@ function calculateChart(selectedObjectHandle, startTime, endTime)
 		local currentAltitude = values[i].currentAltitude
 		local machNumber = values[i].machNumber
 
+		if Tacview.Settings.GetAltitudeUnit() == Tacview.Settings.Units.Feet then 
+			currentAltitude = currentAltitude * m2ft
+			previousAltitude = previousAltitude * m2ft
+		end
+
 		if instantaneous and (currentAltitude - previousAltitude > MaxChangeInAltitudeInstantaneous) then
 			goto continue
 		elseif sustained and (currentAltitude - previousAltitude > MaxChangeInAltitudeSustained) then
 			goto continue
 		end
 
-		if not machNumber then
-			return
+		if not machNumber or machNumber < MachMin then
+			goto continue
 		end
 
-		local x = clamp(math.floor(machNumber/MachStep),0,xEntries-1)
+		local x = clamp(math.floor((machNumber-MachMin)/MachStep),0,xEntries-1)
 
-		if machNumber > 0 and machNumber/MachStep - math.floor(machNumber/MachStep) == 0 then
+		if machNumber > 0 and (machNumber-MachMin)/MachStep - math.floor((machNumber-MachMin)/MachStep) == 0 then
 			x = x-1
-			x = clamp(x,0,xEntries-1)
 		end
+
+		x = clamp(x,0,xEntries-1)
+
 				
 		local y = clamp(math.floor(currentAltitude/AltitudeStep),0,yEntries-1)
 
 		if currentAltitude > 0 and currentAltitude/AltitudeStep - math.floor(currentAltitude/AltitudeStep) == 0 then
 			y = y-1
-			y = clamp(y,0,yEntries-1)
 		end
 
-		if instantaneous and instantaneousTurnRate and instantaneousTurnRate*rad2deg >= 5 then
-			chart[y][x] = math.max(chart[y][x],instantaneousTurnRate * rad2deg)
-		elseif sustained and sustainedTurnRate and sustainedTurnRate*rad2deg >=5 then
-			chart[y][x] = math.max(chart[y][x],sustainedTurnRate * rad2deg)
+		y = clamp(y,0,yEntries-1)
+
+		if instantaneous and instantaneousTurnRate and math.deg(instantaneousTurnRate) >= MinimumTurnRate then
+			instantaneousChart[y][x] = math.max(instantaneousChart[y][x], math.deg(instantaneousTurnRate))
+		end
+
+		if sustained and sustainedTurnRate and math.deg(sustainedTurnRate) >=MinimumTurnRate then
+			sustainedChart[y][x] = math.max(sustainedChart[y][x], math.deg(sustainedTurnRate))
 		end
 
 		::continue::
@@ -223,23 +295,64 @@ function calculateChart(selectedObjectHandle, startTime, endTime)
 
 	-- determine percentiles fuel consumption so that above-average entries may be flagged
 
-	local list = {}
+	if instantaneous then
 
-	for y=0,yEntries-1 do
+		local listInstantaneous = {}
 
-		for x=0,xEntries-1 do
-			
-			if chart[y][x] ~= 0 then
-				list[#list+1] = chart[y][x]
+		for y=0,yEntries-1 do
+
+			for x=0,xEntries-1 do
+				
+				if instantaneousChart[y][x] ~= 0 then
+					listInstantaneous[#listInstantaneous+1] = instantaneousChart[y][x]
+				end
 			end
+		end
+
+		table.sort(listInstantaneous)
+
+		local instantaneousLowIndex = math.ceil(#listInstantaneous * FlagLowPercentile/100)
+
+		if(instantaneousLowIndex ~= 0) then
+			flagLowValueInstantaneous = listInstantaneous[instantaneousLowIndex]
+		end
+
+		local instantaneousHighIndex = math.ceil(#listInstantaneous * FlagHighPercentile/100)
+
+		if(instantaneousHighIndex ~= 0) then
+			flagHighValueInstantaneous = listInstantaneous[instantaneousHighIndex]
 		end
 	end
 
-	table.sort(list)
+	if sustained then
 
-	flagLowValue = list[math.ceil(#list * FlagLowPercentile/100)]
-	flagHighValue = list[math.ceil(#list * FlagHighPercentile/100)] 
+		local listSustained = {}
 
+		for y=0,yEntries-1 do
+
+			for x=0,xEntries-1 do
+				
+				if sustainedChart[y][x] ~= 0 then
+					listSustained[#listSustained+1] = sustainedChart[y][x]
+				end
+			end
+		end
+
+		table.sort(listSustained)
+
+		local sustainedLowIndex = math.ceil(#listSustained * FlagLowPercentile/100)
+
+		if(sustainedLowIndex ~= 0) then
+			flagLowValueSustained = listSustained[sustainedLowIndex]
+		end
+
+		local sustainedHighIndex = math.ceil(#listSustained * FlagHighPercentile/100)
+
+		if(sustainedHighIndex ~= 0) then
+			flagHighValueSustained = listSustained[sustainedHighIndex]
+		end
+
+	end
 end
 
 function ObtainData(selectedObjectHandle,startTime,endTime)
@@ -312,7 +425,7 @@ function DisplayBackground()
 	local backgroundTransform =
 	{
 		x = Margin,
-		y = Tacview.UI.Renderer.GetHeight() * 2/3 + FontSize * 2,
+		y = 395,
 		scale = 1,
 	}
 
@@ -335,23 +448,30 @@ function DisplayChartData()
 	if not chartDataRenderStateHandle then
 
 		chartDataRenderStateHandle = Tacview.UI.Renderer.CreateRenderState(ChartDataRenderState)
-
 	end
 
 	local chartDataTransform =
 	{
 		x = Margin,
-		y = Tacview.UI.Renderer.GetHeight() * 2/3,
+		y = 364,
 		scale = FontSize,
 	}
 
 	-- draw chart
 	local chartData
 
-	if(instantaneous) then
-		chartData = " ASL (M)               INSTANTANEOUS TURN RATE\n"
+	if Tacview.Settings.GetAltitudeUnit() == Tacview.Settings.Units.Feet then
+		chartData = " ASL (ft)"
+	else
+		chartData = " ASL (m)"
+	end
+
+	if(instantaneous and sustained) then
+		chartData = chartData .. "                       SUSTAINED/INSTANTANEOUS TURN RATE (\xC2\xB0/s)\n"
+	elseif(instantaneous) then
+		chartData = chartData .. "                            INSTANTANEOUS TURN RATE (\xC2\xB0/s)\n"
 	elseif(sustained) then
-		chartData = " ASL (M)               SUSTAINED TURN RATE\n"
+		chartData = chartData .. "                              SUSTAINED TURN RATE (\xC2\xB0/s)\n"
 	end
 
 	for y=yEntries-1,0,-1 do
@@ -364,42 +484,140 @@ function DisplayChartData()
 	
 		for x = 0,xEntries-1 do
 
-			if chart[y][x]=='-' or chart[y][x]==0 then
-				chartData = chartData .. "  -   |" 
-			elseif chart[y][x]<10 then
-				if chart[y][x]>=flagHighValue then
-					chartData = chartData .. " "..GreenColor..tostring(math.floor(chart[y][x]*10)/10) ..DefaultColor.."  |"
-				elseif chart[y][x]<=flagLowValue then
-					chartData = chartData .. " "..OrangeColor..tostring(math.floor(chart[y][x]*10)/10) ..DefaultColor.."  |"
-				else
-					chartData = chartData .. " "..tostring(math.floor(chart[y][x]*10)/10) .."  |"
-				end
-			else
-				if chart[y][x]>=flagHighValue then
-					chartData = chartData .. " " .. GreenColor .. tostring(math.floor(chart[y][x]*10)/10) .. DefaultColor.." |"
-				elseif chart[y][x]<=flagLowValue then
-					chartData = chartData .. " " .. OrangeColor.. tostring(math.floor(chart[y][x]*10)/10) ..DefaultColor.." |"
-				else
-					chartData = chartData .. " " .. tostring(math.floor(chart[y][x])*10/10) .." |"
-				end
+			if instantaneousChart[y][x] > 100 then
+				instantaneousChart[y][x] = 99
 			end
 
-		--	if(chart[y][x]) then
-		--		print("y=".. tostring(y) .. ", x=" .. tostring(x) .. ", chart[y][x]="..tostring(chart[y][x]))
-		--	end
+			if sustainedChart[y][x] > 100 then
+				sustainedChart[y][x] = 99
+			end
 
-		end
-	end
+			if instantaneous and sustained then
 
-	chartData = chartData .. "\n        "
+				if ((not instantaneousChart[y][x]) or instantaneousChart[y][x]==0) and 
+					((not sustainedChart[y][x]) or sustainedChart[y][x] ==0) then
+					chartData = chartData .. "  -  |"
+					goto continue
+				end
 
-	for x = 1, xEntries do 
+				--print("instantaneousChart["..y.."]["..x.."]="..instantaneousChart[y][x] )
+				--print("sustainedChart["..y.."]["..x.."]="..sustainedChart[y][x] )
 
-		chartData = chartData .. "  " .. x*MachStep .. "  "
+				local sustainedRounded
+				
+				if sustainedChart[y][x] then
+					sustainedRounded = math.floor(sustainedChart[y][x]+0.5)
+				else
+					sustainedRounded = 0
+				end
+
+				local instantaneousRounded
+
+				if instantaneousChart[y][x] then
+					instantaneousRounded = math.floor(instantaneousChart[y][x]+0.5)
+				else
+					instantaneousRounded = 0
+				end
+						
+				if not flagHighValueSustained or not flagLowValueSustained or not flagHighValueInstantaneous or not flagLowValueInstantaneous then
+					chartData = chartData .. "  -  |"
+					Tacview.Log.Debug("TURN-RATE: Missing flag high/low value")
+					goto continue
+				end
+
+				-- print("flagHighValueSustained="..flagHighValueSustained.."flagLowValueSustained="..flagLowValueSustained)
+
+				if sustainedRounded ~= 0 then
+					
+					if sustainedRounded>=flagHighValueSustained then
+							chartData = chartData .. GreenColor .. string.format("%2d",sustainedRounded) .. DefaultColor
+					elseif sustainedRounded<=flagLowValueSustained then
+							chartData = chartData ..OrangeColor .. string.format("%2d",sustainedRounded) .. DefaultColor
+					else
+						chartData = chartData .. string.format("%2d",sustainedRounded)
+					end
+					
+					if instantaneousRounded == 0 then
+						chartData = chartData .. "/"
+					end
+				else -- sustainedRounded == 0; therefore instantaneousRounded is NOT zero
+					chartData = chartData .. "  "
+				end
+
+				if instantaneousRounded ~= 0 then
+					if instantaneousRounded>=flagHighValueInstantaneous then
+							chartData = chartData .. "/" ..GreenColor .. string.format("%2d",instantaneousRounded) .. DefaultColor .. "|"
+					elseif instantaneousRounded<=flagLowValueInstantaneous then
+							chartData = chartData .. "/" .. OrangeColor .. string.format("%2d",instantaneousRounded) .. DefaultColor .. "|"
+					else
+						chartData = chartData .. "/" .. string.format("%2d",instantaneousRounded) .."|"
+					end
+				else -- instantaneousRounded == 0; therefore sustainedRounded is NOT zero
+					chartData = chartData .. "  |"
+				end
+
+			elseif instantaneous or sustained then
+
+				local flagHighValue
+				local flagLowValue
+				
+				if instantaneous then 
+
+					if not flagHighValueInstantaneous or not flagLowValueInstantaneous then
+						chartData = chartData .. "  -  |"
+						Tacview.Log.Debug("TURN-RATE: Missing flag high/low value")
+						goto continue
+					end
+
+					displayChart = instantaneousChart 
+					flagHighValue = flagHighValueInstantaneous
+					flagLowValue = flagLowValueInstantaneous
+
+				elseif sustained then 
+
+					if not flagHighValueSustained or not flagLowValueSustained then
+						chartData = chartData .. "  -  |"
+						Tacview.Log.Debug("TURN-RATE: Missing flag high/low value")
+						goto continue
+					end
+
+					displayChart = sustainedChart 
+					flagHighValue = flagHighValueSustained
+					flagLowValue = flagLowValueSustained
+				end
+
+				if not displayChart[y][x] or displayChart[y][x]==0 then 
+					chartData = chartData .. "  -  |" 
+					goto continue 
+				end
+
+				local rate = math.floor(displayChart[y][x]*10)/10
+				local stringRate = tostring(rate)
+				if rate<10 then
+					stringRate = " "..stringRate
+				end
+				
+				if displayChart[y][x]>=flagHighValue then
+					chartData = chartData .. " " .. GreenColor .. stringRate .. DefaultColor .. "|"
+				elseif displayChart[y][x]<=flagLowValue then
+					chartData = chartData .. " "..OrangeColor..stringRate ..DefaultColor.."|"
+				else
+					chartData = chartData .. " "..stringRate .."|"
+				end
+			end
+			::continue::
+		end -- for x = 0,xEntries-1 do
+	end -- for y=yEntries-1,0,-1 do
+
+	chartData = chartData .. "\n       " 
+
+	for x = MachMin,MachMax+MachStep,MachStep do 
+
+		chartData = chartData .. " " .. string.format("%.2f",x) .. " "
 
 	end 
 
-		chartData = chartData .. "\n\n               SPEED (MACH NUMBER)"
+	chartData = chartData .. "\n\n                                              SPEED (Ma)"
 	
 	-- print chart
 	
@@ -425,16 +643,7 @@ local instantaneousMenuId
 local sustainedSettingName = "Sustained"
 local sustainedMenuId
 
-local disabledSettingName = "Disabled"
-local disabledMenuId
-
 function OnInstantaneousRequested()
-
-	-- if it's already selected do nothing
-
-	if instantaneous then
-		return
-	end
 
 	-- Change the option
 
@@ -448,28 +657,9 @@ function OnInstantaneousRequested()
 
 	Tacview.UI.Menus.SetOption(instantaneousMenuId, instantaneous)
 
-	-- Modify other options as necessary
-
-	if instantaneous and disabled then
-		disabled = false;
-		Tacview.AddOns.Current.Settings.SetBoolean(disabledSettingName, false)
-		Tacview.UI.Menus.SetOption(disabledMenuId, false)		
-	end
-
-	if instantaneous and sustained then
-		sustained = false;
-		Tacview.AddOns.Current.Settings.SetBoolean(sustainedSettingName, false)
-		Tacview.UI.Menus.SetOption(sustainedMenuId, false)
-	end
 end
 
 function OnSustainedRequested()
-
-	-- if it's already selected do nothing
-
-	if sustained then
-		return
-	end
 
 	-- Change the option
 
@@ -483,57 +673,38 @@ function OnSustainedRequested()
 
 	Tacview.UI.Menus.SetOption(sustainedMenuId, sustained)
 
-	-- Modify other options as necessary
-
-	if sustained and disabled then
-		disabled = false;
-		Tacview.AddOns.Current.Settings.SetBoolean(disabledSettingName, false)
-		Tacview.UI.Menus.SetOption(disabledMenuId, false)		
-	end
-
-	if instantaneous and sustained then
-		instantaneous = false;
-		Tacview.AddOns.Current.Settings.SetBoolean(instantaneousSettingName, false)
-		Tacview.UI.Menus.SetOption(instantaneousMenuId, false)
-	end
 end
 
-function OnDisabled()
+function OnDocumentLoaded()
 
-	-- if it's already selected do nothing
+	done = false
 
-	if disabled then
-		return
-	end
+	InitializeCharts()
 
-	-- Change the option
+end
 
-	  disabled = not disabled
+function SetUnits()
 
-	-- Save it in the registry
+	--print("Tacview.Settings.GetAltitudeUnit()"..Tacview.Settings.GetAltitudeUnit())
 
-	Tacview.AddOns.Current.Settings.SetBoolean(disabledSettingName, disabled)
+	if Tacview.Settings.GetAltitudeUnit() == Tacview.Settings.Units.Feet then
 
-	-- Update menu
-
-	Tacview.UI.Menus.SetOption(disabledMenuId, disabled)
-
-	-- Modify other options as necessary
-
-	if disabled and instantaneous then
-
-		instantaneous = false;
-		Tacview.AddOns.Current.Settings.SetBoolean(instantaneousSettingName, false)
-		Tacview.UI.Menus.SetOption(instantaneousMenuId, false)
+		AltitudeMax = AltitudeMaxFeet
+		AltitudeStep = AltitudeStepFeet
+		yEntries = yEntriesFeet
+		MaxChangeInAltitudeInstantaneous = MaxChangeInAltitudeInstantaneousFeet
+		MaxChangeInAltitudeSustained = MaxChangeInAltitudeSustainedFeet
 	end
 	
-	if disabled and sustained then
-			
-		sustained = false;
-		Tacview.AddOns.Current.Settings.SetBoolean(sustainedSettingName, false)
-		Tacview.UI.Menus.SetOption(sustainedMenuId, false)
-	end
 end
+
+function OnPowerSaveOK()
+
+	return done
+end
+
+
+
 ----------------------------------------------------------------
 -- Initialize this addon
 ----------------------------------------------------------------
@@ -544,8 +715,10 @@ function Initialize()
 
 	local currentAddOn = Tacview.AddOns.Current
 
+	SetUnits()	
+
 	currentAddOn.SetTitle("Turn Rate Report")
-	currentAddOn.SetVersion("0.1")
+	currentAddOn.SetVersion("0.9")
 	currentAddOn.SetAuthor("BuzyBee")
 	currentAddOn.SetNotes("Display instantaneous or sustained turn rate as a function of altitude and speed")
 
@@ -555,17 +728,17 @@ function Initialize()
 
 	instantaneous = Tacview.AddOns.Current.Settings.GetBoolean(instantaneousSettingName, instantaneous)
 	sustained = Tacview.AddOns.Current.Settings.GetBoolean(sustainedSettingName, sustained)
-	disabled = Tacview.AddOns.Current.Settings.GetBoolean(disabledSettingName, disabled)
 
-	disabledMenuId = Tacview.UI.Menus.AddExclusiveOption(mainMenuHandle, "Disabled", disabled, OnDisabled)
-	instantaneousMenuId = Tacview.UI.Menus.AddExclusiveOption(mainMenuHandle, "Instantaneous", instantaneous, OnInstantaneousRequested)
-	sustainedMenuId = Tacview.UI.Menus.AddExclusiveOption(mainMenuHandle, "Sustained", sustained, OnSustainedRequested)
+	instantaneousMenuId = Tacview.UI.Menus.AddOption(mainMenuHandle, "Instantaneous", instantaneous, OnInstantaneousRequested)
+	sustainedMenuId = Tacview.UI.Menus.AddOption(mainMenuHandle, "Sustained", sustained, OnSustainedRequested)
 
 	-- Register callbacks
 
 	Tacview.Events.Update.RegisterListener(OnUpdate)
 	Tacview.Events.DrawTransparentUI.RegisterListener(OnDrawTransparentUI)
-
+	Tacview.Events.DocumentLoaded.RegisterListener(OnDocumentLoaded)
+	Tacview.Events.DocumentUnload.RegisterListener(OnDocumentLoaded)
+	Tacview.Events.PowerSave.RegisterListener(OnPowerSaveOK)
 
 end
 
