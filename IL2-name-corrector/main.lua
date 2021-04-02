@@ -222,6 +222,13 @@ end
 
 function trim(s)
 
+	for i = 1, #s do
+		local c = s:sub(i,i)
+		if c < ' ' then
+			s = s:gsub(c,' ')
+		end
+	end
+
   return (s:gsub("^%s*(.-)%s*$", "%1"))
 
 end
