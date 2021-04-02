@@ -78,16 +78,13 @@ local m2ft = 3.28084
 local InstantaneousTurnRatePeriod = 1
 local SustainedTurnRatePeriod = 5
 
-local MaxChangeInAltitudeInstantaneousMeters = 20
-local MaxChangeInAltitudeSustainedMeters = 200
+local MaxChangeInAltitudeInstantaneous = 20		-- m
+local MaxChangeInAltitudeSustained = 200		-- m
+
+local MaxChangeInSpeedInstantaneous = 0.3 * InstantaneousTurnRatePeriod
+local MaxChangeInSpeedSustained = 0.015 * SustainedTurnRatePeriod
 
 local MinimumTurnRate = 5
-
-local MaxChangeInAltitudeInstantaneousFeet = MaxChangeInAltitudeInstantaneousMeters * m2ft
-local MaxChangeInAltitudeSustainedFeet = MaxChangeInAltitudeSustainedMeters * m2ft
-
-local MaxChangeInAltitudeInstantaneous = MaxChangeInAltitudeInstantaneousMeters	--default
-local MaxChangeInAltitudeSustained = MaxChangeInAltitudeSustainedMeters			--default
 
 -- the calculation of the following 2 constants is based on the way the chart is drawn 
 -- The chart has yEntries lines and xEntries columns plus axes and legends
@@ -150,6 +147,10 @@ function OnUpdate(dt, absoluteTime)
 	if not instantaneous and not sustained then
 		return
 	end
+
+	-- Use correct units
+
+	SetUnits()	
 
 	-- Find selected object and its time range
 
@@ -244,24 +245,89 @@ function calculateChart(selectedObjectHandle, startTime, endTime)
 
 		local instantaneousTurnRate = values[i].instantaneousTurnRate
 		local sustainedTurnRate = values[i].sustainedTurnRate
-		local machNumber = values[i].machNumber
+		local currentMach = values[i].currentMach
+		local previousMach = values[i].previousMach
 		local previousAltitude = values[i].previousAltitude
 		local currentAltitude = values[i].currentAltitude
 		local machNumber = values[i].machNumber
+		local sampleStartTime = values[i].sampleStartTime
+		local sampleEndTime = values[i].sampleEndTime
 
-		if Tacview.Settings.GetAltitudeUnit() == Tacview.Settings.Units.Feet then 
-			currentAltitude = currentAltitude * m2ft
-			previousAltitude = previousAltitude * m2ft
+		--if Tacview.Settings.GetAltitudeUnit() == Tacview.Settings.Units.Feet then 
+			--currentAltitude = currentAltitude * m2ft
+			--previousAltitude = previousAltitude * m2ft
+		--end
+
+		if not (instantaneousTurnRate and 
+				sustainedTurnRate and 
+				currentMach and 
+				previousMach and 
+				previousAltitude and 
+				currentAltitude and 
+				machNumber and 
+				sampleStartTime and 
+				sampleEndTime ) then
+			goto continue
 		end
 
-		if instantaneous and (currentAltitude - previousAltitude > MaxChangeInAltitudeInstantaneous) then
-			goto continue
-		elseif sustained and (currentAltitude - previousAltitude > MaxChangeInAltitudeSustained) then
+		if machNumber < MachMin then
 			goto continue
 		end
 
-		if not machNumber or machNumber < MachMin then
+		if instantaneous and (currentAltitude - previousAltitude > MaxChangeInAltitudeInstantaneous) and instantaneousTurnRate > MinimumTurnRate then
+			
+			local msg = "Not including instantaneous turn rate calculated between "..
+						Tacview.UI.Format.AbsoluteTimeToISOText(sampleStartTime).." to "..Tacview.UI.Format.AbsoluteTimeToISOText(sampleEndTime)..
+						" because of difference in altitude of "
+			
+			if(Tacview.Settings.GetAltitudeUnit() == Tacview.Settings.Units.Feet) then
+				msg = msg .. string.format("%0.0f",(currentAltitude-previousAltitude)*m2ft).." ft" 
+			else
+				msg = msg .. string.format("%0.0f",(currentAltitude-previousAltitude)).." m"
+			end
+			
+			Tacview.Log.Debug(msg)
+			
 			goto continue
+			
+		elseif 	sustained and 
+				sustainedTurnRate > MinimumTurnRate and 
+				(currentAltitude - previousAltitude > MaxChangeInAltitudeSustained)  then
+			
+			local msg = "Not including sustained turn rate calculated between "..
+						Tacview.UI.Format.AbsoluteTimeToISOText(sampleStartTime).." to "..Tacview.UI.Format.AbsoluteTimeToISOText(sampleEndTime)..
+						" because of difference in altitude of "
+			
+			if(Tacview.Settings.GetAltitudeUnit() == Tacview.Settings.Units.Feet) then
+				msg = msg .. string.format("%0.0f",(currentAltitude-previousAltitude)*m2ft.." ft")
+			else
+				msg = msg .. string.format("%0.0f",(currentAltitude-previousAltitude).." m")
+			end
+			
+			Tacview.Log.Debug(msg)
+			
+			goto continue
+			
+		elseif 	instantaneous and 
+				instantaneousTurnRate > MinimumTurnRate and
+				(currentMach - previousMach > MaxChangeInSpeedInstantaneous)  then
+			
+			Tacview.Log.Debug(	"Not including instantaneous turn rate calculated between "..
+								Tacview.UI.Format.AbsoluteTimeToISOText(sampleStartTime).." to "..Tacview.UI.Format.AbsoluteTimeToISOText(sampleEndTime)..
+								" because of difference in mach number of "..string.format("%0.01f",currentMach-previousMach)	)
+			
+			goto continue
+
+		elseif 	sustained and 
+				sustainedTurnRate > MinimumTurnRate and 
+				(currentMach - previousMach > MaxChangeInSpeedSustained) then
+		
+			Tacview.Log.Debug(	"Not including sustained turn rate calculated between "..
+								Tacview.UI.Format.AbsoluteTimeToISOText(sampleStartTime).." to "..Tacview.UI.Format.AbsoluteTimeToISOText(sampleEndTime)..
+								" because of difference in mach number of "..string.format("%0.01f",currentMach-previousMach)	)
+			
+			goto continue
+
 		end
 
 		local x = clamp(math.floor((machNumber-MachMin)/MachStep),0,xEntries-1)
@@ -272,7 +338,10 @@ function calculateChart(selectedObjectHandle, startTime, endTime)
 
 		x = clamp(x,0,xEntries-1)
 
-				
+		if Tacview.Settings.GetAltitudeUnit() == Tacview.Settings.Units.Feet then
+			currentAltitude = currentAltitude * m2ft
+		end				
+
 		local y = clamp(math.floor(currentAltitude/AltitudeStep),0,yEntries-1)
 
 		if currentAltitude > 0 and currentAltitude/AltitudeStep - math.floor(currentAltitude/AltitudeStep) == 0 then
@@ -367,6 +436,8 @@ function ObtainData(selectedObjectHandle,startTime,endTime)
 
 		local lastPosition = Tacview.Telemetry.GetTransform(selectedObjectHandle, i-samplePeriod)
 		local currentPosition = Tacview.Telemetry.GetTransform(selectedObjectHandle,i)
+		local previousMach = Tacview.Telemetry.GetMachNumber(selectedObjectHandle, i-samplePeriod)
+		local currentMach = Tacview.Telemetry.GetMachNumber(selectedObjectHandle,i)
 
 		local altitude0 =  lastPosition.altitude
 		local altitude1 =  currentPosition.altitude
@@ -375,11 +446,16 @@ function ObtainData(selectedObjectHandle,startTime,endTime)
 
 		-- keep track of info in a table
 
-		values[#values + 1] = { previousAltitude = altitude0,
+		values[#values + 1] = { sampleStartTime = i-samplePeriod,
+								sampleEndTime = i,
+								previousAltitude = altitude0,
 								currentAltitude = altitude1, 
 								machNumber = Tacview.Telemetry.GetMachNumber(selectedObjectHandle,i),
 								instantaneousTurnRate = instantaneousTurnRate,
-								sustainedTurnRate = sustainedTurnRate }
+								sustainedTurnRate = sustainedTurnRate ,
+								previousMach = previousMach,
+								currentMach = currentMach,
+							}
 	end
 
 	return values
@@ -685,15 +761,18 @@ end
 
 function SetUnits()
 
-	--print("Tacview.Settings.GetAltitudeUnit()"..Tacview.Settings.GetAltitudeUnit())
-
 	if Tacview.Settings.GetAltitudeUnit() == Tacview.Settings.Units.Feet then
 
 		AltitudeMax = AltitudeMaxFeet
 		AltitudeStep = AltitudeStepFeet
 		yEntries = yEntriesFeet
-		MaxChangeInAltitudeInstantaneous = MaxChangeInAltitudeInstantaneousFeet
-		MaxChangeInAltitudeSustained = MaxChangeInAltitudeSustainedFeet
+
+	elseif Tacview.Settings.GetAltitudeUnit() == Tacview.Settings.Units.Meters then
+
+		AltitudeMax = AltitudeMaxMeters
+		AltitudeStep = AltitudeStepMeters
+		yEntries = yEntriesMeters
+
 	end
 	
 end
