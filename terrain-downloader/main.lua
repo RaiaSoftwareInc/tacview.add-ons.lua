@@ -37,6 +37,7 @@ SOFTWARE.
 ----------------------------------------------------------------
 
 require("lua-strict")
+local lfs = require('lfs')
 
 local Tacview = require("Tacview185")
 local http = require("socket.http")
@@ -72,7 +73,7 @@ local mapQuestOptionLight = false
 local mapQuestOptionDark = false
 local mapQuestOptionHybrid = true -- default
 
-local mapQuestOptionTranslucent = false -- default
+local mapQuestOptionTranslucent = true -- default
 
 local cacheDisabled = true
 
@@ -82,6 +83,8 @@ local mapQuestOptionMapMenuHandle
 local mapQuestOptionLightMenuHandle
 local mapQuestOptionDarkMenuHandle
 local mapQuestOptionHybridMenuHandle
+
+local deleteAllTilesMenuHandle
 
 local mapQuestOptionTranslucentMenuHandle
 
@@ -247,9 +250,8 @@ function OnEnterThunderforestAPIKey()
 							"(Get a free API key from https://thunderforest.com/ )" , 
 							ThunderforestAPIKey )
 
-	ThunderforestAPIKey = trim(ThunderforestAPIKey)
-
 	if ThunderforestAPIKey then
+		ThunderforestAPIKey = trim(ThunderforestAPIKey)
 		Tacview.AddOns.Current.Settings.SetString(ThunderforestAPIKeySettingName , ThunderforestAPIKey)
 	end
 
@@ -260,12 +262,11 @@ function OnEnterMapQuestAPIKey()
 	MapQuestAPIKey = Tacview.UI.MessageBox.InputText( 
 							"MapQuest API Key", 
 							"Please enter your MapQuest API Key\n\n" ..
-							"(Get a free API key from https://mapquest.com/ )",
+							"(Get a free API key from https://developer.mapquest.com/ )",
 							MapQuestAPIKey )
 
-	MapQuestAPIKey = trim(MapQuestAPIKey)
-
 	if MapQuestAPIKey then
+		MapQuestAPIKey = trim(MapQuestAPIKey)
 		Tacview.AddOns.Current.Settings.SetString(MapQuestAPIKeySettingName , MapQuestAPIKey)
 	end
 
@@ -296,7 +297,7 @@ function OnMapQuest()
 	end
 
 	if MapQuestAPIKey == "" or not MapQuestAPIKey then
-		Tacview.UI.MessageBox.Error("Can't download any tiles from MapQuest without an API key.\nGet a free API key from https://mapquest.com/")
+		Tacview.UI.MessageBox.Error("Can't download any tiles from MapQuest without an API key.\nGet a free API key from https://developer.mapquest.com/")
 		return
 	end	
 
@@ -515,6 +516,7 @@ function OnMapQuest()
 			countOfTilesSuccessfullyDownloaded = countOfTilesSuccessfullyDownloaded + 1
 		else
 			Tacview.Log.Debug("Could not create file "..latitudeString..longitudeString.." - "..err)
+			countOfTilesFailedToDownload = countOfTilesFailedToDownload + 1
 		end
 
 		::continue::
@@ -674,6 +676,19 @@ function OnMapQuestOptionTranslucent()
 
 end
 
+function OnDeleteAllTiles()
+
+	if Tacview.UI.MessageBox.Question("Are your sure you want to delete all terrain texture tiles") == Tacview.UI.MessageBox.OK then
+
+		-- Delete the folder and all its contents
+		os.execute('rd /s/q "'.."C:/ProgramData/Tacview/Data/Terrain/Textures/"..'"')
+		
+		-- Recreate the folder, empty, for future use
+		os.execute("mkdir " .. "\"C:/ProgramData/Tacview/Data/Terrain/Textures/\"")
+
+	end
+end
+
 ----------------------------------------------------------------
 -- Initialize this addon
 ----------------------------------------------------------------
@@ -714,7 +729,9 @@ function Initialize()
 	-- local topographyMenuHandle = Tacview.UI.Menus.AddMenu(mainMenuHandle, "Topography")
 	Tacview.UI.Menus.AddSeparator(mainMenuHandle)
 	disableCacheMenuHandle = Tacview.UI.Menus.AddOption(mainMenuHandle, "Disable Cache", cacheDisabled, OnDisableCache)
-	
+	Tacview.UI.Menus.AddSeparator(mainMenuHandle)
+	deleteAllTilesMenuHandle = Tacview.UI.Menus.AddCommand(mainMenuHandle, "Delete All Tiles...", OnDeleteAllTiles)
+
 
 	--local thunderForestMenuHandle =Tacview.UI.Menus.AddMenu(cartographyMenuHandle, "Thunderforest")
 	local mapQuestMenuHandle =Tacview.UI.Menus.AddMenu(cartographyMenuHandle, "MapQuest")
