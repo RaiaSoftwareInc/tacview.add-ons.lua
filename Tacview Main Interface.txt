@@ -180,6 +180,88 @@ UI.MessageBox.GetFolderName( options ) -- Tacview 1.8.0
 		}
 
 --------------------------------------------------------------------------------------------------------------------------------
+UI.DialogBox
+
+	This interface can be used to create simple or complex dialog boxes to interact with the user.
+	You can insert controls and react to user interactions via callbacks.
+	Currently, only modeless dialog boxes are supported.
+
+	About dimensions and position:
+
+		To properly support custom font size, dimensions and position of controls are all expressed un Dialog Units (not pixels).
+		To use default dimensions whenever applicable, simply use 0 for with and or height.
+
+	NOTE: This interface is currently supported only in Lua because C++ and C# can already build more powerful interfaces.
+
+	IMPORTANT: Not dialog box will be created when Tacview is launched in /Quiet mode!
+
+UI.DialogBox.Create( title , width , height , settingId ) -- Tacview 1.8.6
+UI.DialogBox.Destroy( dialogBoxHandle ) -- Tacview 1.8.6
+
+	Create and destroy a dialog box.
+
+	Create() returns the handle of the dialog box which can later be used to manipulate the dialog and to create controls in it.
+	Create() does not display the dialog box yet. Add your controls in it first, then use Show() to display it.
+
+	Width and Height are in Dialog Units (not pixels).
+
+	settingId is a string identifying your dialog box which will be used by Tacview to save its position.
+	You can use an empty id "" if you do not want Tacview to save / restore the dialog position.
+
+UI.DialogBox.Show( dialogBoxHandle , onHideCallback ) -- Tacview 1.8.6
+UI.DialogBox.Hide( dialogBoxHandle ) -- Tacview 1.8.6
+
+	Show or hide the specified dialog box.
+
+	Typically used to display the dialog box after all the controls have been inserted.
+
+	onHideCallback( dialogBoxHandle ) is useful to know whenever the user has closed the dialog box manually
+	via the default window buttons or a shortcut.
+
+	You can optionally specify a callback for when the dialog box will be closed:
+
+		onHideCallback(dialogBoxHandle , hideSourceControlHandle)
+
+UI.DialogBox.AddGroupBox( dialogBoxHandle , title , x , y , width , height ) -- Tacview 1.8.6
+UI.DialogBox.AddText( dialogBoxHandle , text , x , y , width , height ) -- Tacview 1.8.6
+
+	Creates a group box or a static text the specified location.
+	Location and dimensions are in Dialog Units (not pixels).
+
+UI.DialogBox.AddEditBox( dialogBoxHandle , text , x , y , width , height , onChangeCallback ) -- Tacview 1.8.6
+UI.DialogBox.AddButton( dialogBoxHandle , text , x , y , width , height , onClickedCallback ) -- Tacview 1.8.6
+UI.DialogBox.AddCheckBox( dialogBoxHandle , text , checked , x , y , width , height , onClickedCallback ) -- Tacview 1.8.6
+
+	Creates an edit box, a regular button, or a check box at the specified location.
+	Location and dimensions are in Dialog Units (not pixels).
+
+	Use the optional callback to be notified whenever the corresponding control content has been modified.
+
+	Each of these function returns a handle you can use the retrieve the current state of the control (see corresponding functions below).
+
+		onChangeCallback(dialogBoxHandle , controlHandle)
+		onClickedCallback(dialogBoxHandle , controlHandle)
+
+UI.DialogBox.GetText( dialogBoxHandle , editBoxHandle ) -- Tacview 1.8.6
+UI.DialogBox.SetText( dialogBoxHandle , editBoxHandle , newText ) -- Tacview 1.8.6
+
+	Retrieve or set the text displayed in corresponding edit box control.
+	Controls handles are returned by the function used to create it.
+
+UI.DialogBox.IsBoxChecked( dialogBoxHandle , checkBoxHandle ) -- Tacview 1.8.6
+UI.DialogBox.CheckBox( dialogBoxHandle , checkBoxHandle , checked ) -- Tacview 1.8.6
+
+	Retrieve or set the status of a check box control.
+	Controls handles are returned by the function used to create it.
+
+UI.DialogBox.EnableControl( dialogBoxHandle , checkBoxHandle , newState ) -- Tacview 1.8.6
+
+	Enable / disable specific control in the dialog box.
+	newState is a boolean.
+
+	NOTE: CURRENTLY SUPPORTED ONLY WHEN THE DIALOG BOX IS DISPLAYED.
+
+--------------------------------------------------------------------------------------------------------------------------------
 UI.Menus
 
 	The Menu interface is useful to create and insert commands and options in Tacview menus.
@@ -554,6 +636,15 @@ UI.Renderer.Draw3DModel( modelHandle , transform , color ) -- Tacview 1.8.5
 
 	Otherwise you will get waste performance in the best case, and display errors or artifacts in the worst case.
 
+UI.Renderer.DrawSemiTransparent3DModel( modelHandle , transform , color ) -- Tacview 1.8.6
+
+	Same as Draw3DModel() but will draw only the front transparent faces. This gives nicer results at the cost of performance.
+
+	NOTE: To be used only during passes without any zbuffer such as during Events.DrawTransparentObjectsNear callback.
+	DO NOT use this function during any other callback otherwise you could get unexpected display artifacts.
+
+	This function could be typically used to display a transparent 3D cockpit.
+
 UI.Renderer.Print( transform , renderStateHandle , text ) -- Tacview 1.7.3
 
 	Print the given text at the corresponding x,y coordinates.
@@ -587,6 +678,18 @@ UI.Renderer.ContextMenu.RegisterListener( function ) -- Tacview 1.7.6
 	The context menu is volatile and will be automatically destroyed as soon as it will be closed by the user.
 	Every time your callback is called, your options will be added to a brand new menu.
 
+UI.Renderer.Pick3DPoint.RegisterListener( function ) -- Tacview 1.8.6
+
+	Tacview will call the specified function whenever the user clicks on a point of the terrain in the 3D view.
+	To do so, the user must press CTRL+SHIFT+CLICK to select a point.
+
+	The function will be called only when the point in valid and on the ground.
+	It will not be called if the user clicks in the sky for example.
+
+	This can be useful to provide an alternate way to enter 3D points in your UI.
+
+		function( longitude , latitude , altitude )
+
 --------------------------------------------------------------------------------------------------------------------------------
 Events
 
@@ -614,6 +717,14 @@ Events.DrawTransparentUI.RegisterListener( function ) -- Tacview 1.7.2
 	Once a frame, Tacview will call your function to draw 2D transparent foreground UI on top of the 3D view.
 	You function will not receive any parameter.
 	See UI.Renderer.DrawUIVertexArray() to draw your UI on top of the 3D view.
+
+Events.DrawTransparentObjectsNear.RegisterListener( function ) -- Tacview 1.8.6
+
+	Once a frame, Tacview will call your function to draw 3D transparent foreground objects on top of the 3D view.
+
+	This function is typically usefully to display a cockpit for example.
+	Because drawing a cockpit in the normal view may display some zbuffer artifacts,
+	this function provides an opportunity to render a cockpit without any zbuffer.
 
 Events.PowerSave.RegisterListener( function ) -- Tacview 1.8.5
 

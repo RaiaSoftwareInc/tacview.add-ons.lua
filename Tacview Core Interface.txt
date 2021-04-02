@@ -48,13 +48,17 @@ Settings.SetBoolean( settingPath, newBooleanValue ) -- Tacview 1.7.2
 
 	settingPath can be one of the following:
 
-		"UI.View.Grid.Visible"				-- Enable/disable latitude/longitude grid
-		"UI.View.HUD.Visible"				-- Enable/disable cockpit head-up-display
-		"UI.View.Overlay.Visible"			-- Enable/disable all the informations displayed on top of the 3D view
-		"UI.View.Camera.Dogfight.Enabled"	-- Enable/disable dogfight camera mode (when in external view)
-		"UI.View.Objects.Height.Visible"	-- Enable/disable lines between the ground and each 3D object
-		"UI.View.Objects.Direction.Visible"	-- Enable/disable direction lines for the selected objects
-		"UI.View.Objects.Labels.Visible"	-- Enable/disable objects labels in the 3D view
+		"UI.View.Grid.Visible"						-- Enable/disable latitude/longitude grid
+		"UI.View.HUD.Visible"						-- Enable/disable cockpit head-up-display
+		"UI.View.Overlay.Visible"					-- Enable/disable all the informations displayed on top of the 3D view
+		"UI.View.Camera.Dogfight.Enabled"			-- Enable/disable dogfight camera mode (when in external view)
+		"UI.View.Objects.Height.Visible"			-- Enable/disable lines between the ground and each 3D object
+		"UI.View.Objects.LocalVectors.Visible"		-- Enable/disable local vector lines for the selected objects (Heading+Course+LiftVector+PilotLineOfSight)
+		"UI.View.Objects.Heading.Visible"			-- Enable/disable heading line for the selected objects
+		"UI.View.Objects.Course.Visible"			-- Enable/disable course line for the selected objects
+		"UI.View.Objects.LiftVector.Visible"		-- Enable/disable lift vector line for the selected objects
+		"UI.View.Objects.PilotLineOfSight.Visible"	-- Enable/disable pilot line of sight for the selected objects
+		"UI.View.Objects.Labels.Visible"			-- Enable/disable objects labels in the 3D view
 
 Settings.GetBoolean( settingFullPath ) -- Tacview 1.7.2
 
@@ -64,6 +68,23 @@ Settings.GetBoolean( settingFullPath ) -- Tacview 1.7.2
 	Return value:
 
 		Corresponding setting boolean value.
+
+Settings.SetNumber( settingFullPath , newNumberValue ) -- Tacview 1.8.6
+
+	Save a number setting under the given name.
+
+	settingFullPath and newNumberValue can be one of the following:
+
+		"UI.View.HUD.Scale" = 1.0			-- Change the scale of the HUD in the 3D view
+
+Settings.GetNumber( settingFullPath ) -- Tacview 1.8.6
+
+	Returns the current setting value or nil if the provided path does not point to a number setting.
+	See Settings.SetNumber for the possible values of settingFullPath.
+
+	Return value:
+
+		Corresponding setting number value.
 
 Settings.SetString( settingFullPath , newStringValue ) -- Tacview 1.7.2
 
@@ -561,9 +582,19 @@ Math.Vector.LocalToGlobal( objectTransform , localCoordinates ) -- Tacview 1.7.2
 		yaw = objectYaw,						-- radian
 	}
 
+	localCoordinates =
+	{
+		x = localCartesianPositionX,			-- meters
+		y = localCartesianPositionY,			-- meters
+		z = localCartesianPositionZ,			-- meters
+	}
+
 	Return value:
 
-		coordinates as a vector in Earth global cartesian space.
+		{ x = ... , y = ... , z = ... } -- coordinates as a vector in Earth global cartesian space.
+
+		or
+
 		returns nil if not enough data is provided.
 
 --------------------------------------------------------------------------------------------------------------------------------
@@ -820,6 +851,7 @@ Telemetry.GetDataTimeRange() -- Tacview 1.7.6
 	}
 
 Telemetry.GetCurrentObjectHandle( objectId ) -- Tacview 1.7.2
+Telemetry.GetObjectHandle( objectId , absoluteTime ) -- Tacview 1.8.6
 
 	Retrieves the handle of the specified object at the current update time.
 	If there are several objects with the same id (for example a player which has spawned in the same aircraft multiple time during the same session),
@@ -912,10 +944,57 @@ Telemetry.GetCurrentTransform( objectHandle ) -- Tacview 1.7.2
 		validity is set to false if the value does not really apply for the given time (typically if the object does not exist at the given time)
 		even when validity is set to false, the value is valid and usable (this simplify the client code)
 
+Telemetry.GetTransformCount( objectHandle ) -- Tacview 1.8.6
+Telemetry.GetTransformFromIndex( objectHandle , sampleIndex ) -- Tacview 1.8.6
+
+	Use theses the functions whenever you need to enumerate the exact position samples available for the specified object.
+
+	If you need to re-set a new position for a specified sample, simple use Telemetry.SetTransform() with the exact sample time you want to modify.
+
+	Return value:
+
+		same as Telemetry.GetTransform()
+
+Telemetry.GetCalculatedTransform( objectHandle , absoluteTime ) -- Tacview 1.8.6
+Telemetry.GetCurrentCalculatedTransform( objectHandle ) -- Tacview 1.8.6
+
+	When some information such as roll, pitch, and yaw are not available, you can use this function to calculate them based on the object type and behavior.
+
+	Note that in some cases, Tacview cannot emulated roll, pitch, yaw and will still return invalid values for those.
+
+	Return value:
+
+		Same as for GetTransform()
+
+Telemetry.GetCurrentAngleOfAttack( objectHandle ) -- Tacview 1.7.3
+
+	Returns given object angle of attack at current time.
+
+	If aoa has been recorded, then Tacview will return the interpolated sample.
+	If aoa has not been recorded, but rotation data is available, Tacview will calculate the aoa.
+	If the pitch aoa cannot be calculated, then Tacview will return the absolute aoa (as opposed to the pitch aoa)
+
+	Return value:
+
+		angle of attack (in pitch)
+		nil when no data available (or object does not exist at this time).
+
+Telemetry.GetCurrentAngleOfSideslip( objectHandle ) -- Tacview 1.8.6
+
+	Returns given object angle of sideslip at current time.
+
+	If aoa has been recorded, then Tacview will return the interpolated sample.
+	Otherwise valid object rotation (roll/pitch/yaw) is required to be able to calculate the sideslip.
+
+	Return value:
+
+		angle of sideslip
+		nil when no data available (or object does not exist at this time).
+
 Telemetry.GetVerticalGForce( objectHandle , absoluteTime ) -- Tacview 1.8.0
 Telemetry.GetCurrentVerticalGForce( objectHandle ) -- Tacview 1.7.3
 
-	Returns given object vertical g-Force at current time.
+	Returns given object vertical g-Force at given time.
 
 	The vertical g-Force is the g-Force which usually the most relevant to the pilot and its aircraft. This is the one displayed in the cockpit.
 
@@ -925,6 +1004,32 @@ Telemetry.GetCurrentVerticalGForce( objectHandle ) -- Tacview 1.7.3
 	Return value:
 
 		Vertical g-Force if available.
+		nil when not enough data is available (or object does not exist at this time).
+
+Telemetry.GetLateralGForce( objectHandle , absoluteTime ) -- Tacview 1.8.6
+Telemetry.GetCurrentLateralGForce( objectHandle ) -- Tacview 1.8.6
+
+	Returns given object lateral (from left to right) g-Force at given time.
+
+	If lateral g-Force has been recorded, then Tacview will return the interpolated sample.
+	If lateral g-Force has not been recorded, but rotation data is available, Tacview will calculate the lateral G-Force.
+
+	Return value:
+
+		Lateral g-Force if available.
+		nil when not enough data is available (or object does not exist at this time).
+
+Telemetry.GetLongitudinalGForce( objectHandle , absoluteTime ) -- Tacview 1.8.6
+Telemetry.GetCurrentLongitudinalGForce( objectHandle ) -- Tacview 1.8.6
+
+	Returns given object longitudinal (from back to front) g-Force at given time.
+
+	If longitudinal g-Force has been recorded, then Tacview will return the interpolated sample.
+	If longitudinal g-Force has not been recorded, but rotation data is available, Tacview will calculate the longitudinal G-Force.
+
+	Return value:
+
+		longitudinal g-Force if available.
 		nil when not enough data is available (or object does not exist at this time).
 
 Telemetry.GetAbsoluteGForce( objectHandle , absoluteTime ) -- Tacview 1.8.0
@@ -1049,6 +1154,7 @@ Telemetry.SetTransform( objectHandle , absoluteTime , transform ) -- Tacview 1.7
 	Do not forget to normalize angles before displaying then as text to the final user!
 
 	-- non specified members will be set to the interpolated value of the preceding and following samples.
+	-- it is also possible to replace only the specified members of an existing sample.
 
 	transform
 	{
