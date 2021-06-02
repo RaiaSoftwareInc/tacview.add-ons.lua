@@ -522,7 +522,7 @@ class tacview
 							}
 								
 							$this->increaseStat($this->stats[$secondaryObjectPilot]["Killed"], $event["PrimaryObject"]["Type"], "Count");
-							$this->increaseStat($this->stats[$secondaryObjectPilot]["Killed"], $event["PrimaryObject"]["Type"], $event["SecondaryObject"]["Name"]); 
+							$this->increaseStat($this->stats[$secondaryObjectPilot]["Killed"], $event["PrimaryObject"]["Type"], $event["PrimaryObject"]["Name"]); 
 
 						break;
 					}
