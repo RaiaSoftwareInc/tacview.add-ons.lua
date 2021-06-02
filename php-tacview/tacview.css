@@ -1,0 +1,186 @@
+body.lockonBody
+{
+	background-color: black;
+}
+
+table
+{
+	font: 11px geneva,verdana,arial,sans-serif;
+	background-color: white;
+	color: black;
+	border: 1px solid black;
+	border-collapse: collapse;
+	text-align: center;
+	vertical-align: middle;
+	width: 80%;
+	margin: auto;
+}
+
+h1
+{
+	color: white;
+	font-size: 24px;
+	font-weight: 700;
+	margin-bottom: 20px;
+	text-align: center;
+}
+
+td, th
+{
+	border: 1px solid black;
+	padding: 2.5px;
+}
+
+a:hover
+{
+	color: black;
+}
+
+span
+{
+	font-weight: 700;
+}
+
+/* PRESENTATION TABLE */
+
+table.presentationTable
+{
+	width: 25%;
+}
+
+td.presentationTable
+{
+	padding: 5px;
+}
+
+
+	td.presentationTable:nth-child(1)
+	{
+		text-transform: uppercase;
+		font-weight: bold;
+		text-align: right;
+		background-color: #ECECEC;
+	}
+
+	td.presentationTable:nth-child(2)
+	{
+		text-align: left;
+	}
+
+/* STATISTICS TABLE (all pilots) */
+
+tr.statisticsTable, th.statisticsTable
+{
+	height: 50px;
+	padding: 5px;
+}
+
+	tr.statisticsTable:nth-child(4n)
+	{
+		background-color: #ECECEC;
+	}
+
+th.statisticsTable
+{
+	background-color: #ECECEC;
+	text-transform: uppercase;
+}
+
+td.statisticsTable:nth-child(2)
+{
+	border-right: none;
+}
+
+td.statisticsTable:nth-child(3)
+{
+	border-left: none;
+}
+
+img.objectIcons
+{
+	max-width: 50px;
+	border-radius: 4px;
+}
+
+/* HIDDEN STATISTICS TABLE (per pilot) */
+
+img.hiddenStatsTable
+{
+	max-width: 200px;
+	border-radius: 16px;
+}
+
+td.hiddenStatsTable
+{
+	padding: 20px;
+}
+
+table.hiddenStatsTable
+{
+	margin-bottom: 25px;
+}
+
+
+/* HIDDEN EVENTS TABLE (per pilot) */
+
+table.hiddenEventsTable
+{
+	margin-bottom: 25px;
+}
+
+h1.hiddenEventsTable
+{
+	color: black;
+}
+
+table.hiddenEventsTable tr:nth-child(n)
+{
+	background-color: white;
+}
+
+table.hiddenEventsTable tr td:nth-child(3n)
+{
+	text-align: left;
+}
+
+/* EVENTS TABLE (all events for all pilots) */
+
+td.eventsTable
+{
+	vertical-align: middle;
+}
+
+table.eventsTable tr td:nth-child(3n)
+{
+	text-align: left;
+}
+
+.ptv_other, .ptv_rowNeutral
+{
+	background-color: #D3f8d3;
+}
+
+.ptv_rowAllies
+{
+	background-color: #F9D8D6;
+}
+
+.ptv_rowEnemies
+{
+	background-color: #CBE4F9;
+}
+
+.ptv_rowHit
+{
+	background-color: #fffee0
+}
+
+.ptv_rowTeamKill
+{
+	background-color: #ffd7b5;
+}
+
+.ptv_rowDestroy
+{
+	background-color: #d3d3d3;
+}
