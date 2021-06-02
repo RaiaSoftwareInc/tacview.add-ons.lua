@@ -5,10 +5,16 @@
 
 # Force the following files to lf
 
+*.csv text eol=lf
 *.lua text eol=lf
+*.php text eol=lf
+*.txt text eol=lf
 
 # Denote all files that are truly binary and should not be modified.
 # The following files will be considered as large binary files.
 # To save space, they will not have the usual history/diff available
 
+*.gif filter=lfs diff=lfs merge=lfs binary
+*.jpg filter=lfs diff=lfs merge=lfs binary
 *.png filter=lfs diff=lfs merge=lfs binary
+*.wav filter=lfs diff=lfs merge=lfs binary
