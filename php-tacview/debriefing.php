@@ -6,11 +6,11 @@
 	</head>
 	<body class="lockonBody">
 		<?php
-			
+
 			require_once "./tacview.php";
 
 			$tv = new tacview("en");
-			
+
 			foreach (glob("debriefings/*.xml") as $filexml) {
 
 				$tv->proceedStats("$filexml","Mission Test");

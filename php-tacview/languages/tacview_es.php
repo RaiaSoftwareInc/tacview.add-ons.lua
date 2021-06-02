@@ -9,7 +9,7 @@
 	$_LANGUAGE['time'] = 'Hora';
 	$_LANGUAGE['action'] = 'Acción';
 	$_LANGUAGE['type'] = 'Tipo';
-    
+
 	$_LANGUAGE['HasLanded'] = 'a aterrizado en';
 	$_LANGUAGE['HasTakeOff'] = 'a despegado de';
 	$_LANGUAGE['HasTakenOff'] = 'a despegado de';
@@ -18,9 +18,9 @@
 	$_LANGUAGE['HasLeftTheArea'] = 'ha salido del sector';
 	$_LANGUAGE['HasFired'] = 'ha disparado';
 	$_LANGUAGE['HasBeenHitBy'] = 'ha sido alcanzado por';
-    
-    
-    
+
+
+
 	$_LANGUAGE['statsByPilot'] = 'Estadísticas por pilotos';
 	$_LANGUAGE['pilotStats'] = 'Estadísitcas del piloto';
 	$_LANGUAGE['takeoff'] = 'Desp.';
