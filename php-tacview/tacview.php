@@ -727,7 +727,7 @@ class tacview
 
                 if (!isset($stat["Hit"]) or $stat["Hit"]["Count"] == "")
 				{
-                    $this->addOutput('(' . $this->L("nothing") . ')<br /><span>');
+                    $this->addOutput('(' . $this->L("nothing") . ')<br />');
 				}
                 
                 // Destroyed
@@ -745,11 +745,11 @@ class tacview
                     }
                 }
 
-                if (!isset($stat["Hit"]) or $stat["Hit"]["Count"] == "")
+                if (!isset($stat["Destroyed"]) or $stat["Destroyed"]["Count"] == "")
 				{
                     $this->addOutput('(' . $this->L("nothing") . ')<br />');
 				}
-                
+
                 $this->addOutput('</td>');
                 
 				// SECOND ROW - Third Cell
