@@ -9,7 +9,7 @@
 	$_LANGUAGE['time'] = 'Vrijeme';
 	$_LANGUAGE['action'] = 'Aktivnost';
 	$_LANGUAGE['type'] = 'Vrsta';
-    
+
 	$_LANGUAGE['HasLanded'] = 'je sletio';
 	$_LANGUAGE['HasTakeOff'] = 'je poletio';
 	$_LANGUAGE['HasTakenOff'] = 'je poletio';
@@ -18,9 +18,9 @@
 	$_LANGUAGE['HasLeftTheArea'] = 'je napustio misiju';
 	$_LANGUAGE['HasFired'] = 'je ispalio';
 	$_LANGUAGE['HasBeenHitBy'] = 'je pogođen s';
-    
-    
-    
+
+
+
 	$_LANGUAGE['statsByPilot'] = 'Statistike svih pilota';
 	$_LANGUAGE['pilotStats'] = 'Statistike pilota';
 	$_LANGUAGE['takeoff'] = 'Polet';

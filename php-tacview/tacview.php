@@ -56,32 +56,32 @@ class tacview
 {
     var $language = array();
     var $htmlOutput = "";
-    
+
     // Oggetto Airport
     var $airport = array();
     var $tagAirportOpened = false;
     var $airportCurrentId = 0;
-    
+
     // Oggetto Primary
     var $primaryObjects = array();
     var $tagPrimaryObjectOpened = false;
     var $primaryObjectCurrentId = 0;
-    
+
     // Oggetto Secondary
     var $secondaryObjects = array();
     var $tagSecondaryObjectOpened = false;
     var $secondaryObjectCurrentId = 0;
-    
+
     // Oggetto Parent
     var $parentObjects = array();
     var $tagParentObjectOpened = false;
     var $parentObjectCurrentId = 0;
-    
+
     // vettore oggetti -- non usato --
     var $objects = array();
     var $tagObjectOpened = false;
     var $objectCurrentId = 0;
-    
+
     // vettore eventi
     var $events = array();
     var $tagEventOpened = false;
@@ -98,18 +98,18 @@ class tacview
     var $image_path = "";
     var $firephp;
     // we log today’s date as an example. you could log whatever variable you want to
-    
+
     //
     // constructor
     //
     function tacview($aLanguage = "it")
     {
-        
+
         // Open language file
         require_once "languages/tacview_" . $aLanguage . ".php";
         $this->language = $_LANGUAGE;
     }
-    
+
     //
     // return language caption
     //
@@ -117,7 +117,7 @@ class tacview
     {
         return $this->language[$aId];
     }
-    
+
     //
     // add HTML to the current output
     //
@@ -125,7 +125,7 @@ class tacview
     {
         $this->htmlOutput .= $aHtml;
     }
-    
+
     //
     // return output html
     //
@@ -133,7 +133,7 @@ class tacview
     {
         return $this->htmlOutput;
     }
-    
+
     //
     // return a formated timestamp
     //
@@ -144,91 +144,91 @@ class tacview
         $lHourDisplay = floor($lHour - (floor($lHour / 24) * 24));
         $lMinute      = floor(($lTime - ($lHour * 3600)) / 60);
         $lSecond      = floor($lTime - ($lHour * 3600) - $lMinute * 60);
-        
-        if ($lMinute == "") 
+
+        if ($lMinute == "")
 		{
             $lMinute = "00";
-        } 
-		else 
+        }
+		else
 		{
-            if ($lMinute < 10) 
+            if ($lMinute < 10)
 			{
                 $lMinute = "0" . $lMinute;
             }
         }
-        
-        if ($lSecond < 10) 
+
+        if ($lSecond < 10)
 		{
             $lSecond = "0" . $lSecond;
         }
-        
-        if ($lHourDisplay < 10) 
+
+        if ($lHourDisplay < 10)
 		{
             $lHourDisplay = "0" . $lHourDisplay;
         }
-        
+
         $lHTML = $lHourDisplay . ":" . $lMinute . ":" . $lSecond;
-        
+
         return $lHTML;
     }
-    
+
     //
     // Increase statistic (safe)
     //
     function increaseStat(&$Array, $Key0, $Key1 = null)
     {
-        
-        if (isset($Key1)) 
+
+        if (isset($Key1))
 		{
-            
-            if (!array_key_exists($Key0, $Array)) 
+
+            if (!array_key_exists($Key0, $Array))
 			{
                 $Array[$Key0] = array();
             }
-            
-            if (!array_key_exists($Key1, $Array[$Key0])) 
+
+            if (!array_key_exists($Key1, $Array[$Key0]))
 			{
                 $Array[$Key0][$Key1] = 1;
-            } 
-			else 
+            }
+			else
 			{
                 $Array[$Key0][$Key1]++;
             }
         } else {
-            
-            if (!array_key_exists($Key0, $Array)) 
+
+            if (!array_key_exists($Key0, $Array))
 			{
                 $Array[$Key0] = 1;
-            } 
-			else 
+            }
+			else
 			{
                 $Array[$Key0]++;
             }
         }
     }
-    
+
     //
     // Retrieve stats count (safe)
     //
     function getStat($Array, $Key0, $Key1 = null)
     {
-        
-        if (isset($Array) && array_key_exists($Key0, $Array)) 
+
+        if (isset($Array) && array_key_exists($Key0, $Array))
 		{
-            if (!isset($Key1)) 
+            if (!isset($Key1))
 			{
                 return $Array[$Key0]['Count'];
             }
-            
-            if (array_key_exists($Key1, $Array[$Key0])) 
+
+            if (array_key_exists($Key1, $Array[$Key0]))
 			{
                 return $Array[$Key0][$Key1]['Count'];
             }
         }
-        
+
         return null;
     }
-    
+
     //
     // proceed stats of the xml file
     //
@@ -239,7 +239,7 @@ class tacview
         $this->events      = array();
         $this->stats       = array();
         $this->sam_enemies = array(); // Aggiunto da 53.Sparrow per contsentire le statistiche sugli abbattimenti A/G ed elicotteri
-        
+
         // parse XML file to get events and objects
 
         $this->parseXML($aFile);
@@ -247,12 +247,12 @@ class tacview
         // echo '============================================================================';
         // echo '<pre>'; print_r($this->events); echo '</pre>';
         // echo '============================================================================';
-        
-        if ($this->missionName == "") 
+
+        if ($this->missionName == "")
 		{
             $this->missionName = $aMissionName;
         }
-        
+
         // some scripts
 
         $this->addOutput('<script type="text/javascript">');
@@ -264,7 +264,7 @@ class tacview
         $this->addOutput('	}');
         $this->addOutput('}');
         $this->addOutput('</script>');
-        
+
 		// ***********************************************************
 		// PRESENTATION TABLE - Mission Name, Time, Duration
 		// ***********************************************************
@@ -288,49 +288,49 @@ class tacview
 		// ***********************************************************
 		// Iterate through events
 		// ***********************************************************
-        
-        foreach ($this->events as $key => $event) 
-		{            
+
+        foreach ($this->events as $key => $event)
+		{
             // List pilots of Aircraft and Helicopters
 
-            if ($event["PrimaryObject"]["Type"] == "Aircraft" or $event["PrimaryObject"]["Type"] == "Helicopter") 
+            if ($event["PrimaryObject"]["Type"] == "Aircraft" or $event["PrimaryObject"]["Type"] == "Helicopter")
 			{
-				if(array_key_exists("Pilot",$event["PrimaryObject"])) 
-				{		
-	                $primaryObjectPilot = $event["PrimaryObject"]["Pilot"];				
+				if(array_key_exists("Pilot",$event["PrimaryObject"]))
+				{
+	                $primaryObjectPilot = $event["PrimaryObject"]["Pilot"];
 					// crea il ramo per ogni Pilota (di aereo o di elicottero)
 					$this->stats[$primaryObjectPilot]["Aircraft"] = $event["PrimaryObject"]["Name"];
-				} 
-				else 
+				}
+				else
 				{
 					continue;
 				}
-			
-				if(array_key_exists("Group",$event["PrimaryObject"])) 
-				{											
+
+				if(array_key_exists("Group",$event["PrimaryObject"]))
+				{
 					$this->stats[$primaryObjectPilot]["Group"] = $event["PrimaryObject"]["Group"]; // ADDED field Group by Aikanaro
 				}
-            
-                if (!array_key_exists("Events", $this->stats[$primaryObjectPilot])) 
+
+                if (!array_key_exists("Events", $this->stats[$primaryObjectPilot]))
 				{
                     $this->stats[$primaryObjectPilot]["Events"] = array();
                 }
-                
+
 				array_push($this->stats[$primaryObjectPilot]["Events"], $event);
-                
+
 				// fine creazione ramo
-                
-                switch ($event["Action"]) 
+
+                switch ($event["Action"])
 				{
 					case "HasLanded":
-                    
+
 						$this->increaseStat($this->stats[$primaryObjectPilot], "Lands", "Count");
-                        
-						if (!isset($event["Airport"])) 
+
+						if (!isset($event["Airport"]))
 						{
                             $this->increaseStat($this->stats[$primaryObjectPilot]["Lands"], "No Airport");
-                        } 
-						else 
+                        }
+						else
 						{
                             $this->increaseStat($this->stats[$primaryObjectPilot]["Lands"], $event["Airport"]['Name']);
                         }
@@ -338,15 +338,15 @@ class tacview
                         break;
 
 					case "HasTakeOff":	// obsolete
-                    case "HasTakenOff":	
-                        
+                    case "HasTakenOff":
+
 						$this->increaseStat($this->stats[$primaryObjectPilot], "TakeOffs", "Count");
-                        
-						if (!isset($event["Airport"])) 
+
+						if (!isset($event["Airport"]))
 						{
                             $this->increaseStat($this->stats[$primaryObjectPilot]["TakeOffs"], $event["SecondaryObject"]["Name"]);
-                        } 
-						else 
+                        }
+						else
 						{
                             $this->increaseStat($this->stats[$primaryObjectPilot]["TakeOffs"], $event["Airport"]['Name']);
                         }
@@ -354,14 +354,14 @@ class tacview
                         break;
 
                     case "HasFired":
-                        
+
 						$this->increaseStat($this->stats[$primaryObjectPilot], "Fired", "Count");
                         $this->increaseStat($this->stats[$primaryObjectPilot], "Fired", $event["SecondaryObject"]["Name"]);
-	
+
                         break;
 
                     case "HasBeenDestroyed":
-		
+
                         $this->increaseStat($this->stats[$primaryObjectPilot], "Destroyed", "Count");
 
                         break;
@@ -370,106 +370,106 @@ class tacview
 
                         $this->increaseStat($this->stats[$primaryObjectPilot], "Hit", "Count");
                         $this->increaseStat($this->stats[$primaryObjectPilot], "Hit", $event["SecondaryObject"]["Name"]);
-                        
+
                         if (	array_key_exists("ParentObject",$event) and
-								array_key_exists("Pilot", $event["ParentObject"]) and 
-								$event["ParentObject"]["Pilot"] != "" and 
-								substr($event["ParentObject"]["Pilot"], 0, 6) != "Pilot") 
+								array_key_exists("Pilot", $event["ParentObject"]) and
+								$event["ParentObject"]["Pilot"] != "" and
+								substr($event["ParentObject"]["Pilot"], 0, 6) != "Pilot")
 						{
-                            
+
                             $parentObjectPilot = $event["ParentObject"]["Pilot"];
-                            
+
                             // Friendly Fire
 
                             if ($event["ParentObject"]["Coalition"] == $event["PrimaryObject"]["Coalition"])
-							{ 
+							{
                                 $this->increaseStat($this->stats[$parentObjectPilot], "FriendlyFire", "Count");
                                 $this->increaseStat($this->stats[$parentObjectPilot], "FriendlyFire", $event["PrimaryObject"]["Name"]);
-                            } 
-							elseif (!isset($this->stats[$parentObjectPilot])) 
+                            }
+							elseif (!isset($this->stats[$parentObjectPilot]))
 							{
                                 // pilota non ancora inserito -> viene creato il ramo
 
                                 $this->stats[$parentObjectPilot]["Aircraft"] = $event["ParentObject"]["Name"];
                                 $this->stats[$parentObjectPilot]["Group"]    = $event["ParentObject"]["Group"];
-                                    
-                                if (!array_key_exists("Events", $this->stats[$parentObjectPilot])) 
+
+                                if (!array_key_exists("Events", $this->stats[$parentObjectPilot]))
 								{
                                     $this->stats[$parentObjectPilot]["Events"] = array();
                                 }
-	
+
                                 array_push($this->stats[$parentObjectPilot]["Events"], $event);
 
                                 // fine creazione ramo
 
-                            }                                
+                            }
 
-                            if (!array_key_exists("Killed", $this->stats[$parentObjectPilot])) 
+                            if (!array_key_exists("Killed", $this->stats[$parentObjectPilot]))
 								{
                                     $this->stats[$parentObjectPilot]["Killed"] = array();
                                 }
-                                
+
                                 $this->increaseStat($this->stats[$parentObjectPilot]["Killed"], $event["PrimaryObject"]["Type"], "Count"); // Fix bug display Kill change from SecondaryObject to ParentObject
                                 $this->increaseStat($this->stats[$parentObjectPilot]["Killed"], $event["PrimaryObject"]["Type"], $event["SecondaryObject"]["Name"]); // Fix bug display Kill change from SecondaryObject to ParentObject*/
-						}                 
+						}
                         break;
-						
+
 				}
-			}	
-			elseif ($event["PrimaryObject"]["Type"] == "Tank" or 	
-					$event["PrimaryObject"]["Type"] == "SAM/AAA" or 
+			}
+			elseif ($event["PrimaryObject"]["Type"] == "Tank" or
+					$event["PrimaryObject"]["Type"] == "SAM/AAA" or
 					$event["PrimaryObject"]["Type"] == "Ship")
 
-					// Aggiunto da 36.Sparrow per consentire le statistiche sugli abbattimenti A/G ed elicotteri 
-				{ 
-					switch ($event["Action"]) 
+					// Aggiunto da 36.Sparrow per consentire le statistiche sugli abbattimenti A/G ed elicotteri
+				{
+					switch ($event["Action"])
 					{
 						case "HasBeenHitBy":
 
 							if (	array_key_exists("ParentObject",$event) and
-									array_key_exists("Pilot", $event["ParentObject"]) and 
-									$event["ParentObject"]["Pilot"] != "" and 
-									substr($event["ParentObject"]["Pilot"], 0, 6) != "Pilot") 
+									array_key_exists("Pilot", $event["ParentObject"]) and
+									$event["ParentObject"]["Pilot"] != "" and
+									substr($event["ParentObject"]["Pilot"], 0, 6) != "Pilot")
 							{
 									$parentObjectPilot = $event["ParentObject"]["Pilot"];
 
-									if (!isset($this->stats[$parentObjectPilot])) 
+									if (!isset($this->stats[$parentObjectPilot]))
 									{
 										// If Pilot of Parent Object does not exist yet, create them.
 
 										$this->stats[$parentObjectPilot]["Aircraft"] = $event["ParentObject"]["Name"];
 										$this->stats[$parentObjectPilot]["Group"]    = $event["ParentObject"]["Group"];
-										   
-										if (!array_key_exists("Events", $this->stats[$parentObjectPilot])) 
+
+										if (!array_key_exists("Events", $this->stats[$parentObjectPilot]))
 										{
 											$this->stats[$parentObjectPilot]["Events"] = array();
 										}
 									}
 
-									array_push($this->stats[$parentObjectPilot]["Events"], $event);									
+									array_push($this->stats[$parentObjectPilot]["Events"], $event);
 
 							}
 							else
 							{
 								continue;
 							}
-											
+
 							// Was it Friendly Fire?
 
 							if ($event["ParentObject"]["Coalition"] == $event["PrimaryObject"]["Coalition"])
-							{ 
+							{
 								  $this->increaseStat($this->stats[$parentObjectPilot], "FriendlyFire", "Count");
-								  $this->increaseStat($this->stats[$parentObjectPilot], "FriendlyFire", $event["PrimaryObject"]["Name"]); 
+								  $this->increaseStat($this->stats[$parentObjectPilot], "FriendlyFire", $event["PrimaryObject"]["Name"]);
 							}
-			
-							/*if (!array_key_exists("Killed", $this->stats[$parentObjectPilot])) 
+
+							/*if (!array_key_exists("Killed", $this->stats[$parentObjectPilot]))
 							{
 							   $this->stats[$parentObjectPilot]["Killed"] = array();
 							}
-									
+
 							$this->increaseStat($this->stats[$parentObjectPilot]["Killed"], $event["PrimaryObject"]["Type"], "Count");
 							$this->increaseStat($this->stats[$parentObjectPilot]["Killed"], $event["PrimaryObject"]["Type"], $event["SecondaryObject"]["Name"]); */
-			 
+
 
 							//echo "************************<br>";
 							//echo $event ["SecondaryObject"] ["Pilot"]."<br>";
@@ -481,20 +481,20 @@ class tacview
 						case "HasBeenDestroyed":
 
 							if (	array_key_exists("SecondaryObject",$event) and
-									array_key_exists("Pilot", $event["SecondaryObject"]) and 
-									$event["SecondaryObject"]["Pilot"] != "" and 
-									substr($event["SecondaryObject"]["Pilot"], 0, 6) != "Pilot") 
+									array_key_exists("Pilot", $event["SecondaryObject"]) and
+									$event["SecondaryObject"]["Pilot"] != "" and
+									substr($event["SecondaryObject"]["Pilot"], 0, 6) != "Pilot")
 							{
 								$secondaryObjectPilot = $event["SecondaryObject"]["Pilot"];
 
-								if (!isset($this->stats[$secondaryObjectPilot])) 
+								if (!isset($this->stats[$secondaryObjectPilot]))
 								{
 									// If Pilot of Secondary Object does not exist yet, create them.
 
 									$this->stats[$secondaryObjectPilot]["Aircraft"] = $event["SecondaryObject"]["Name"];
 									$this->stats[$secondaryObjectPilot]["Group"]    = $event["SecondaryObject"]["Group"];
-									   
-									if (!array_key_exists("Events", $this->stats[$secondaryObjectPilot])) 
+
+									if (!array_key_exists("Events", $this->stats[$secondaryObjectPilot]))
 									{
 										$this->stats[$secondaryObjectPilot]["Events"] = array();
 									}
@@ -511,18 +511,18 @@ class tacview
 							// Was it Friendly Fire?
 
 							if ($event["SecondaryObject"]["Coalition"] == $event["PrimaryObject"]["Coalition"])
-							{ 
+							{
 								  $this->increaseStat($this->stats[$secondaryObjectPilot], "FriendlyFire", "Count");
-								  $this->increaseStat($this->stats[$secondaryObjectPilot], "FriendlyFire", $event["PrimaryObject"]["Name"]); 
-							}                           
-						 
-							if (!array_key_exists("Killed", $this->stats[$event["SecondaryObject"]["Pilot"]])) 
+								  $this->increaseStat($this->stats[$secondaryObjectPilot], "FriendlyFire", $event["PrimaryObject"]["Name"]);
+							}
+
+							if (!array_key_exists("Killed", $this->stats[$event["SecondaryObject"]["Pilot"]]))
 							{
 								$this->stats[$event["SecondaryObject"]["Pilot"]]["Killed"] = array();
 							}
-								
+
 							$this->increaseStat($this->stats[$secondaryObjectPilot]["Killed"], $event["PrimaryObject"]["Type"], "Count");
-							$this->increaseStat($this->stats[$secondaryObjectPilot]["Killed"], $event["PrimaryObject"]["Type"], $event["PrimaryObject"]["Name"]); 
+							$this->increaseStat($this->stats[$secondaryObjectPilot]["Killed"], $event["PrimaryObject"]["Type"], $event["PrimaryObject"]["Name"]);
 
 						break;
 					}
@@ -532,10 +532,10 @@ class tacview
                 //echo '============================================================================';
                 //echo '<pre>'; print_r($this->stats [$this->sam_enemies [$event ["PrimaryObject"] ["Name"]]] ); echo '</pre>';
                 //echo '****************************************************************************';
-            
+
 				}
 		}
-        
+
 
 		// ***********************************************************
 		// STATISTICS TABLE - Display Stats per pilot
@@ -547,7 +547,7 @@ class tacview
         $this->addOutput('<th class="statisticsTable">' . $this->L('pilotName') . '</td>');
     //  $this->addOutput('<th class="statisticsTable">' . $this->L('model') . '</td>');
         $this->addOutput('<th colspan="2" class="statisticsTable">' . $this->L('aircraft') . '</td>');
-        $this->addOutput('<th class="statisticsTable">' . $this->L('group') . '</td>'); 
+        $this->addOutput('<th class="statisticsTable">' . $this->L('group') . '</td>');
         $this->addOutput('<th class="statisticsTable">' . $this->L('takeoff') . '</td>');
         $this->addOutput('<th class="statisticsTable">' . $this->L('landing') . '</td>');
         $this->addOutput('<th class="statisticsTable">' . $this->L('firedArmement') . '</td>');
@@ -560,25 +560,25 @@ class tacview
         $this->addOutput('<th class="statisticsTable">' . $this->L('hit') . '</td>');
         $this->addOutput('<th class="statisticsTable">' . $this->L('destroyed') . '</td>');
         $this->addOutput('</tr>');
-        
+
         $class = "row1";
 
-        foreach ($this->stats as $key => $stat) 
+        foreach ($this->stats as $key => $stat)
 		{
-            
-            if ($key != "" and substr($key, 0, 5) != "Pilot") 
+
+            if ($key != "" and substr($key, 0, 5) != "Pilot")
 			{
                 // $this->displayEventRow($event);
                 $this->addOutput('<tr class="statisticsTable" class="ptv_' . $class . '">');
                 $this->addOutput('<td class="statisticsTable"><a href="javascript: showDetails(\'' . $key . '\')">' . $key . '</a></td>');
                 $this->addOutput('<td class="statisticsTable"><img class="objectIcons" src="objectIcons/' . str_replace(array(" ","/"), array("_","_"), $stat["Aircraft"]) . '.jpg"/></td>');
                 $this->addOutput('<td class="statisticsTable">' . $stat["Aircraft"] . '</td>');
-				
-				if(array_key_exists("Group",$stat)) 
+
+				if(array_key_exists("Group",$stat))
 				{
-					$this->addOutput('<td class=statisticsTable>' . $stat["Group"] . '</td>'); 
-				} 
-				else 
+					$this->addOutput('<td class=statisticsTable>' . $stat["Group"] . '</td>');
+				}
+				else
 				{
 					$this->addOutput('<td></td>');
 				}
@@ -603,13 +603,13 @@ class tacview
                 $this->addOutput('<tr id="'.$key.'"class="hiddenRow" style="display: none;">');
                 $this->addOutput('<td class="hiddenRow" colspan="15">');
                 $this->addOutput('<h1>' . $key . '</h1>');
-                
+
 				$this->addOutput('<table class="hiddenStatsTable">');
                 $this->addOutput('<tr class="hiddenStatsTable">');
-                
+
                 $this->addOutput('<td colspan="8">');
                 $this->addOutput('<br /><h1>' . $this->L("aircraft") . '</h1>');
-                
+
                 // FIRST ROW - Aircraft icon
 
 				if (isset($stat["Aircraft"]))
@@ -629,9 +629,9 @@ class tacview
                 $this->addOutput('<td class="hiddenStatsTable">');
                 $this->addOutput('<br /><span>' . $this->L("takeoff_long") . '</span> :<br/>');
 
-                if (isset($stat["TakeOffs"]) and is_array($stat["TakeOffs"])) 
+                if (isset($stat["TakeOffs"]) and is_array($stat["TakeOffs"]))
 				{
-                    foreach ($stat["TakeOffs"] as $k => $v) 
+                    foreach ($stat["TakeOffs"] as $k => $v)
 					{
                         if ($k != "Count")
 						{
@@ -639,19 +639,19 @@ class tacview
 						}
                     }
                 }
-	
+
                 if (!isset($stat["TakeOffs"]) or $stat["TakeOffs"]["Count"] == "")
 				{
                     $this->addOutput('(' . $this->L("nothing") . ')<br />');
 				}
-                
+
                 // Landings
-                
+
 				$this->addOutput('<br /><span>' . $this->L("landing_long") . ' :<br /></span>');
-                
-				if (isset($stat["Lands"]) and is_array($stat["Lands"])) 
+
+				if (isset($stat["Lands"]) and is_array($stat["Lands"]))
 				{
-                    foreach ($stat["Lands"] as $k => $v) 
+                    foreach ($stat["Lands"] as $k => $v)
 					{
                         if ($k != "Count")
 						{
@@ -664,14 +664,14 @@ class tacview
 				{
                     $this->addOutput('(' . $this->L("nothing") . ')<br /><span>');
 				}
-                
+
                 // Fired Weapons
-	
+
                 $this->addOutput('<br /><span>' . $this->L("firedArmement_long") . ' :<br /></span>');
 
-                if (isset($stat["Fired"]) and is_array($stat["Fired"])) 
+                if (isset($stat["Fired"]) and is_array($stat["Fired"]))
 				{
-                    foreach ($stat["Fired"] as $k => $v) 
+                    foreach ($stat["Fired"] as $k => $v)
 					{
                         if ($k != "Count")
 						{
@@ -685,18 +685,18 @@ class tacview
                     $this->addOutput('(' . $this->L("nothing") . ')<br />');
 				}
 
-                $this->addOutput('</td>');                
-                
+                $this->addOutput('</td>');
+
 				// SECOND ROW - Second cell
-                
+
 				// Friendly Fire
-                
+
 				$this->addOutput('<td class="hiddenStatsTable">');
                 $this->addOutput('<br /><span>' . $this->L("teamKill") . ' :<br /></span>');
-                
-				if (isset($stat["Killed"]["Destroyed"]) and is_array($stat["FriendlyFire"])) 
+
+				if (isset($stat["Killed"]["Destroyed"]) and is_array($stat["FriendlyFire"]))
 				{
-                    foreach ($stat["FriendlyFire"] as $k => $v) 
+                    foreach ($stat["FriendlyFire"] as $k => $v)
 					{
                         if ($k != "Count")
 						{
@@ -709,14 +709,14 @@ class tacview
 				{
                     $this->addOutput('(' . $this->L("nothing") . ')<br />');
 				}
-                
+
                 // Hit by
 
                 $this->addOutput('<br /><span>' . $this->L("hitBy") . ' :<br /></span>');
 
-                if (isset($stat["Hit"]) and is_array($stat["Hit"])) 
+                if (isset($stat["Hit"]) and is_array($stat["Hit"]))
 				{
-                    foreach ($stat["Hit"] as $k => $v) 
+                    foreach ($stat["Hit"] as $k => $v)
 					{
                         if ($k != "Count")
 						{
@@ -729,14 +729,14 @@ class tacview
 				{
                     $this->addOutput('(' . $this->L("nothing") . ')<br />');
 				}
-                
+
                 // Destroyed
-                
+
 				$this->addOutput('<br /><span>' . $this->L("destroyed") . ' :<br /></span>'); // ADDED Destroyed in pilot stats by Aikanaro
-                
-				if (isset($stat["Destroyed"]) and is_array($stat["Destroyed"])) 
+
+				if (isset($stat["Destroyed"]) and is_array($stat["Destroyed"]))
 				{
-                    foreach ($stat["Destroyed"] as $v) 
+                    foreach ($stat["Destroyed"] as $v)
 					{
                         if ($v != "Count")
 						{
@@ -751,17 +751,17 @@ class tacview
 				}
 
                 $this->addOutput('</td>');
-                
+
 				// SECOND ROW - Third Cell
 
 				// Kill A/A
-                
+
 				$this->addOutput('<td class="hiddenStatsTable">');
                 $this->addOutput('<br /><span>' . $this->L("killedAircraft") . ' :<br /></span>');
-                
-				if (isset($stat["Killed"]["Aircraft"]) and is_array($stat["Killed"]["Aircraft"])) 
+
+				if (isset($stat["Killed"]["Aircraft"]) and is_array($stat["Killed"]["Aircraft"]))
 				{
-                    foreach ($stat["Killed"]["Aircraft"] as $k => $v) 
+                    foreach ($stat["Killed"]["Aircraft"] as $k => $v)
 					{
                         if ($k != "Count")
 						{
@@ -774,14 +774,14 @@ class tacview
 				{
                     $this->addOutput('(' . $this->L("nothing") . ')<br />');
 				}
-                
+
                 // Kill Helo
 
                 $this->addOutput('<br /><span>' . $this->L("killedHelo") . ' :<br /></span>');
 
-                if (isset($stat["Killed"]["Helicopter"]) and is_array($stat["Killed"]["Helicopter"])) 
+                if (isset($stat["Killed"]["Helicopter"]) and is_array($stat["Killed"]["Helicopter"]))
 				{
-                    foreach ($stat["Killed"]["Helicopter"] as $k => $v) 
+                    foreach ($stat["Killed"]["Helicopter"] as $k => $v)
 					{
                         if ($k != "Count")
 						{
@@ -789,19 +789,19 @@ class tacview
 						}
                     }
                 }
-			
+
                 if (!isset($stat["Killed"]["Helicopter"]) or $stat["Killed"]["Helicopter"]["Count"] == "")
 				{
                     $this->addOutput('(' . $this->L("nothing") . ')<br />');
 				}
-                
+
                 // Kill Ship
 
                 $this->addOutput('<br /><span>' . $this->L("killedShip") . ' :<br /></span>');
 
-                if (isset($stat["Killed"]["Ship"]) and is_array($stat["Killed"]["Ship"])) 
+                if (isset($stat["Killed"]["Ship"]) and is_array($stat["Killed"]["Ship"]))
 				{
-                    foreach ($stat["Killed"]["Ship"] as $k => $v) 
+                    foreach ($stat["Killed"]["Ship"] as $k => $v)
 					{
                         if ($k != "Count")
 						{
@@ -809,19 +809,19 @@ class tacview
 						}
                     }
                 }
-				
+
                 if (!isset($stat["Killed"]["Ship"]) or $stat["Killed"]["Ship"]["Count"] == "")
 				{
                     $this->addOutput('(' . $this->L("nothing") . ')<br />');
 				}
-                
+
                 // Kill SAM/AAA
 
                 $this->addOutput('<br /><span>' . $this->L("killedSAM") . ' :<br /></span>');
 
-                if (isset($stat["Killed"]["SAM/AAA"]) and is_array($stat["Killed"]["SAM/AAA"])) 
+                if (isset($stat["Killed"]["SAM/AAA"]) and is_array($stat["Killed"]["SAM/AAA"]))
 				{
-                    foreach ($stat["Killed"]["SAM/AAA"] as $k => $v) 
+                    foreach ($stat["Killed"]["SAM/AAA"] as $k => $v)
 					{
                         if ($k != "Count")
 						{
@@ -834,14 +834,14 @@ class tacview
 				{
                     $this->addOutput('(' . $this->L("nothing") . ')<br />');
 				}
-                
+
                 // Kill Tank
 
                 $this->addOutput('<br /><span>' . $this->L("killedTank") . ' :<br /></span>');
 
-                if (isset($stat["Killed"]["Tank"]) and is_array($stat["Killed"]["Tank"])) 
+                if (isset($stat["Killed"]["Tank"]) and is_array($stat["Killed"]["Tank"]))
 				{
-                    foreach ($stat["Killed"]["Tank"] as $k => $v) 
+                    foreach ($stat["Killed"]["Tank"] as $k => $v)
 					{
                         if ($k != "Count")
 						{
@@ -854,41 +854,41 @@ class tacview
 				{
                     $this->addOutput('(' . $this->L("nothing") . ')<br />');
 				}
-                
+
                 $this->addOutput('</td>');
-                
-                if (isset($stat["Hit"]) and $stat["Hit"]["Count"] != "") 
+
+                if (isset($stat["Hit"]) and $stat["Hit"]["Count"] != "")
 				{
                     $this->addOutput('<td>');
                     $this->addOutput('</td>');
                 }
 
 				//THIRD ROW - Events per pilot table
-                
+
                 $this->addOutput('</tr>');
                 $this->addOutput('<tr class="hiddenStatsTable">');
-                
+
                 $this->addOutput('<td colspan="8">');
                 $this->addOutput('<br /><h1 class="hiddenEventsTable">' . $this->L("events") . '</h1>');
-                
+
                 $this->addOutput('<table class="hiddenEventsTable">');
                 $this->addOutput('<tr>');
                 $this->addOutput('<th>' . $this->L('time') . '</td>');
                 $this->addOutput('<th>' . $this->L('type') . '</td>');
                 $this->addOutput('<th>' . $this->L('action') . '</td>');
                 $this->addOutput('</tr>');
-                
-                foreach ($stat["Events"] as $key => $event) 
+
+                foreach ($stat["Events"] as $key => $event)
 				{
                     $this->displayEventRow($event);
                 }
 
                 $this->addOutput('</table>');
                 $this->addOutput('</table>');
-                
+
                 $this->addOutput('</td>');
                 $this->addOutput('</tr>');
-                
+
                 $class = $class == "row1" ? "row2" : "row1";
             }
         }
@@ -897,7 +897,7 @@ class tacview
 
         // ***********************************************************
 		// EVENTS TABLE - Display all events
-		// ***********************************************************        
+		// ***********************************************************
 
 		$this->addOutput('<br /><br /><h1>' . $this->L('events') . '</h1>');
         $this->addOutput('<table class="eventsTable">');
@@ -906,38 +906,38 @@ class tacview
         $this->addOutput('<th>' . $this->L('type') . '</td>');
         $this->addOutput('<th>' . $this->L('action') . '</td>');
         $this->addOutput('</tr>');
-        
-        foreach ($this->events as $key => $event) 
+
+        foreach ($this->events as $key => $event)
 		{
 			$this->displayEventRow($event);
         }
 
         $this->addOutput('</table>');
 	}
-    
+
     // Add to output informations of one event
-    
+
     function displayEventRow($event)
     {
         // hit ? des ?
         $hit = false;
 
-        if ($event["Action"] == "HasBeenHitBy" or $event["Action"] == "HasBeenDestroyed") 
+        if ($event["Action"] == "HasBeenHitBy" or $event["Action"] == "HasBeenDestroyed")
 		{
             $hit = true;
         }
-        
+
         $this->addOutput('<tr>');
-        
+
         // Time
         $this->addOutput('<td>');
         $this->addOutput($this->displayTime($this->startTime + $event["Time"]));
         $this->addOutput('</td>');
-        
+
         // Type
         $this->addOutput('<td class="ptv_rowType">');
 
-        switch ($event["PrimaryObject"]["Type"]) 
+        switch ($event["PrimaryObject"]["Type"])
 		{
             case "SAM/AAA":
 
@@ -975,28 +975,28 @@ class tacview
 
                 break;
         }
-        
-		if ($hit === true and $event["Action"] == "HasBeenHitBy") 
+
+		if ($hit === true and $event["Action"] == "HasBeenHitBy")
 		{
             $lImage = '<img src="' . $this->image_path . 'categoryIcons/hit.gif" alt="" />';
         }
-        
+
         $this->addOutput($lImage);
         $this->addOutput('</td>');
-        
+
         // Name
 
 		$class = "";
-        
-        if ($hit === true) 
+
+        if ($hit === true)
 		{
 			$class = $event["Action"] == "HasBeenHitBy" ? 'rowHit' : 'rowDestroy';
-            
-            if (array_key_exists("SecondaryObject", $event) and $event["PrimaryObject"]["Coalition"] == $event["SecondaryObject"]["Coalition"]) 
+
+            if (array_key_exists("SecondaryObject", $event) and $event["PrimaryObject"]["Coalition"] == $event["SecondaryObject"]["Coalition"])
 			{
                 $class = "rowTeamKill";
             }
-        } 
+        }
 
 		if ($class != "rowDestroy" && $class != "rowTeamKill")
 		{
@@ -1023,49 +1023,49 @@ class tacview
 			$lmsg = $lmsg . '<span>*' . $this->L('teamKill') . '*</span> ';
 		}
 
-        if ($nameExists) 
+        if ($nameExists)
 		{
             $lmsg = $lmsg . " " . $event["PrimaryObject"]["Name"] . " ";
-        } 
+        }
 
-        if ($pilotExists) 
+        if ($pilotExists)
 		{
-            
-			$lmsg = $lmsg . "(" . $event["PrimaryObject"]["Pilot"] . ")"; 
+
+			$lmsg = $lmsg . "(" . $event["PrimaryObject"]["Pilot"] . ")";
 		}
-			
-		if($groupExists) 
-		{	
-		
-			$lmsg = $lmsg . " [" . $event["PrimaryObject"]["Group"] . "] ";	// ADDED Group in Event by Aikanaro
-		} 
-			
-        $this->addOutput($lmsg . $this->L($event["Action"]) . " ");
-        
-        // Action
-        switch ($event["Action"]) 
+
+		if($groupExists)
 		{
-        
+
+			$lmsg = $lmsg . " [" . $event["PrimaryObject"]["Group"] . "] ";	// ADDED Group in Event by Aikanaro
+		}
+
+        $this->addOutput($lmsg . $this->L($event["Action"]) . " ");
+
+        // Action
+        switch ($event["Action"])
+		{
+
 			case "HasLanded":
 			case "HasTakeOff":	// obsolete
-			case "HasTakenOff":	
-            
-				if (isset($event["Airport"]) and $event["Airport"] != "") 
+			case "HasTakenOff":
+
+				if (isset($event["Airport"]) and $event["Airport"] != "")
 				{
                     $this->addOutput(' <img src="' . $this->image_path . 'categoryIcons/airport.gif" alt="" /> ' . $event["Airport"]["Name"]);
-                } 
-				else if(	array_key_exists("SecondaryObject", $event) and 
-							array_key_exists("Type", $event["SecondaryObject"]) and  
-							$event["SecondaryObject"]["Type"] == "Carrier") 
+                }
+				else if(	array_key_exists("SecondaryObject", $event) and
+							array_key_exists("Type", $event["SecondaryObject"]) and
+							$event["SecondaryObject"]["Type"] == "Carrier")
 				{
 					$this->addOutput(' <img src="' . $this->image_path . 'categoryIcons/airport.gif" alt="" /> ' . $event["SecondaryObject"]["Name"]);
 
-				} 
-				else 
+				}
+				else
 				{
                     $this->addOutput(' <img src="' . $this->image_path . 'categoryIcons/airport.gif" alt="" /> ');
                 }
-                
+
 				break;
 
             case "HasBeenHitBy":
@@ -1079,13 +1079,13 @@ class tacview
 					if(array_key_exists("Coalition",$SecondaryObject))
 					{
 						$SecondaryObjectCoalition = $SecondaryObject["Coalition"];
-						
+
 						$this->addOutput(' <img src="' . $this->image_path . 'categoryIcons/Mini_Missile_' . $SecondaryObjectCoalition . '.gif" alt="" /> ');
-						 
+
 					}
 
 					$this->addOutput($SecondaryObject["Name"]);
-					
+
 				}
 				else	// No secondary object = no more info available
 				{
@@ -1105,11 +1105,11 @@ class tacview
 				break;
 
             case "HasFired":
-				if (array_key_exists("Coalition", $event["SecondaryObject"])) 
-				{		
+				if (array_key_exists("Coalition", $event["SecondaryObject"]))
+				{
 					$this->addOutput(' <img src="' . $this->image_path . 'categoryIcons/Mini_Missile_' . $event["SecondaryObject"]["Coalition"] . '.gif" alt="" /> ' . $event["SecondaryObject"]["Name"]);
-				} 
-				else 
+				}
+				else
 				{
 					$this->addOutput($event["SecondaryObject"]["Name"]);
 				}
@@ -1121,7 +1121,7 @@ class tacview
         $this->addOutput('</tr>');
     }
 
-    
+
     // Aggiunto da 53.Sparrow per consentire l'utilizzo della funzione anche per le vecchie versioni di php
     function date_parse_from_format($format, $date)
     {
@@ -1146,18 +1146,18 @@ class tacview
         );
         $format = preg_split('//', $format, -1, PREG_SPLIT_NO_EMPTY);
         $date   = preg_split('//', $date, -1, PREG_SPLIT_NO_EMPTY);
-        foreach ($date as $k => $v) 
+        foreach ($date as $k => $v)
 		{
-            
-            if ($dMask[$format[$k]]) 
+
+            if ($dMask[$format[$k]])
 			{
                 $dt[$dMask[$format[$k]]] .= $v;
             }
         }
-        
+
 		return $dt;
     }
-    
+
     //
     // Parse XML file and get events and objects
     //
@@ -1165,20 +1165,20 @@ class tacview
     {
         $this->xmlParser = xml_parser_create();
         $this->xmlParser = xml_parser_create("UTF-8");
-        
+
         xml_parser_set_option($this->xmlParser, XML_OPTION_CASE_FOLDING, false);
         xml_set_object($this->xmlParser, $this);
         xml_set_element_handler($this->xmlParser, "startTag", "endTag");
         xml_set_character_data_handler($this->xmlParser, "cdata");
-        
+
         $lXmlData = file_get_contents($aFile);
-        
+
         $data = xml_parse($this->xmlParser, $lXmlData);
-        if (!$data) 
+        if (!$data)
 		{
             die(sprintf("XML error: %s at line %d", xml_error_string(xml_get_error_code($this->xmlParser)), xml_get_current_line_number($this->xmlParser)));
         }
-        
+
         xml_parser_free($this->xmlParser);
     }
     function startTag($aParser, $aName, $aAttrs)
@@ -1188,60 +1188,60 @@ class tacview
          * // vettore generale Objects -- non esiste piu' --- if($aName == "Objects") { $this->tagObjectsOpened = true; } if($this->tagObjectsOpened === true) { if($aName == "Object") { $this->objectCurrentId = $aAttrs['ID']; $this->tagObjectOpened = true; } if($aName == "Parent") { if(array_key_exists('ID',$aAttrs)) { // Tacview 0.85 (obsolete) $this->objects[$this->objectCurrentId][$aName] = $this->objects[$aAttrs['ID']]; } } }
          */
         // vettore generale Events
-        if ($aName == "Events") 
+        if ($aName == "Events")
 		{
             $this->tagEventsOpened = true;
         }
-        
-        if ($this->tagEventsOpened === true) 
+
+        if ($this->tagEventsOpened === true)
 		{
-            
-            if ($aName == "Event") 
+
+            if ($aName == "Event")
 			{
                 $lID                  = $this->eventCurrentId + 1;
                 $this->eventCurrentId = $lID;
                 $this->tagEventOpened = true;
             }
-            
-            if ($aName == "PrimaryObject") 
+
+            if ($aName == "PrimaryObject")
 			{
                 $this->tagPrimaryObjectOpened = true;
             }
-            
-            if ($aName == "SecondaryObject") 
+
+            if ($aName == "SecondaryObject")
 			{
                 $this->tagSecondaryObjectOpened = true;
             }
-            
-            if ($aName == "ParentObject") 
+
+            if ($aName == "ParentObject")
 			{
                 $this->tagParentObjectOpened = true;
             }
-            
-            if ($aName == "Airport") 
+
+            if ($aName == "Airport")
 			{
                 $this->tagAirportOpened = true;
             }
-            
-            if ($aName == "PrimaryObject") 
+
+            if ($aName == "PrimaryObject")
 			{
-                if (array_key_exists('ID', $aAttrs)) 
+                if (array_key_exists('ID', $aAttrs))
 				{
                     $this->events[$this->eventCurrentId][$aName]['ID'] = $aAttrs['ID'];
                 }
             }
-            
-            if ($aName == "SecondaryObject") 
+
+            if ($aName == "SecondaryObject")
 			{
-                if (array_key_exists('ID', $aAttrs)) 
+                if (array_key_exists('ID', $aAttrs))
 				{
                     $this->events[$this->eventCurrentId][$aName]['ID'] = $aAttrs['ID'];
                 }
             }
-            
-            if ($aName == "ParentObject") 
+
+            if ($aName == "ParentObject")
 			{
-                if (array_key_exists('ID', $aAttrs)) 
+                if (array_key_exists('ID', $aAttrs))
 				{
                     $this->events[$this->eventCurrentId][$aName]['ID'] = $aAttrs['ID'];
                 }
@@ -1251,8 +1251,8 @@ class tacview
 
     function cdata($aParser, $aData)
     {
-        
-        if (trim($aData)) 
+
+        if (trim($aData))
 		{
             $this->currentData = $aData;
         }
@@ -1260,23 +1260,23 @@ class tacview
 
     function endTag($aParser, $aName)
     {
-        if ($aName == "Title") 
+        if ($aName == "Title")
 		{
             $this->missionName = $this->currentData;
         }
 
-        if ($aName == "Duration") 
+        if ($aName == "Duration")
 		{
             $this->duration = $this->currentData;
         }
-        
-        if ($aName == "StartTime") 
+
+        if ($aName == "StartTime")
 		{
             // Tacview 0.85 (obsolete)
             $this->startTime = $this->currentData;
         }
-        
-        if ($aName == "MissionTime") 
+
+        if ($aName == "MissionTime")
 		{
             // Tacview 0.93 (full UTC date format)
             $startTime       = $this->date_parse_from_format("YYYY?mm?dd?HH?ii?ss?", $this->currentData);
@@ -1286,40 +1286,40 @@ class tacview
         /*
          * if($aName == "Objects") { $this->tagObjectsOpened = false; } if($this->tagObjectsOpened === true) { if($aName == "Object") { $this->tagObjectOpened = false; } if($aName == "Parent") { if($this->currentData) { $this->objects[$this->objectCurrentId][$aName] = $this->objects[$this->currentData]; } } if($aName != "Object" and $aName != "Parent") { $str = $this->currentData; if($aName == "Type") { if($str == "Bullet" or $str == "Shell") { $this->objects[$this->objectCurrentId]["Name"] = $this->L("Object".$str); } } $str = str_replace(' ', ' ', $str); $str = str_replace('Ã%u201A', ' ', $str); if(!isset($this->objects[$this->objectCurrentId][$aName])){ // Aggiunto da 53.Sparrow per consentire la visualizzazione dei proiettili $this->objects[$this->objectCurrentId][$aName] = $str; } } }
          */
-        if ($aName == "Events") 
+        if ($aName == "Events")
 		{
             $this->tagEventsOpened = false;
         }
-        
-        if ($this->tagEventsOpened === true) 
+
+        if ($this->tagEventsOpened === true)
 		{
-            
-            if ($aName == "Event") 
+
+            if ($aName == "Event")
 			{
                 $this->tagEventOpened = false;
             }
-            
-            if ($aName == "PrimaryObject") 
+
+            if ($aName == "PrimaryObject")
 			{
                 $this->tagPrimaryObjectOpened = false;
             }
-            
-            if ($aName == "SecondaryObject") 
+
+            if ($aName == "SecondaryObject")
 			{
                 $this->tagSecondaryObjectOpened = false;
             }
-            
-            if ($aName == "ParentObject") 
+
+            if ($aName == "ParentObject")
 			{
                 $this->tagParentObjectOpened = false;
             }
-            
-            if ($aName == "Airport") 
+
+            if ($aName == "Airport")
 			{
                 $this->tagAirportOpened = false;
             }
-            
-            if ($aName != "Event" and $aName != "PrimaryObject" and $aName != "SecondaryObject" and $aName != "ParentObject" and $aName != "Airport") 
+
+            if ($aName != "Event" and $aName != "PrimaryObject" and $aName != "SecondaryObject" and $aName != "ParentObject" and $aName != "Airport")
 			{
                 if ($this->tagPrimaryObjectOpened === true)
 				{
@@ -1342,7 +1342,7 @@ class tacview
                     $this->events[$this->eventCurrentId][$aName] = $this->currentData;
 				}
             }
-            
+
             /*
              * if($aName == "PrimaryObject" OR $aName == "SecondaryObject") { if($this->currentData) { //$this->events[$this->eventCurrentId][$aName] = $this->objects[$this->currentData]; $this->events[$this->eventCurrentId][$aName] = $this->currentData; } } if($aName != "Event" and $aName != "PrimaryObject" and $aName != "SecondaryObject") { $this->events[$this->eventCurrentId][$aName] = $this->currentData; }
              */
