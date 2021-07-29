@@ -5,8 +5,10 @@
 
 # Force the following files to lf
 
+*.css text eol=lf
 *.csv text eol=lf
 *.lua text eol=lf
+*.md text eol=lf
 *.php text eol=lf
 *.txt text eol=lf
 

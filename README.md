@@ -56,8 +56,3 @@ If you want to publish your creation or changes, contact us at support@tacview.n
 ### Hardware
 
 * [hsr](hsr) Output aircraft's speed for use by the HSIMRACING.COM Fan System driver.
-
-
-
-
-
