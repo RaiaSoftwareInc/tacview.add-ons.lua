@@ -860,8 +860,6 @@ class tacview
                         if ($k != "Count")
 						{
                             $this->addOutput('<p>&nbsp;' . $k . ' (' . $v . ')</p>');
-<<<<<<< HEAD
-=======
 						}
                     }
                 }
@@ -882,12 +880,10 @@ class tacview
                         if ($k != "Count")
 						{
                             $this->addOutput('<p>&nbsp;' . $k . ' (' . $v . ')</p>');
->>>>>>> 840cec466727b99b09f1242a80bc3830d7905b84
 						}
                     }
                 }
 
-<<<<<<< HEAD
                 if 	(!isset($stat["Killed"]["Tank"]) or $stat["Killed"]["Tank"]["Count"] == "")
 				{
                     $this->addOutput('<p>(' . $this->L("nothing") . ')</p>');
@@ -911,12 +907,6 @@ class tacview
                 if 	( !isset($stat["Killed"]["Car"]) or $stat["Killed"]["Car"]["Count"] == "") 
 				{
                     $this->addOutput('<p>(' . $this->L("nothing") . ')</p>');
-=======
-                if 	( !isset($stat["Killed"]["Car"]) or $stat["Killed"]["Car"]["Count"] == "") 
-				{
-                    $this->addOutput('<p>(' . $this->L("nothing") . ')</p>');
->>>>>>> 840cec466727b99b09f1242a80bc3830d7905b84
-				}
 
                 $this->addOutput('</td>');
 
