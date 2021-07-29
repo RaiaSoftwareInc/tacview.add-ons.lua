@@ -34,6 +34,7 @@
 	$_LANGUAGE['killedAircraft'] = 'Bajas A/A';
 	$_LANGUAGE['killedSAM'] = 'Bajas A/SAM';
 	$_LANGUAGE['killedTank'] = 'Bajas A/Tank';
+	$_LANGUAGE['killedCar'] = 'Bajas A/Truck';
 	$_LANGUAGE['killedHelo'] = 'Bajas A/Helo';
 	$_LANGUAGE['killedShip'] = 'Bajas A/Ship';
 	$_LANGUAGE['teamKill'] = 'Fuego amigo';
@@ -43,10 +44,7 @@
 	$_LANGUAGE['nothing'] = 'nada';
 	$_LANGUAGE['ObjectShell'] = 'shell';
 	$_LANGUAGE['ObjectBullet'] = 'bullet';
-	$_LANGUAGE['model'] = '';
-	$_LANGUAGE[''] = '';
-	$_LANGUAGE[''] = '';
-	$_LANGUAGE[''] = '';
-	$_LANGUAGE[''] = '';
+	$_LANGUAGE['group'] = 'Group';
+	$_LANGUAGE['model'] = 'Model';
 
 ?>

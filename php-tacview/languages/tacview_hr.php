@@ -34,6 +34,7 @@
 	$_LANGUAGE['killedAircraft'] = 'Uništeno Zr/Zr';
 	$_LANGUAGE['killedSAM'] = 'Uništeno Zr/PZO';
 	$_LANGUAGE['killedTank'] = 'Uništeno Zr/Vozilo';
+	$_LANGUAGE['killedCar'] = 'Uništeno Zr/Truck';
 	$_LANGUAGE['killedHelo'] = 'Uništeno Zr/Helo';
 	$_LANGUAGE['killedShip'] = 'Uništeno Zr/Brod';
 	$_LANGUAGE['teamKill'] = 'Prijateljska paljba';
@@ -43,10 +44,6 @@
 	$_LANGUAGE['nothing'] = '-ništa-';
 	$_LANGUAGE['ObjectShell'] = 'shell';
 	$_LANGUAGE['ObjectBullet'] = 'bullet';
-	$_LANGUAGE['model'] = '';
-	$_LANGUAGE[''] = '';
-	$_LANGUAGE[''] = '';
-	$_LANGUAGE[''] = '';
-	$_LANGUAGE[''] = '';
-
+	$_LANGUAGE['group'] = 'Group';
+	$_LANGUAGE['model'] = 'Model';
 ?>

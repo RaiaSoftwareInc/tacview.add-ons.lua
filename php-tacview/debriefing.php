@@ -1,10 +1,11 @@
+<!DOCTYPE html>
 <html>
 	<head>
 		<title>PHPTacview</title>
 		<link rel="stylesheet" href="tacview.css" />
 		<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
 	</head>
-	<body class="lockonBody">
+	<body>
 		<?php
 
 			require_once "./tacview.php";

@@ -42,9 +42,6 @@ Darkstar AWACS: Freq: 241Mhz</Comments>
 				<Group>Red_CAP_NW#CAP#RSP_R#VER3#</Group>
 			</PrimaryObject>
 			<Action>HasEnteredTheArea</Action>
-			<Airport ID="ICAO:OSAP">
-				<Name>Aleppo</Name>
-			</Airport>
 		</Event>
 		<Event>
 			<Time>5.51</Time>
@@ -79,9 +76,6 @@ Darkstar AWACS: Freq: 241Mhz</Comments>
 				<Group>Red_CAP_NE#CAP#RSP_R#VER1#</Group>
 			</PrimaryObject>
 			<Action>HasEnteredTheArea</Action>
-			<Airport ID="ICAO:OS62">
-				<Name>Jirah </Name>
-			</Airport>
 		</Event>
 		<Event>
 			<Time>5.51</Time>
@@ -133,9 +127,6 @@ Darkstar AWACS: Freq: 241Mhz</Comments>
 				<Group>Red_CAP_NW#CAP#RSP_R#VER1#</Group>
 			</PrimaryObject>
 			<Action>HasLeftTheArea</Action>
-			<Airport ID="ICAO:OSAP">
-				<Name>Aleppo</Name>
-			</Airport>
 		</Event>
 		<Event>
 			<Time>5.51</Time>
@@ -153,9 +144,6 @@ Darkstar AWACS: Freq: 241Mhz</Comments>
 				<Group>Red_CAP_NE#CAP#RSP_R#VER1#</Group>
 			</PrimaryObject>
 			<Action>HasLeftTheArea</Action>
-			<Airport ID="ICAO:OS62">
-				<Name>Jirah </Name>
-			</Airport>
 		</Event>
 		<Event>
 			<Time>5.51</Time>
@@ -190,9 +178,6 @@ Darkstar AWACS: Freq: 241Mhz</Comments>
 				<Group>Red_CAP_NW#CAP#RSP_R#VER2#</Group>
 			</PrimaryObject>
 			<Action>HasLeftTheArea</Action>
-			<Airport ID="ICAO:OSAP">
-				<Name>Aleppo</Name>
-			</Airport>
 		</Event>
 		<Event>
 			<Time>5.51</Time>
@@ -210,9 +195,6 @@ Darkstar AWACS: Freq: 241Mhz</Comments>
 				<Group>Red_CAP_NW#CAP#RSP_R#VER3#</Group>
 			</PrimaryObject>
 			<Action>HasLeftTheArea</Action>
-			<Airport ID="ICAO:OSAP">
-				<Name>Aleppo</Name>
-			</Airport>
 		</Event>
 		<Event>
 			<Time>5.51</Time>
@@ -230,9 +212,6 @@ Darkstar AWACS: Freq: 241Mhz</Comments>
 				<Group>Red_CAP_NE#CAP#RSP_R#VER2#</Group>
 			</PrimaryObject>
 			<Action>HasLeftTheArea</Action>
-			<Airport ID="ICAO:OS62">
-				<Name>Jirah </Name>
-			</Airport>
 		</Event>
 		<Event>
 			<Time>5.51</Time>
@@ -335,9 +314,6 @@ Darkstar AWACS: Freq: 241Mhz</Comments>
 				<Group>Red_CAP_NE#CAP#RSP_R#VER1#</Group>
 			</PrimaryObject>
 			<Action>HasTakenOff</Action>
-			<Airport ID="ICAO:OS62">
-				<Name>Jirah </Name>
-			</Airport>
 		</Event>
 		<Event>
 			<Time>221.41</Time>
@@ -355,9 +331,6 @@ Darkstar AWACS: Freq: 241Mhz</Comments>
 				<Group>Red_CAP_NW#CAP#RSP_R#VER3#</Group>
 			</PrimaryObject>
 			<Action>HasTakenOff</Action>
-			<Airport ID="ICAO:OSAP">
-				<Name>Aleppo</Name>
-			</Airport>
 		</Event>
 		<Event>
 			<Time>341.05</Time>
@@ -375,9 +348,6 @@ Darkstar AWACS: Freq: 241Mhz</Comments>
 				<Group>Client_Viggen-7</Group>
 			</PrimaryObject>
 			<Action>HasEnteredTheArea</Action>
-			<Airport ID="ICAO:OSPR">
-				<Name>Palmyra</Name>
-			</Airport>
 		</Event>
 		<Event>
 			<Time>716.74</Time>
@@ -395,9 +365,6 @@ Darkstar AWACS: Freq: 241Mhz</Comments>
 				<Group>Client_F14B</Group>
 			</PrimaryObject>
 			<Action>HasEnteredTheArea</Action>
-			<Airport ID="ICAO:LTAF">
-				<Name>Adana Sakirpasa</Name>
-			</Airport>
 		</Event>
 		<Event>
 			<Time>855.56</Time>
@@ -432,9 +399,6 @@ Darkstar AWACS: Freq: 241Mhz</Comments>
 				<Group>Client_F16-4</Group>
 			</PrimaryObject>
 			<Action>HasEnteredTheArea</Action>
-			<Airport ID="ICAO:OSPR">
-				<Name>Palmyra</Name>
-			</Airport>
 		</Event>
 		<Event>
 			<Time>1080.80</Time>
@@ -469,9 +433,6 @@ Darkstar AWACS: Freq: 241Mhz</Comments>
 				<Group>Client_AV8B-12</Group>
 			</PrimaryObject>
 			<Action>HasEnteredTheArea</Action>
-			<Airport ID="ICAO:OSPR">
-				<Name>Palmyra</Name>
-			</Airport>
 		</Event>
 		<Event>
 			<Time>1170.41</Time>
@@ -489,9 +450,6 @@ Darkstar AWACS: Freq: 241Mhz</Comments>
 				<Group>Client_AV8B-12</Group>
 			</PrimaryObject>
 			<Action>HasLeftTheArea</Action>
-			<Airport ID="ICAO:OSPR">
-				<Name>Palmyra</Name>
-			</Airport>
 		</Event>
 		<Event>
 			<Time>1172.87</Time>
@@ -509,9 +467,6 @@ Darkstar AWACS: Freq: 241Mhz</Comments>
 				<Group>Client_Viggen-7</Group>
 			</PrimaryObject>
 			<Action>HasEnteredTheArea</Action>
-			<Airport ID="ICAO:OSPR">
-				<Name>Palmyra</Name>
-			</Airport>
 		</Event>
 		<Event>
 			<Time>1605.24</Time>
@@ -529,9 +484,6 @@ Darkstar AWACS: Freq: 241Mhz</Comments>
 				<Group>Client_F16-4</Group>
 			</PrimaryObject>
 			<Action>HasTakenOff</Action>
-			<Airport ID="ICAO:OSPR">
-				<Name>Palmyra</Name>
-			</Airport>
 		</Event>
 		<Event>
 			<Time>1609.39</Time>
@@ -549,9 +501,6 @@ Darkstar AWACS: Freq: 241Mhz</Comments>
 				<Group>Client_F16-4</Group>
 			</PrimaryObject>
 			<Action>HasLanded</Action>
-			<Airport ID="ICAO:OSPR">
-				<Name>Palmyra</Name>
-			</Airport>
 		</Event>
 		<Event>
 			<Time>1911.29</Time>
@@ -569,9 +518,6 @@ Darkstar AWACS: Freq: 241Mhz</Comments>
 				<Group>Client_Viggen-7</Group>
 			</PrimaryObject>
 			<Action>HasTakenOff</Action>
-			<Airport ID="ICAO:OSPR">
-				<Name>Palmyra</Name>
-			</Airport>
 		</Event>
 		<Event>
 			<Time>1926.76</Time>
@@ -589,9 +535,6 @@ Darkstar AWACS: Freq: 241Mhz</Comments>
 				<Group>Client_Viggen-7</Group>
 			</PrimaryObject>
 			<Action>HasLanded</Action>
-			<Airport ID="ICAO:OSPR">
-				<Name>Palmyra</Name>
-			</Airport>
 		</Event>
 		<Event>
 			<Time>2003.98</Time>
@@ -609,9 +552,6 @@ Darkstar AWACS: Freq: 241Mhz</Comments>
 				<Group>Client_F16-4</Group>
 			</PrimaryObject>
 			<Action>HasTakenOff</Action>
-			<Airport ID="ICAO:OSPR">
-				<Name>Palmyra</Name>
-			</Airport>
 		</Event>
 		<Event>
 			<Time>2007.65</Time>
@@ -629,9 +569,6 @@ Darkstar AWACS: Freq: 241Mhz</Comments>
 				<Group>Client_Viggen-7</Group>
 			</PrimaryObject>
 			<Action>HasTakenOff</Action>
-			<Airport ID="ICAO:OSPR">
-				<Name>Palmyra</Name>
-			</Airport>
 		</Event>
 		<Event>
 			<Time>2174.82</Time>
@@ -959,7 +896,7 @@ Darkstar AWACS: Freq: 241Mhz</Comments>
 			<Action>HasFired</Action>
 			<SecondaryObject ID="992">
 				<Type>Missile</Type>
-				<Name>BK90 MJ2</Name>
+				<Name>BK90 MJ2 (AP)</Name>
 				<Coalition>Enemies</Coalition>
 				<Country>us</Country>
 				<Parent>950</Parent>
@@ -983,7 +920,7 @@ Darkstar AWACS: Freq: 241Mhz</Comments>
 			<Action>HasFired</Action>
 			<SecondaryObject ID="993">
 				<Type>Missile</Type>
-				<Name>BK90 MJ2</Name>
+				<Name>BK90 MJ2 (AP)</Name>
 				<Coalition>Enemies</Coalition>
 				<Country>us</Country>
 				<Parent>950</Parent>
@@ -1007,7 +944,7 @@ Darkstar AWACS: Freq: 241Mhz</Comments>
 			<Action>HasFired</Action>
 			<SecondaryObject ID="994">
 				<Type>Missile</Type>
-				<Name>BK90 MJ2</Name>
+				<Name>BK90 MJ2 (AP)</Name>
 				<Coalition>Enemies</Coalition>
 				<Country>us</Country>
 				<Parent>950</Parent>
@@ -1031,7 +968,7 @@ Darkstar AWACS: Freq: 241Mhz</Comments>
 			<Action>HasFired</Action>
 			<SecondaryObject ID="995">
 				<Type>Missile</Type>
-				<Name>BK90 MJ2</Name>
+				<Name>BK90 MJ2 (AP)</Name>
 				<Coalition>Enemies</Coalition>
 				<Country>us</Country>
 				<Parent>950</Parent>
@@ -1068,7 +1005,7 @@ Darkstar AWACS: Freq: 241Mhz</Comments>
 			<Action>HasBeenHitBy</Action>
 			<SecondaryObject ID="995">
 				<Type>Missile</Type>
-				<Name>BK90 MJ2</Name>
+				<Name>BK90 MJ2 (AP)</Name>
 				<Coalition>Enemies</Coalition>
 				<Country>us</Country>
 				<Parent>950</Parent>
@@ -1113,7 +1050,7 @@ Darkstar AWACS: Freq: 241Mhz</Comments>
 			<Action>HasBeenHitBy</Action>
 			<SecondaryObject ID="994">
 				<Type>Missile</Type>
-				<Name>BK90 MJ2</Name>
+				<Name>BK90 MJ2 (AP)</Name>
 				<Coalition>Enemies</Coalition>
 				<Country>us</Country>
 				<Parent>950</Parent>
@@ -1158,7 +1095,7 @@ Darkstar AWACS: Freq: 241Mhz</Comments>
 			<Action>HasBeenHitBy</Action>
 			<SecondaryObject ID="993">
 				<Type>Missile</Type>
-				<Name>BK90 MJ2</Name>
+				<Name>BK90 MJ2 (AP)</Name>
 				<Coalition>Enemies</Coalition>
 				<Country>us</Country>
 				<Parent>950</Parent>
@@ -1203,7 +1140,7 @@ Darkstar AWACS: Freq: 241Mhz</Comments>
 			<Action>HasBeenHitBy</Action>
 			<SecondaryObject ID="992">
 				<Type>Missile</Type>
-				<Name>BK90 MJ2</Name>
+				<Name>BK90 MJ2 (AP)</Name>
 				<Coalition>Enemies</Coalition>
 				<Country>us</Country>
 				<Parent>950</Parent>
@@ -1629,9 +1566,6 @@ Darkstar AWACS: Freq: 241Mhz</Comments>
 				<Group>Client_Viggen-7</Group>
 			</PrimaryObject>
 			<Action>HasLanded</Action>
-			<Airport ID="ICAO:OSPR">
-				<Name>Palmyra</Name>
-			</Airport>
 		</Event>
 		<Event>
 			<Time>3718.96</Time>
@@ -1689,9 +1623,6 @@ Darkstar AWACS: Freq: 241Mhz</Comments>
 				<Group>Client_F16-4</Group>
 			</PrimaryObject>
 			<Action>HasLanded</Action>
-			<Airport ID="ICAO:OSPR">
-				<Name>Palmyra</Name>
-			</Airport>
 		</Event>
 		<Event>
 			<Time>4061.91</Time>
@@ -1709,9 +1640,6 @@ Darkstar AWACS: Freq: 241Mhz</Comments>
 				<Group>Client_F16-4</Group>
 			</PrimaryObject>
 			<Action>HasLeftTheArea</Action>
-			<Airport ID="ICAO:OSPR">
-				<Name>Palmyra</Name>
-			</Airport>
 		</Event>
 		<Event>
 			<Time>4066.03</Time>
@@ -1729,9 +1657,6 @@ Darkstar AWACS: Freq: 241Mhz</Comments>
 				<Group>Client_JF17-10</Group>
 			</PrimaryObject>
 			<Action>HasEnteredTheArea</Action>
-			<Airport ID="ICAO:OSPR">
-				<Name>Palmyra</Name>
-			</Airport>
 		</Event>
 		<Event>
 			<Time>4197.94</Time>
@@ -1749,9 +1674,6 @@ Darkstar AWACS: Freq: 241Mhz</Comments>
 				<Group>Client_Viggen-7</Group>
 			</PrimaryObject>
 			<Action>HasLeftTheArea</Action>
-			<Airport ID="ICAO:OSPR">
-				<Name>Palmyra</Name>
-			</Airport>
 		</Event>
 		<Event>
 			<Time>4360.30</Time>
@@ -1769,9 +1691,6 @@ Darkstar AWACS: Freq: 241Mhz</Comments>
 				<Group>Client_Viggen-7</Group>
 			</PrimaryObject>
 			<Action>HasEnteredTheArea</Action>
-			<Airport ID="ICAO:OSPR">
-				<Name>Palmyra</Name>
-			</Airport>
 		</Event>
 		<Event>
 			<Time>4685.96</Time>
@@ -1789,9 +1708,6 @@ Darkstar AWACS: Freq: 241Mhz</Comments>
 				<Group>Client_JF17-10</Group>
 			</PrimaryObject>
 			<Action>HasTakenOff</Action>
-			<Airport ID="ICAO:OSPR">
-				<Name>Palmyra</Name>
-			</Airport>
 		</Event>
 		<Event>
 			<Time>4689.98</Time>
@@ -1809,9 +1725,6 @@ Darkstar AWACS: Freq: 241Mhz</Comments>
 				<Group>Client_JF17-10</Group>
 			</PrimaryObject>
 			<Action>HasLanded</Action>
-			<Airport ID="ICAO:OSPR">
-				<Name>Palmyra</Name>
-			</Airport>
 		</Event>
 		<Event>
 			<Time>4734.20</Time>
@@ -1829,9 +1742,6 @@ Darkstar AWACS: Freq: 241Mhz</Comments>
 				<Group>Client_Viggen-7</Group>
 			</PrimaryObject>
 			<Action>HasTakenOff</Action>
-			<Airport ID="ICAO:OSPR">
-				<Name>Palmyra</Name>
-			</Airport>
 		</Event>
 		<Event>
 			<Time>4738.25</Time>
@@ -1849,9 +1759,6 @@ Darkstar AWACS: Freq: 241Mhz</Comments>
 				<Group>Client_Viggen-7</Group>
 			</PrimaryObject>
 			<Action>HasLanded</Action>
-			<Airport ID="ICAO:OSPR">
-				<Name>Palmyra</Name>
-			</Airport>
 		</Event>
 		<Event>
 			<Time>4836.81</Time>
@@ -1869,9 +1776,6 @@ Darkstar AWACS: Freq: 241Mhz</Comments>
 				<Group>Client_Viggen-7</Group>
 			</PrimaryObject>
 			<Action>HasTakenOff</Action>
-			<Airport ID="ICAO:OSPR">
-				<Name>Palmyra</Name>
-			</Airport>
 		</Event>
 		<Event>
 			<Time>4837.28</Time>
@@ -1889,9 +1793,6 @@ Darkstar AWACS: Freq: 241Mhz</Comments>
 				<Group>Client_JF17-10</Group>
 			</PrimaryObject>
 			<Action>HasTakenOff</Action>
-			<Airport ID="ICAO:OSPR">
-				<Name>Palmyra</Name>
-			</Airport>
 		</Event>
 		<Event>
 			<Time>5437.74</Time>
@@ -3172,9 +3073,6 @@ Darkstar AWACS: Freq: 241Mhz</Comments>
 				<Group>Red_CAP_NW#CAP#RSP_R#VER3#</Group>
 			</PrimaryObject>
 			<Action>HasLanded</Action>
-			<Airport ID="ICAO:OSLK">
-				<Name>Bassel Al-Assad</Name>
-			</Airport>
 		</Event>
 		<Event>
 			<Time>5969.06</Time>
@@ -4525,9 +4423,6 @@ Darkstar AWACS: Freq: 241Mhz</Comments>
 				<Group>Client_JF17-10</Group>
 			</PrimaryObject>
 			<Action>HasLanded</Action>
-			<Airport ID="ICAO:OSPR">
-				<Name>Palmyra</Name>
-			</Airport>
 		</Event>
 		<Event>
 			<Time>7109.98</Time>
@@ -4545,9 +4440,6 @@ Darkstar AWACS: Freq: 241Mhz</Comments>
 				<Group>Client_Viggen-7</Group>
 			</PrimaryObject>
 			<Action>HasLanded</Action>
-			<Airport ID="ICAO:OSPR">
-				<Name>Palmyra</Name>
-			</Airport>
 		</Event>
 		<Event>
 			<Time>7314.84</Time>
@@ -4620,9 +4512,6 @@ Darkstar AWACS: Freq: 241Mhz</Comments>
 				<Group>Client_JF17-10</Group>
 			</PrimaryObject>
 			<Action>HasTakenOff</Action>
-			<Airport ID="ICAO:OSPR">
-				<Name>Palmyra</Name>
-			</Airport>
 		</Event>
 		<Event>
 			<Time>7589.73</Time>
@@ -4640,9 +4529,6 @@ Darkstar AWACS: Freq: 241Mhz</Comments>
 				<Group>Client_Viggen-7</Group>
 			</PrimaryObject>
 			<Action>HasTakenOff</Action>
-			<Airport ID="ICAO:OSPR">
-				<Name>Palmyra</Name>
-			</Airport>
 		</Event>
 		<Event>
 			<Time>8185.56</Time>
@@ -4766,9 +4652,6 @@ Darkstar AWACS: Freq: 241Mhz</Comments>
 				<Group>Red_CAP_NW#CAP#RSP_R#VER3#</Group>
 			</PrimaryObject>
 			<Action>HasLeftTheArea</Action>
-			<Airport ID="ICAO:OSLK">
-				<Name>Bassel Al-Assad</Name>
-			</Airport>
 		</Event>
 		<Event>
 			<Time>8251.19</Time>
@@ -6381,9 +6264,6 @@ Darkstar AWACS: Freq: 241Mhz</Comments>
 				<Group>Red_CAP_NW#CAP#RSP_R#VER2#</Group>
 			</PrimaryObject>
 			<Action>HasEnteredTheArea</Action>
-			<Airport ID="ICAO:OSAP">
-				<Name>Aleppo</Name>
-			</Airport>
 		</Event>
 		<Event>
 			<Time>9557.40</Time>
@@ -6466,9 +6346,6 @@ Darkstar AWACS: Freq: 241Mhz</Comments>
 				<Group>Red_CAP_NW#CAP#RSP_R#VER2#</Group>
 			</PrimaryObject>
 			<Action>HasTakenOff</Action>
-			<Airport ID="ICAO:OSAP">
-				<Name>Aleppo</Name>
-			</Airport>
 		</Event>
 		<Event>
 			<Time>9793.38</Time>
@@ -6486,9 +6363,6 @@ Darkstar AWACS: Freq: 241Mhz</Comments>
 				<Group>Client_JF17-10</Group>
 			</PrimaryObject>
 			<Action>HasLanded</Action>
-			<Airport ID="ICAO:OSPR">
-				<Name>Palmyra</Name>
-			</Airport>
 		</Event>
 		<Event>
 			<Time>9838.32</Time>
@@ -6669,9 +6543,6 @@ Darkstar AWACS: Freq: 241Mhz</Comments>
 				<Group>Client_JF17-10</Group>
 			</PrimaryObject>
 			<Action>HasTakenOff</Action>
-			<Airport ID="ICAO:OSPR">
-				<Name>Palmyra</Name>
-			</Airport>
 		</Event>
 		<Event>
 			<Time>10266.66</Time>
@@ -7050,9 +6921,6 @@ Darkstar AWACS: Freq: 241Mhz</Comments>
 				<Group>Client_Viggen-7</Group>
 			</PrimaryObject>
 			<Action>HasLanded</Action>
-			<Airport ID="ICAO:OSPR">
-				<Name>Palmyra</Name>
-			</Airport>
 		</Event>
 		<Event>
 			<Time>10588.65</Time>
@@ -7070,9 +6938,6 @@ Darkstar AWACS: Freq: 241Mhz</Comments>
 				<Group>Client_JF17-10</Group>
 			</PrimaryObject>
 			<Action>HasLanded</Action>
-			<Airport ID="ICAO:OSPR">
-				<Name>Palmyra</Name>
-			</Airport>
 		</Event>
 		<Event>
 			<Time>10631.39</Time>
@@ -7107,9 +6972,6 @@ Darkstar AWACS: Freq: 241Mhz</Comments>
 				<Group>Client_Viggen-7</Group>
 			</PrimaryObject>
 			<Action>HasLeftTheArea</Action>
-			<Airport ID="ICAO:OSPR">
-				<Name>Palmyra</Name>
-			</Airport>
 		</Event>
 	</Events>
 </TacviewDebriefing>

@@ -34,19 +34,17 @@
 	$_LANGUAGE['killedAircraft'] = 'Kill A/A';
 	$_LANGUAGE['killedSAM'] = 'Kill A/SAM';
 	$_LANGUAGE['killedTank'] = 'Kill A/Tank';
+	$_LANGUAGE['killedCar'] = 'Kill A/Truck';
 	$_LANGUAGE['killedHelo'] = 'Kill A/Helo';
 	$_LANGUAGE['killedShip'] = 'Kill A/Ship';
 	$_LANGUAGE['teamKill'] = 'Team kill';
-	$_LANGUAGE['hit'] = 'Cibles Touchées';
+	$_LANGUAGE['hit'] = 'Touché';
 	$_LANGUAGE['destroyed'] = 'Détruits';
 	$_LANGUAGE['hitBy'] = 'Touché par';
 	$_LANGUAGE['nothing'] = 'rien';
 	$_LANGUAGE['ObjectShell'] = 'obus';
 	$_LANGUAGE['ObjectBullet'] = 'balle';
-	$_LANGUAGE['model'] = '';
+	$_LANGUAGE['model'] = 'Model';
 	$_LANGUAGE['group'] = 'Groupe';
-	$_LANGUAGE[''] = '';
-	$_LANGUAGE[''] = '';
-	$_LANGUAGE[''] = '';
 
 ?>
