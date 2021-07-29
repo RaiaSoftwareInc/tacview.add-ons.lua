@@ -1,4 +1,4 @@
-body.lockonBody
+body
 {
 	background-color: black;
 }
@@ -8,7 +8,6 @@ table
 	font: 11px geneva,verdana,arial,sans-serif;
 	background-color: white;
 	color: black;
-	border: 1px solid black;
 	border-collapse: collapse;
 	text-align: center;
 	vertical-align: middle;
@@ -25,10 +24,26 @@ h1
 	text-align: center;
 }
 
+h2
+{
+	color: black;
+	font-size: 24px;
+	font-weight: 700;
+	margin-bottom: 20px;
+	margin-top: 20px;
+	text-align: center;
+}
+
 td, th
 {
 	border: 1px solid black;
-	padding: 2.5px;
+	padding: 5px;
+	border-collapse: collapse;
+}
+
+p
+{
+	margin: 1px;
 }
 
 a:hover
@@ -39,6 +54,9 @@ a:hover
 span
 {
 	font-weight: 700;
+	display:inline-block;
+	margin-top: 10px;
+
 }
 
 /* PRESENTATION TABLE */
@@ -48,37 +66,35 @@ table.presentationTable
 	width: 25%;
 }
 
-td.presentationTable
+td.presentationTable:nth-child(1)
 {
-	padding: 5px;
+	text-transform: uppercase;
+	font-weight: bold;
+	text-align: right;
+	background-color: #ECECEC;
 }
 
+td.presentationTable:nth-child(2)
+{
+	text-align: left;
+}
 
-	td.presentationTable:nth-child(1)
-	{
-		text-transform: uppercase;
-		font-weight: bold;
-		text-align: right;
-		background-color: #ECECEC;
-	}
-
-	td.presentationTable:nth-child(2)
-	{
-		text-align: left;
-	}
-
-/* STATISTICS TABLE (all pilots) */
+/* STATISTICS TABLE */
 
 tr.statisticsTable, th.statisticsTable
 {
 	height: 50px;
-	padding: 5px;
 }
 
-	tr.statisticsTable:nth-child(4n)
-	{
-		background-color: #ECECEC;
-	}
+tr.statisticsTable:nth-child(4n)
+{
+	background-color: #ECECEC;
+}
+
+td.statisticsTable:nth-child(n + 4)
+{
+	width: 5%;
+}
 
 th.statisticsTable
 {
@@ -96,13 +112,13 @@ td.statisticsTable:nth-child(3)
 	border-left: none;
 }
 
-img.objectIcons
+img.statisticsTable
 {
 	max-width: 50px;
 	border-radius: 4px;
 }
 
-/* HIDDEN STATISTICS TABLE (per pilot) */
+/* HIDDEN STATISTICS TABLE */
 
 img.hiddenStatsTable
 {
@@ -115,13 +131,18 @@ td.hiddenStatsTable
 	padding: 20px;
 }
 
+td.hiddenStatsTableRow2
+{
+	width: 33%;
+}
+
+
 table.hiddenStatsTable
 {
 	margin-bottom: 25px;
 }
 
-
-/* HIDDEN EVENTS TABLE (per pilot) */
+/* HIDDEN EVENTS TABLE */
 
 table.hiddenEventsTable
 {
@@ -143,7 +164,7 @@ table.hiddenEventsTable tr td:nth-child(3n)
 	text-align: left;
 }
 
-/* EVENTS TABLE (all events for all pilots) */
+/* EVENTS TABLE */
 
 td.eventsTable
 {

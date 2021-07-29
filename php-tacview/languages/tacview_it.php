@@ -34,6 +34,7 @@
 	$_LANGUAGE['killedAircraft'] = 'Aerei abbattuti';
 	$_LANGUAGE['killedSAM'] = 'Sam distrutti';
 	$_LANGUAGE['killedTank'] = 'Mezzi di terra distrutti';
+	$_LANGUAGE['killedCar'] = 'Kill A/Truck';
 	$_LANGUAGE['killedHelo'] = 'Elicotteri abbattuti';
 	$_LANGUAGE['killedShip'] = 'Navi Affondate';
 	$_LANGUAGE['teamKill'] = 'Fuoco Amico';
@@ -45,7 +46,5 @@
 	$_LANGUAGE['ObjectBullet'] = 'proiettile';
 	$_LANGUAGE['group'] = 'Gruppo'; // ADDED by Aikanaro
 	$_LANGUAGE['model'] = 'Modello'; // ADDED by Aikanaro
-	$_LANGUAGE[''] = '';
-	$_LANGUAGE[''] = '';
 
 ?>

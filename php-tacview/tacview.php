@@ -5,10 +5,13 @@
 
 // History:
 
-// 2021-04-07 (Updated by BuzyBee)
+// 2021-07-28 (Updated by BuzyBee)
+// * ADDED aircraft identification photos for new aircraft
+// * ADDED Occurrences of multiple projectiles fired at the same time. 
 // * ADDED tag HasTakenOff (prev. called HasTakeOff)
+// * ADDED stat - kills of trucks
+// * IMPROVED readability (color scheme, spacing)
 // * FIXED Many warnings about bad array indexes
-// * IMPROVED readability
 
 // 2015-03-23 (Updated by Vyrtuoz)
 // * ADDED Missing labels from English and French translations
@@ -177,7 +180,6 @@ class tacview
     //
     function increaseStat(&$Array, $Key0, $Key1 = null)
     {
-
         if (isset($Key1))
 		{
 
@@ -293,7 +295,9 @@ class tacview
 		{
             // List pilots of Aircraft and Helicopters
 
-            if ($event["PrimaryObject"]["Type"] == "Aircraft" or $event["PrimaryObject"]["Type"] == "Helicopter")
+            if (array_key_exists("PrimaryObject",$event) and 
+				array_key_exists("Type",$event["PrimaryObject"]) and 
+				($event["PrimaryObject"]["Type"] == "Aircraft" or $event["PrimaryObject"]["Type"] == "Helicopter") )
 			{
 				if(array_key_exists("Pilot",$event["PrimaryObject"]))
 				{
@@ -328,11 +332,11 @@ class tacview
 
 						if (!isset($event["Airport"]))
 						{
-                            $this->increaseStat($this->stats[$primaryObjectPilot]["Lands"], "No Airport");
+                            $this->increaseStat($this->stats[$primaryObjectPilot]["Lands"], "No_Airport");
                         }
 						else
 						{
-                            $this->increaseStat($this->stats[$primaryObjectPilot]["Lands"], $event["Airport"]['Name']);
+                            $this->increaseStat($this->stats[$primaryObjectPilot]["Lands"], $event["Airport"]["Name"]);
                         }
 
                         break;
@@ -344,11 +348,11 @@ class tacview
 
 						if (!isset($event["Airport"]))
 						{
-                            $this->increaseStat($this->stats[$primaryObjectPilot]["TakeOffs"], $event["SecondaryObject"]["Name"]);
+                            $this->increaseStat($this->stats[$primaryObjectPilot]["TakeOffs"], "No_Airport");
                         }
 						else
 						{
-                            $this->increaseStat($this->stats[$primaryObjectPilot]["TakeOffs"], $event["Airport"]['Name']);
+                            $this->increaseStat($this->stats[$primaryObjectPilot]["TakeOffs"], $event["Airport"]["Name"]);
                         }
 
                         break;
@@ -356,7 +360,11 @@ class tacview
                     case "HasFired":
 
 						$this->increaseStat($this->stats[$primaryObjectPilot], "Fired", "Count");
-                        $this->increaseStat($this->stats[$primaryObjectPilot], "Fired", $event["SecondaryObject"]["Name"]);
+
+						if(isset($event["SecondaryObject"]))
+						{
+							$this->increaseStat($this->stats[$primaryObjectPilot], "Fired", $event["SecondaryObject"]["Name"]);
+						}
 
                         break;
 
@@ -369,7 +377,11 @@ class tacview
                     case "HasBeenHitBy":
 
                         $this->increaseStat($this->stats[$primaryObjectPilot], "Hit", "Count");
-                        $this->increaseStat($this->stats[$primaryObjectPilot], "Hit", $event["SecondaryObject"]["Name"]);
+
+						if(isset($event["SecondaryObject"]))
+						{
+							$this->increaseStat($this->stats[$primaryObjectPilot], "Hit", $event["SecondaryObject"]["Name"]);
+						}
 
                         if (	array_key_exists("ParentObject",$event) and
 								array_key_exists("Pilot", $event["ParentObject"]) and
@@ -384,7 +396,11 @@ class tacview
                             if ($event["ParentObject"]["Coalition"] == $event["PrimaryObject"]["Coalition"])
 							{
                                 $this->increaseStat($this->stats[$parentObjectPilot], "FriendlyFire", "Count");
-                                $this->increaseStat($this->stats[$parentObjectPilot], "FriendlyFire", $event["PrimaryObject"]["Name"]);
+
+								if(isset($event["PrimaryObject"]))
+								{
+									$this->increaseStat($this->stats[$parentObjectPilot], "FriendlyFire", $event["PrimaryObject"]["Name"]);
+								}
                             }
 							elseif (!isset($this->stats[$parentObjectPilot]))
 							{
@@ -405,12 +421,19 @@ class tacview
                             }
 
                             if (!array_key_exists("Killed", $this->stats[$parentObjectPilot]))
-								{
-                                    $this->stats[$parentObjectPilot]["Killed"] = array();
-                                }
+							{
+								$this->stats[$parentObjectPilot]["Killed"] = array();
+                            }
 
+							if(isset($event["PrimaryObject"]))
+							{
                                 $this->increaseStat($this->stats[$parentObjectPilot]["Killed"], $event["PrimaryObject"]["Type"], "Count"); // Fix bug display Kill change from SecondaryObject to ParentObject
-                                $this->increaseStat($this->stats[$parentObjectPilot]["Killed"], $event["PrimaryObject"]["Type"], $event["SecondaryObject"]["Name"]); // Fix bug display Kill change from SecondaryObject to ParentObject*/
+									
+								if(isset($event["SecondaryObject"]))
+								{
+									$this->increaseStat($this->stats[$parentObjectPilot]["Killed"], $event["PrimaryObject"]["Type"], $event["SecondaryObject"]["Name"]); // Fix bug display Kill change from SecondaryObject to ParentObject*/
+								}
+							}
 						}
                         break;
 
@@ -418,7 +441,8 @@ class tacview
 			}
 			elseif ($event["PrimaryObject"]["Type"] == "Tank" or
 					$event["PrimaryObject"]["Type"] == "SAM/AAA" or
-					$event["PrimaryObject"]["Type"] == "Ship")
+					$event["PrimaryObject"]["Type"] == "Ship" or 
+					$event["PrimaryObject"]["Type"] == "Car" )
 
 					// Aggiunto da 36.Sparrow per consentire le statistiche sugli abbattimenti A/G ed elicotteri
 				{
@@ -456,7 +480,11 @@ class tacview
 
 							// Was it Friendly Fire?
 
-							if ($event["ParentObject"]["Coalition"] == $event["PrimaryObject"]["Coalition"])
+							if (isset($event["ParentObject"]) and 
+								isset($event["PrimaryObject"]) and
+								isset($event["ParentObject"]["Coalition"]) and
+								isset($event["PrimaryObject"]["Coalition"]) and 
+								$event["ParentObject"]["Coalition"] == $event["PrimaryObject"]["Coalition"])
 							{
 								  $this->increaseStat($this->stats[$parentObjectPilot], "FriendlyFire", "Count");
 								  $this->increaseStat($this->stats[$parentObjectPilot], "FriendlyFire", $event["PrimaryObject"]["Name"]);
@@ -510,7 +538,12 @@ class tacview
 
 							// Was it Friendly Fire?
 
-							if ($event["SecondaryObject"]["Coalition"] == $event["PrimaryObject"]["Coalition"])
+							if (	isset($event["SecondaryObject"]) and 
+									isset($event["PrimaryObject"]) and 
+									array_key_exists("Coalition",$event["SecondaryObject"]) and
+									array_key_exists("Coalition",$event["PrimaryObject"]) and				
+									$event["SecondaryObject"]["Coalition"] == $event["PrimaryObject"]["Coalition"]
+								)
 							{
 								  $this->increaseStat($this->stats[$secondaryObjectPilot], "FriendlyFire", "Count");
 								  $this->increaseStat($this->stats[$secondaryObjectPilot], "FriendlyFire", $event["PrimaryObject"]["Name"]);
@@ -521,9 +554,16 @@ class tacview
 								$this->stats[$event["SecondaryObject"]["Pilot"]]["Killed"] = array();
 							}
 
-							$this->increaseStat($this->stats[$secondaryObjectPilot]["Killed"], $event["PrimaryObject"]["Type"], "Count");
-							$this->increaseStat($this->stats[$secondaryObjectPilot]["Killed"], $event["PrimaryObject"]["Type"], $event["PrimaryObject"]["Name"]);
-
+							if (	isset($event["SecondaryObject"]) and 
+									isset($event["PrimaryObject"]) and 
+									array_key_exists("Coalition",$event["SecondaryObject"]) and
+									array_key_exists("Coalition",$event["PrimaryObject"]) and				
+									$event["SecondaryObject"]["Coalition"] == $event["PrimaryObject"]["Coalition"]
+								)
+							{
+								$this->increaseStat($this->stats[$secondaryObjectPilot]["Killed"], $event["PrimaryObject"]["Type"], "Count");
+								$this->increaseStat($this->stats[$secondaryObjectPilot]["Killed"], $event["PrimaryObject"]["Type"], $event["PrimaryObject"]["Name"]);
+							}
 						break;
 					}
 
@@ -541,27 +581,28 @@ class tacview
 		// STATISTICS TABLE - Display Stats per pilot
 		// ***********************************************************
 
-        $this->addOutput('<br /><br /><h1>' . $this->L('statsByPilot') . '</h1>');
+        $this->addOutput('<h1>' . $this->L('statsByPilot') . '</h1>');
         $this->addOutput('<table class="statisticsTable">');
         $this->addOutput('<tr class="statisticsTable">');
-        $this->addOutput('<th class="statisticsTable">' . $this->L('pilotName') . '</td>');
-    //  $this->addOutput('<th class="statisticsTable">' . $this->L('model') . '</td>');
-        $this->addOutput('<th colspan="2" class="statisticsTable">' . $this->L('aircraft') . '</td>');
-        $this->addOutput('<th class="statisticsTable">' . $this->L('group') . '</td>');
-        $this->addOutput('<th class="statisticsTable">' . $this->L('takeoff') . '</td>');
-        $this->addOutput('<th class="statisticsTable">' . $this->L('landing') . '</td>');
-        $this->addOutput('<th class="statisticsTable">' . $this->L('firedArmement') . '</td>');
-        $this->addOutput('<th class="statisticsTable">' . $this->L('killedAircraft') . '</td>');
-        $this->addOutput('<th class="statisticsTable">' . $this->L('killedHelo') . '</td>');
-        $this->addOutput('<th class="statisticsTable">' . $this->L('killedShip') . '</td>');
-        $this->addOutput('<th class="statisticsTable">' . $this->L('killedSAM') . '</td>');
-        $this->addOutput('<th class="statisticsTable">' . $this->L('killedTank') . '</td>');
-        $this->addOutput('<th class="statisticsTable">' . $this->L('teamKill') . '</td>');
-        $this->addOutput('<th class="statisticsTable">' . $this->L('hit') . '</td>');
-        $this->addOutput('<th class="statisticsTable">' . $this->L('destroyed') . '</td>');
+        $this->addOutput('<th class="statisticsTable">' . $this->L('pilotName') . '</th>');
+    //  $this->addOutput('<th class="statisticsTable">' . $this->L('model') . '</th>');
+        $this->addOutput('<th colspan="2" class="statisticsTable">' . $this->L('aircraft') . '</th>');
+        $this->addOutput('<th class="statisticsTable">' . $this->L('group') . '</th>');
+        $this->addOutput('<th class="statisticsTable">' . $this->L('takeoff') . '</th>');
+        $this->addOutput('<th class="statisticsTable">' . $this->L('landing') . '</th>');
+        $this->addOutput('<th class="statisticsTable">' . $this->L('firedArmement') . '</th>');
+        $this->addOutput('<th class="statisticsTable">' . $this->L('killedAircraft') . '</th>');
+        $this->addOutput('<th class="statisticsTable">' . $this->L('killedHelo') . '</th>');
+        $this->addOutput('<th class="statisticsTable">' . $this->L('killedShip') . '</th>');
+        $this->addOutput('<th class="statisticsTable">' . $this->L('killedSAM') . '</th>');
+        $this->addOutput('<th class="statisticsTable">' . $this->L('killedTank') . '</th>');
+        $this->addOutput('<th class="statisticsTable">' . $this->L('killedCar') . '</th>');
+        $this->addOutput('<th class="statisticsTable">' . $this->L('teamKill') . '</th>');
+        $this->addOutput('<th class="statisticsTable">' . $this->L('hit') . '</th>');
+        $this->addOutput('<th class="statisticsTable">' . $this->L('destroyed') . '</th>');
         $this->addOutput('</tr>');
 
-        $class = "row1";
+        //$class = "row1";
 
         foreach ($this->stats as $key => $stat)
 		{
@@ -569,18 +610,18 @@ class tacview
             if ($key != "" and substr($key, 0, 5) != "Pilot")
 			{
                 // $this->displayEventRow($event);
-                $this->addOutput('<tr class="statisticsTable" class="ptv_' . $class . '">');
+                $this->addOutput('<tr class="statisticsTable">');
                 $this->addOutput('<td class="statisticsTable"><a href="javascript: showDetails(\'' . $key . '\')">' . $key . '</a></td>');
-                $this->addOutput('<td class="statisticsTable"><img class="objectIcons" src="objectIcons/' . str_replace(array(" ","/"), array("_","_"), $stat["Aircraft"]) . '.jpg"/></td>');
+                $this->addOutput('<td class="statisticsTable"><img class="statisticsTable" src="objectIcons/' . str_replace(array(" ","/"), array("_","_"), $stat["Aircraft"]) . '.jpg" alt=""/></td>');
                 $this->addOutput('<td class="statisticsTable">' . $stat["Aircraft"] . '</td>');
 
 				if(array_key_exists("Group",$stat))
 				{
-					$this->addOutput('<td class=statisticsTable>' . $stat["Group"] . '</td>');
+					$this->addOutput('<td class="statisticsTable">' . $stat["Group"] . '</td>');
 				}
 				else
 				{
-					$this->addOutput('<td></td>');
+					$this->addOutput('<td class=statisticsTable></td>');
 				}
 
                 $this->addOutput('<td class="statisticsTable">' . $this->getStat($stat, "TakeOffs") . '</td>');
@@ -591,6 +632,7 @@ class tacview
                 $this->addOutput('<td class="statisticsTable">' . $this->getStat($stat, "Killed", "Ship") . '</td>');
                 $this->addOutput('<td class="statisticsTable">' . $this->getStat($stat, "Killed", "SAM/AAA") . '</td>');
                 $this->addOutput('<td class="statisticsTable">' . $this->getStat($stat, "Killed", "Tank") . '</td>');
+				$this->addOutput('<td class="statisticsTable">' . $this->getStat($stat, "Killed", "Car") . '</td>');
                 $this->addOutput('<td class="statisticsTable">' . $this->getStat($stat, "FriendlyFire") . '</td>');
                 $this->addOutput('<td class="statisticsTable">' . $this->getStat($stat, "Hit") . '</td>');
                 $this->addOutput('<td class="statisticsTable">' . $this->getStat($stat, "Destroyed") . '</td>');
@@ -600,34 +642,40 @@ class tacview
 			// HIDDEN ROW & TABLE - Drill Down Per Pilot
 			// ***********************************************************
 
-                $this->addOutput('<tr id="'.$key.'"class="hiddenRow" style="display: none;">');
-                $this->addOutput('<td class="hiddenRow" colspan="15">');
-                $this->addOutput('<h1>' . $key . '</h1>');
+                $this->addOutput('<tr id="'.$key.'" class="hiddenRow" style="display: none;">');
+                $this->addOutput('<td class="hiddenRow" colspan="16">');
+                $this->addOutput('<h2>' . $key . '</h2>');
 
 				$this->addOutput('<table class="hiddenStatsTable">');
-                $this->addOutput('<tr class="hiddenStatsTable">');
-
-                $this->addOutput('<td colspan="8">');
-                $this->addOutput('<br /><h1>' . $this->L("aircraft") . '</h1>');
 
                 // FIRST ROW - Aircraft icon
+
+                $this->addOutput('<tr class="hiddenStatsTable">');
+                
+				$this->addOutput('<td class="hiddenStatsTable" colspan="3">');
+
+                $this->addOutput('<h2>' . $this->L("aircraft") . '</h2>');
 
 				if (isset($stat["Aircraft"]))
                     $x_air = $stat["Aircraft"];
                 else
                     $x_air = "";
-                $this->addOutput('<img class="hiddenStatsTable" src="./objectIcons/' . str_replace(array(" ","/"), array("_","_"), $x_air) . '.jpg" alt="" class="ptv_objectIcons" />');
 
-                $this->addOutput('<br /><span><h1>' . $this->L("pilotStats") . '</h1>');
+                $this->addOutput('<img class="hiddenStatsTable" src="./objectIcons/' . str_replace(array(" ","/"), array("_","_"), $x_air) . '.jpg" alt="" />');
+
+                $this->addOutput('<h2>' . $this->L("pilotStats") . '</h2>');
+
+                $this->addOutput('</td>');
+                $this->addOutput('</tr>');
 
 				// SECOND ROW - First cell
 
-                $this->addOutput('</tr>');
                 $this->addOutput('<tr class="hiddenStatsTable">');
+                
+				$this->addOutput('<td class="hiddenStatsTableRow2">');
 
 				//Takeoff
-                $this->addOutput('<td class="hiddenStatsTable">');
-                $this->addOutput('<br /><span>' . $this->L("takeoff_long") . '</span> :<br/>');
+                $this->addOutput('<span>' . $this->L("takeoff_long") . '</span> :');
 
                 if (isset($stat["TakeOffs"]) and is_array($stat["TakeOffs"]))
 				{
@@ -635,19 +683,19 @@ class tacview
 					{
                         if ($k != "Count")
 						{
-                            $this->addOutput('&nbsp;' . $k . ' (' . $v . ')<br />');
+                            $this->addOutput('<p>&nbsp;' . $k . ' (' . $v . ')</p>');
 						}
                     }
                 }
 
                 if (!isset($stat["TakeOffs"]) or $stat["TakeOffs"]["Count"] == "")
 				{
-                    $this->addOutput('(' . $this->L("nothing") . ')<br />');
+                    $this->addOutput('<p>(' . $this->L("nothing") . ')</p>');
 				}
 
                 // Landings
 
-				$this->addOutput('<br /><span>' . $this->L("landing_long") . ' :<br /></span>');
+				$this->addOutput('<span>' . $this->L("landing_long") . ' :</span>');
 
 				if (isset($stat["Lands"]) and is_array($stat["Lands"]))
 				{
@@ -655,19 +703,19 @@ class tacview
 					{
                         if ($k != "Count")
 						{
-                            $this->addOutput('&nbsp;' . $k . ' (' . $v . ')<br />');
+                            $this->addOutput('<p>&nbsp;' . $k . ' (' . $v . ')</p>');
 						}
                     }
                 }
 
                 if (!isset($stat["Lands"]) or $stat["Lands"]["Count"] == "")
 				{
-                    $this->addOutput('(' . $this->L("nothing") . ')<br /><span>');
+                    $this->addOutput('<p>(' . $this->L("nothing") . ')</p>');
 				}
 
                 // Fired Weapons
 
-                $this->addOutput('<br /><span>' . $this->L("firedArmement_long") . ' :<br /></span>');
+                $this->addOutput('<span>' . $this->L("firedArmement_long") . ' :</span>');
 
                 if (isset($stat["Fired"]) and is_array($stat["Fired"]))
 				{
@@ -675,24 +723,25 @@ class tacview
 					{
                         if ($k != "Count")
 						{
-                            $this->addOutput('&nbsp;' . $k . ' (' . $v . ')<br />');
+                            $this->addOutput('<p>&nbsp;' . $k . ' (' . $v . ')</p>');
 						}
                     }
                 }
 
                 if (!isset($stat["Fired"]) or $stat["Fired"]["Count"] == "")
 				{
-                    $this->addOutput('(' . $this->L("nothing") . ')<br />');
+                    $this->addOutput('<p>(' . $this->L("nothing") . ')</p>');
 				}
 
                 $this->addOutput('</td>');
 
 				// SECOND ROW - Second cell
 
+				$this->addOutput('<td class="hiddenStatsTableRow2">');
+
 				// Friendly Fire
 
-				$this->addOutput('<td class="hiddenStatsTable">');
-                $this->addOutput('<br /><span>' . $this->L("teamKill") . ' :<br /></span>');
+                $this->addOutput('<span>' . $this->L("teamKill") . ' :</span>');
 
 				if (isset($stat["Killed"]["Destroyed"]) and is_array($stat["FriendlyFire"]))
 				{
@@ -700,19 +749,19 @@ class tacview
 					{
                         if ($k != "Count")
 						{
-                            $this->addOutput('&nbsp;' . $k . ' (' . $v . ')<br />');
+                            $this->addOutput('<p>&nbsp;' . $k . ' (' . $v . ')</p>');
 						}
                     }
                 }
 
                 if (!isset($stat["FriendlyFire"]) or $stat["FriendlyFire"]["Count"] == "")
 				{
-                    $this->addOutput('(' . $this->L("nothing") . ')<br />');
+                    $this->addOutput('<p>(' . $this->L("nothing") . ')</p>');
 				}
 
                 // Hit by
 
-                $this->addOutput('<br /><span>' . $this->L("hitBy") . ' :<br /></span>');
+                $this->addOutput('<span>' . $this->L("hitBy") . ' :</span>');
 
                 if (isset($stat["Hit"]) and is_array($stat["Hit"]))
 				{
@@ -720,19 +769,19 @@ class tacview
 					{
                         if ($k != "Count")
 						{
-                            $this->addOutput('&nbsp;' . $k . ' (' . $v . ')<br />');
+                            $this->addOutput('<p>&nbsp;' . $k . ' (' . $v . ')</p>');
 						}
                     }
                 }
 
                 if (!isset($stat["Hit"]) or $stat["Hit"]["Count"] == "")
 				{
-                    $this->addOutput('(' . $this->L("nothing") . ')<br />');
+                    $this->addOutput('<p>(' . $this->L("nothing") . ')</p>');
 				}
 
                 // Destroyed
 
-				$this->addOutput('<br /><span>' . $this->L("destroyed") . ' :<br /></span>'); // ADDED Destroyed in pilot stats by Aikanaro
+				$this->addOutput('<span>' . $this->L("destroyed") . ' :</span>'); // ADDED Destroyed in pilot stats by Aikanaro
 
 				if (isset($stat["Destroyed"]) and is_array($stat["Destroyed"]))
 				{
@@ -740,24 +789,25 @@ class tacview
 					{
                         if ($v != "Count")
 						{
-                            $this->addOutput('(' . $v . ')<br />'); // Fix bug count display destroyed in pilot stats by Aikanaro
+                            $this->addOutput('<p>(' . $v . ')</p>'); // Fix bug count display destroyed in pilot stats by Aikanaro
 						}
                     }
                 }
 
                 if (!isset($stat["Destroyed"]) or $stat["Destroyed"]["Count"] == "")
 				{
-                    $this->addOutput('(' . $this->L("nothing") . ')<br />');
+                    $this->addOutput('<p>(' . $this->L("nothing") . ')</p>');
 				}
 
                 $this->addOutput('</td>');
 
 				// SECOND ROW - Third Cell
 
+				$this->addOutput('<td class="hiddenStatsTableRow2">');
+
 				// Kill A/A
 
-				$this->addOutput('<td class="hiddenStatsTable">');
-                $this->addOutput('<br /><span>' . $this->L("killedAircraft") . ' :<br /></span>');
+                $this->addOutput('<span>' . $this->L("killedAircraft") . ' :</span>');
 
 				if (isset($stat["Killed"]["Aircraft"]) and is_array($stat["Killed"]["Aircraft"]))
 				{
@@ -765,19 +815,19 @@ class tacview
 					{
                         if ($k != "Count")
 						{
-                            $this->addOutput('&nbsp;' . $k . ' (' . $v . ')<br />');
+                            $this->addOutput('<p>&nbsp;' . $k . ' (' . $v . ')</p>');
 						}
                     }
                 }
 
                 if (!isset($stat["Killed"]["Aircraft"]) or $stat["Killed"]["Aircraft"]["Count"] == "")
 				{
-                    $this->addOutput('(' . $this->L("nothing") . ')<br />');
+                    $this->addOutput('<p>(' . $this->L("nothing") . ')<p/>');
 				}
 
                 // Kill Helo
 
-                $this->addOutput('<br /><span>' . $this->L("killedHelo") . ' :<br /></span>');
+                $this->addOutput('<span>' . $this->L("killedHelo") . ' :</span>');
 
                 if (isset($stat["Killed"]["Helicopter"]) and is_array($stat["Killed"]["Helicopter"]))
 				{
@@ -785,19 +835,19 @@ class tacview
 					{
                         if ($k != "Count")
 						{
-                            $this->addOutput('&nbsp;' . $k . ' (' . $v . ')<br />');
+                            $this->addOutput('<p>&nbsp;' . $k . ' (' . $v . ')</p>');
 						}
                     }
                 }
 
                 if (!isset($stat["Killed"]["Helicopter"]) or $stat["Killed"]["Helicopter"]["Count"] == "")
 				{
-                    $this->addOutput('(' . $this->L("nothing") . ')<br />');
+                    $this->addOutput('<p>(' . $this->L("nothing") . ')</p>');
 				}
 
                 // Kill Ship
 
-                $this->addOutput('<br /><span>' . $this->L("killedShip") . ' :<br /></span>');
+                $this->addOutput('<span>' . $this->L("killedShip") . ' :</span>');
 
                 if (isset($stat["Killed"]["Ship"]) and is_array($stat["Killed"]["Ship"]))
 				{
@@ -805,19 +855,19 @@ class tacview
 					{
                         if ($k != "Count")
 						{
-                            $this->addOutput('&nbsp;' . $k . ' (' . $v . ')<br />');
+                            $this->addOutput('<p>&nbsp;' . $k . ' (' . $v . ')</p>');
 						}
                     }
                 }
 
                 if (!isset($stat["Killed"]["Ship"]) or $stat["Killed"]["Ship"]["Count"] == "")
 				{
-                    $this->addOutput('(' . $this->L("nothing") . ')<br />');
+                    $this->addOutput('<p>(' . $this->L("nothing") . ')</p>');
 				}
 
                 // Kill SAM/AAA
 
-                $this->addOutput('<br /><span>' . $this->L("killedSAM") . ' :<br /></span>');
+                $this->addOutput('<span>' . $this->L("killedSAM") . ' :</span>');
 
                 if (isset($stat["Killed"]["SAM/AAA"]) and is_array($stat["Killed"]["SAM/AAA"]))
 				{
@@ -825,19 +875,19 @@ class tacview
 					{
                         if ($k != "Count")
 						{
-                            $this->addOutput('&nbsp;' . $k . ' (' . $v . ')<br />');
+                            $this->addOutput('<p>&nbsp;' . $k . ' (' . $v . ')</p>');
 						}
                     }
                 }
 
                 if (!isset($stat["Killed"]["SAM/AAA"]) or $stat["Killed"]["SAM/AAA"]["Count"] == "")
 				{
-                    $this->addOutput('(' . $this->L("nothing") . ')<br />');
+                    $this->addOutput('<p>(' . $this->L("nothing") . ')</p>');
 				}
 
                 // Kill Tank
 
-                $this->addOutput('<br /><span>' . $this->L("killedTank") . ' :<br /></span>');
+                $this->addOutput('<span>' . $this->L("killedTank") . ' :</span>');
 
                 if (isset($stat["Killed"]["Tank"]) and is_array($stat["Killed"]["Tank"]))
 				{
@@ -845,37 +895,58 @@ class tacview
 					{
                         if ($k != "Count")
 						{
-                            $this->addOutput('&nbsp;' . $k . ' (' . $v . ')<br />');
+                            $this->addOutput('<p>&nbsp;' . $k . ' (' . $v . ')</p>');
 						}
                     }
                 }
 
-                if (!isset($stat["Killed"]["Tank"]) or $stat["Killed"]["Tank"]["Count"] == "")
+                if 	(!isset($stat["Killed"]["Tank"]) or $stat["Killed"]["Tank"]["Count"] == "")
 				{
-                    $this->addOutput('(' . $this->L("nothing") . ')<br />');
+                    $this->addOutput('<p>(' . $this->L("nothing") . ')</p>');
+				}
+
+                // Kill Car
+
+                $this->addOutput('<span>' . $this->L("killedCar") . ' :</span>');
+
+                if (isset($stat["Killed"]["Car"]) and is_array($stat["Killed"]["Car"]))
+				{
+                    foreach ($stat["Killed"]["Car"] as $k => $v)
+					{
+                        if ($k != "Count")
+						{
+                            $this->addOutput('<p>&nbsp;' . $k . ' (' . $v . ')</p>');
+						}
+                    }
+                }
+
+                if 	( !isset($stat["Killed"]["Car"]) or $stat["Killed"]["Car"]["Count"] == "") 
+				{
+                    $this->addOutput('<p>(' . $this->L("nothing") . ')</p>');
 				}
 
                 $this->addOutput('</td>');
 
-                if (isset($stat["Hit"]) and $stat["Hit"]["Count"] != "")
+                /*if (isset($stat["Hit"]) and $stat["Hit"]["Count"] != "")
 				{
                     $this->addOutput('<td>');
                     $this->addOutput('</td>');
-                }
+                }*/
+
+                $this->addOutput('</tr>');
 
 				//THIRD ROW - Events per pilot table
 
-                $this->addOutput('</tr>');
                 $this->addOutput('<tr class="hiddenStatsTable">');
 
-                $this->addOutput('<td colspan="8">');
-                $this->addOutput('<br /><h1 class="hiddenEventsTable">' . $this->L("events") . '</h1>');
+                $this->addOutput('<td class="hiddenStatsTable" colspan="3">');
+                $this->addOutput('<h2>' . $this->L("events") . '</h2>');
 
                 $this->addOutput('<table class="hiddenEventsTable">');
                 $this->addOutput('<tr>');
-                $this->addOutput('<th>' . $this->L('time') . '</td>');
-                $this->addOutput('<th>' . $this->L('type') . '</td>');
-                $this->addOutput('<th>' . $this->L('action') . '</td>');
+                $this->addOutput('<th>' . $this->L('time') . '</th>');
+                $this->addOutput('<th>' . $this->L('type') . '</th>');
+                $this->addOutput('<th>' . $this->L('action') . '</th>');
                 $this->addOutput('</tr>');
 
                 foreach ($stat["Events"] as $key => $event)
@@ -884,12 +955,15 @@ class tacview
                 }
 
                 $this->addOutput('</table>');
+
+                $this->addOutput('</td>');
+                $this->addOutput('</tr>');
+
                 $this->addOutput('</table>');
 
                 $this->addOutput('</td>');
                 $this->addOutput('</tr>');
 
-                $class = $class == "row1" ? "row2" : "row1";
             }
         }
 
@@ -899,12 +973,12 @@ class tacview
 		// EVENTS TABLE - Display all events
 		// ***********************************************************
 
-		$this->addOutput('<br /><br /><h1>' . $this->L('events') . '</h1>');
+		$this->addOutput('<h1>' . $this->L('events') . '</h1>');
         $this->addOutput('<table class="eventsTable">');
         $this->addOutput('<tr>');
-        $this->addOutput('<th>' . $this->L('time') . '</td>');
-        $this->addOutput('<th>' . $this->L('type') . '</td>');
-        $this->addOutput('<th>' . $this->L('action') . '</td>');
+        $this->addOutput('<th>' . $this->L('time') . '</th>');
+        $this->addOutput('<th>' . $this->L('type') . '</th>');
+        $this->addOutput('<th>' . $this->L('action') . '</th>');
         $this->addOutput('</tr>');
 
         foreach ($this->events as $key => $event)
@@ -992,7 +1066,11 @@ class tacview
 		{
 			$class = $event["Action"] == "HasBeenHitBy" ? 'rowHit' : 'rowDestroy';
 
-            if (array_key_exists("SecondaryObject", $event) and $event["PrimaryObject"]["Coalition"] == $event["SecondaryObject"]["Coalition"])
+            if (	array_key_exists("SecondaryObject", $event) and 
+					array_key_exists("PrimaryObject", $event) and 
+					array_key_exists("Coalition", $event["PrimaryObject"]) and 
+					array_key_exists("Coalition", $event["SecondaryObject"]) and
+					$event["PrimaryObject"]["Coalition"] == $event["SecondaryObject"]["Coalition"])
 			{
                 $class = "rowTeamKill";
             }
@@ -1084,6 +1162,11 @@ class tacview
 
 					}
 
+					if (array_key_exists("Occurrences", $event))
+					{
+						$this->addOutput(' ' . $event["Occurrences"] . ' x ');
+					}
+
 					$this->addOutput($SecondaryObject["Name"]);
 
 				}
@@ -1105,14 +1188,17 @@ class tacview
 				break;
 
             case "HasFired":
-				if (array_key_exists("Coalition", $event["SecondaryObject"]))
+
+				if (array_key_exists("SecondaryObject",$event) && array_key_exists("Coalition", $event["SecondaryObject"]))
 				{
-					$this->addOutput(' <img src="' . $this->image_path . 'categoryIcons/Mini_Missile_' . $event["SecondaryObject"]["Coalition"] . '.gif" alt="" /> ' . $event["SecondaryObject"]["Name"]);
+					$this->addOutput(' <img src="' . $this->image_path . 'categoryIcons/Mini_Missile_' . $event["SecondaryObject"]["Coalition"] . '.gif" alt="" /> ');
 				}
-				else
+				if (array_key_exists("Occurrences", $event))
 				{
-					$this->addOutput($event["SecondaryObject"]["Name"]);
+					$this->addOutput(' ' . $event["Occurrences"] . ' x ');
 				}
+
+				$this->addOutput($event["SecondaryObject"]["Name"]);
 
                 break;
         }
