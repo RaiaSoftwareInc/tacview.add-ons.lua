@@ -907,6 +907,7 @@ class tacview
                 if 	( !isset($stat["Killed"]["Car"]) or $stat["Killed"]["Car"]["Count"] == "") 
 				{
                     $this->addOutput('<p>(' . $this->L("nothing") . ')</p>');
+				}
 
                 $this->addOutput('</td>');
 
