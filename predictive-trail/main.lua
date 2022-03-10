@@ -170,6 +170,11 @@ function OnUpdate(dt, absoluteTime)
 	local Math = Tacview.Math
 
 	local firstTransformSampleTime, lastTransformSampleTime = Telemetry.GetTransformTimeRange(objectHandle)
+	
+	if not lastTransformSampleTime then
+		return
+	end
+
 	local trailEndtime = math.min(lastTransformSampleTime + TrailResolution, absoluteTime + TrailLength)
 
 	local GetTransform = Telemetry.GetTransform

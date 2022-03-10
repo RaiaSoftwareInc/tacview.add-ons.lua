@@ -69,6 +69,8 @@ local indicatorTextureCoordinateArrayHandle
 local tapeRenderStateHandle
 local tapeVertexArrayHandle
 
+local telemetry = Tacview.Telemetry
+
 ----------------------------------------------------------------
 -- UI commands and options
 ----------------------------------------------------------------
@@ -277,22 +279,18 @@ function OnUpdate(dt, absoluteTime)
 
 	local objectHandle = Tacview.Context.GetSelectedObject(0)
 
-	if not objectHandle or not Tacview.Telemetry.AnyGivenTagActive(Tacview.Telemetry.GetCurrentTags(objectHandle), Tacview.Telemetry.Tags.FixedWing) then
+	if not objectHandle then return end
 
-		objectHandle = Tacview.Context.GetSelectedObject(1)
+	local tags = telemetry.GetCurrentTags(objectHandle)
 
-		if not objectHandle or not Tacview.Telemetry.AnyGivenTagActive(Tacview.Telemetry.GetCurrentTags(objectHandle), Tacview.Telemetry.Tags.FixedWing) then
+	if not tags then return end
 
-			return
-
-		end
-
-	end
+	if not telemetry.AnyGivenTagActive(tags, telemetry.Tags.FixedWing) then return end
 
 	-- Check if the aircraft is a F-14
 	-- This add-on would work for other aircraft, but we would probably need to update our instrument scale.
 
-	local objectName = Tacview.Telemetry.GetCurrentShortName( objectHandle )
+	local objectName = telemetry.GetCurrentShortName( objectHandle )
 
 	local function StartsWith(str, start)
 
@@ -308,9 +306,9 @@ function OnUpdate(dt, absoluteTime)
 
 	-- Retrieve AoA Units property index
 
-	local aoaUnitsPropertyIndex = Tacview.Telemetry.GetObjectsNumericPropertyIndex("AOAUnits", false)
+	local aoaUnitsPropertyIndex = telemetry.GetObjectsNumericPropertyIndex("AOAUnits", false)
 
-	if aoaUnitsPropertyIndex == Tacview.Telemetry.InvalidPropertyIndex then
+	if aoaUnitsPropertyIndex == telemetry.InvalidPropertyIndex then
 
 		-- no AOAUnits available for this aircraft
 		return
@@ -321,7 +319,7 @@ function OnUpdate(dt, absoluteTime)
 
 	local sampleIsValid
 
-	currentAoAUnits, sampleIsValid = Tacview.Telemetry.GetNumericSample(objectHandle, absoluteTime, aoaUnitsPropertyIndex)
+	currentAoAUnits, sampleIsValid = telemetry.GetNumericSample(objectHandle, absoluteTime, aoaUnitsPropertyIndex)
 
 	if not sampleIsValid then
 

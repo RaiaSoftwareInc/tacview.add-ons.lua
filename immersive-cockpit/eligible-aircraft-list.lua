@@ -40,7 +40,8 @@ function EligibleAircraftList()
 
 	return 
 		{
-			["T-38"] =	"FixedWing.T-38.cockpit.obj"	
+			["T-38"] =	"FixedWing.T-38.cockpit.obj",
+			["M2000"] =	"FixedWing.Mirage 2000.cockpit.obj"
 		}
 	 
 end

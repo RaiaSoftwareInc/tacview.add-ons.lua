@@ -77,6 +77,9 @@ local anyGivenTagActive = telemetry.AnyGivenTagActive
 
 local isFixedWingOrRotorcraft
 
+local function starts_with(str, start)
+   return str:sub(1, #start) == start
+end
 
 function OnDrawTransparentObjectsNear()
 
@@ -103,6 +106,10 @@ function OnDrawTransparentObjectsNear()
 			objectTransform.scale = 1
 
 			local primaryObjectName = telemetry.GetCurrentShortName(objectHandle)
+
+			if starts_with(primaryObjectName,"M2000") then
+				primaryObjectName = "M2000"
+			end
 
 			local cockpitFilename = EligibleAircraftList[primaryObjectName]
 

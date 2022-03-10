@@ -74,14 +74,14 @@ function FixPilotNamesNow()
 	local pilotPropertyIndex = telemetry.GetObjectsTextPropertyIndex( "Pilot" , false )
 
 	if pilotPropertyIndex == telemetry.InvalidPropertyIndex then
-		Tacview.Log.Debug("IL-2 NAME CORRECTOR: Pilot property index is invalid - unable to proceed with fixing any pilot names")
+		Tacview.Log.Debug("Pilot property index is invalid - unable to proceed with fixing any pilot names")
 		return
 	end	
 
 	local namePropertyIndex = telemetry.GetObjectsTextPropertyIndex("Name",false)
 
 	if namePropertyIndex == telemetry.InvalidPropertyIndex then
-		Tacview.Log.Debug("IL-2 NAME CORRECTOR: Name property index is invalid - unable to proceed with fixing any pilot names")
+		Tacview.Log.Debug("Name property index is invalid - unable to proceed with fixing any pilot names")
 		return
 	end	
 
@@ -157,7 +157,7 @@ function OnMenuAutomaticallyFixPilotNames()
 
 	if automaticallyFixIL2PilotNames then
 
-		Tacview.Log.Info("IL-2 NAME CORRECTOR: Automatically fixing pilot names");
+		Tacview.Log.Info("Automatically fixing pilot names");
 
 		FixPilotNamesNow()
 
@@ -174,13 +174,13 @@ function OnDocumentLoaded()
 		return
 	end
 
-	Tacview.Log.Info("IL-2 NAME CORRECTOR: New document has been loaded")
+	Tacview.Log.Info("New document has been loaded")
 
 	-- Check if the user wants to correct IL2 names automatically
 
 	if automaticallyFixIL2PilotNames then
 
-		Tacview.Log.Info("IL-2 NAME CORRECTOR: Automatically fixing pilot names")
+		Tacview.Log.Info("Automatically fixing pilot names")
 
 		FixPilotNamesNow()
 
@@ -242,7 +242,7 @@ function Initialize()
 	-- Declare add-on information
 
 	Tacview.AddOns.Current.SetTitle("IL-2 Name Corrector")
-	Tacview.AddOns.Current.SetVersion("1.0")
+	Tacview.AddOns.Current.SetVersion("1.8.7")
 	Tacview.AddOns.Current.SetAuthor("BuzyBee")
 	Tacview.AddOns.Current.SetNotes("Correct the way IL-2 displays names.")
 
@@ -252,9 +252,11 @@ function Initialize()
 
 	-- Declare menus
 
-	local mainMenuHandle = Tacview.UI.Menus.AddMenu(nil, "Correct IL2 Names")
+	local mainMenuHandle = Tacview.UI.Menus.AddMenu(nil, "IL-2 Name Corrector")
 
 	Tacview.UI.Menus.AddCommand(mainMenuHandle, "Fix Pilot Names Now", FixPilotNamesNow)
+	
+	Tacview.UI.Menus.AddSeparator(mainMenuHandle)
 
 	automaticallyFixPilotNamesMenuId = Tacview.UI.Menus.AddOption(mainMenuHandle, "Automatically Fix Pilot Names", automaticallyFixIL2PilotNames, OnMenuAutomaticallyFixPilotNames)
 

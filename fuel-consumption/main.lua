@@ -98,6 +98,7 @@ local minDistance = 1		-- minimum distance in meters over which to calculate fue
 -- keep track of existing object
 
 local previousSelectedObjectHandle
+local previousFuelVolume
 
 -- keep track of whether data collection is done
 
@@ -109,6 +110,9 @@ local chartEntriesSum = {}
 local chartEntriesCount = {}
 local chart = {}
 local lastStatTime = 0.0
+
+local fuelVolumeAvailable = false
+local fuelFlowWeightAvailable = false
 
 function InitializeCharts()
 
@@ -215,7 +219,15 @@ function calculateChart(selectedObjectHandle, startTime, endTime)
 		local altitude = values[i].altitude
 		local fuelFlowWeight = values[i].fuelFlowWeight
 		local groundSpeed = values[i].groundSpeed
+		local distance = values[i].distance
 		local fuelConsumption	
+
+		local fuelVolumeDelta 
+
+		if values[i].fuelVolume and values[i].previousFuelVolume then
+
+			fuelVolumeDelta = values[i].previousFuelVolume - values[i].fuelVolume
+		end
 
 		if Tacview.Settings.GetAltitudeUnit() == Tacview.Settings.Units.Feet then
 			altitude = altitude * m2ft
@@ -223,16 +235,25 @@ function calculateChart(selectedObjectHandle, startTime, endTime)
 
 		if groundSpeed > minGroundSpeed then
 
-			if Tacview.Settings.GetAltitudeUnit() == Tacview.Settings.Units.Feet then
-				fuelConsumption = 	fuelFlowWeight 					-- in kg/h	
-									* kg2lb							-- convert from kilograms per hour to pounds per hour (pph)
-									/(groundSpeed * mps2mph)		-- convert from meters per second to miles per hour  
+			if fuelFlowWeightAvailable then
+
+				if Tacview.Settings.GetAltitudeUnit() == Tacview.Settings.Units.Feet then
+	
+					fuelConsumption = 	fuelFlowWeight 				-- in kg/h	
+										* kg2lb						-- convert from kilograms per hour to pounds per hour (pph)
+										/(groundSpeed * mps2mph)	-- convert from meters per second to miles per hour  
 																	-- then (lb/h) / (mi/h) = lb/mi
-			else
-			
-			fuelConsumption = 	fuelFlowWeight 				-- in kg/h	
-								/(groundSpeed * mps2kph)	-- ground speed in km/h 
-															-- kg/h / km/h = kg/km
+				else
+				
+					fuelConsumption = 	fuelFlowWeight 				-- in kg/h	
+										/(groundSpeed * mps2kph)	-- ground speed in km/h 
+																	-- kg/h / km/h = kg/km
+				end
+
+			elseif fuelVolumeAvailable and fuelVolumeDelta then
+
+					fuelConsumption = 	fuelVolumeDelta/			-- in l
+										(distance/1000)				-- in km	
 			end
 
 			local x = math.floor(throttle/ThrottleStep)
@@ -250,10 +271,11 @@ function calculateChart(selectedObjectHandle, startTime, endTime)
 			end
 
 			y = clamp(y,0,yEntries-1)
-
-			chartEntriesSum[y][x] = chartEntriesSum[y][x] + fuelConsumption
-			chartEntriesCount[y][x] = chartEntriesCount[y][x] + 1
-
+			
+			if fuelConsumption then
+				chartEntriesSum[y][x] = chartEntriesSum[y][x] + fuelConsumption
+				chartEntriesCount[y][x] = chartEntriesCount[y][x] + 1
+			end
 		end
 	end
 
@@ -294,22 +316,35 @@ function ObtainData(startTime,endTime, selectedObjectHandle)
 
 	local values = {}
 
+	-- Determine what data is available
+
 	local fuelFlowWeightPropertyIndex = Tacview.Telemetry.GetObjectsNumericPropertyIndex("FuelFlowWeight", false)
+	local fuelVolumePropertyIndex = Tacview.Telemetry.GetObjectsNumericPropertyIndex("FuelVolume", false)
 	local throttlePropertyIndex = Tacview.Telemetry.GetObjectsNumericPropertyIndex("Throttle", false)
 
-	if fuelFlowWeightPropertyIndex == Tacview.Telemetry.InvalidPropertyIndex then
+	if fuelVolumePropertyIndex == Tacview.Telemetry.InvalidPropertyIndex and fuelFlowWeightPropertyIndex == Tacview.Telemetry.InvalidPropertyIndex then
+
 		return values
+	
+	elseif 	fuelFlowWeightPropertyIndex ~= Tacview.Telemetry.InvalidPropertyIndex then
+		
+		fuelFlowWeightAvailable = true
+	
+	elseif 	fuelVolumePropertyIndex ~= Tacview.Telemetry.InvalidPropertyIndex then
+		
+		fuelVolumeAvailable = true	
 	end
 
 	if throttlePropertyIndex == Tacview.Telemetry.InvalidPropertyIndex then
+
 		return values
 	end
 
-	-- iterate through the times at the chosen samplePeriod rate
+	-- Iterate through the times at the chosen samplePeriod rate
 
 	for i = startTime,endTime,samplePeriod do
 
-		-- find distance and speed between the current and previous position of the object:getSampleRate()
+		-- Find distance and speed between the current and previous position of the object:getSampleRate()
 
 		local currentPosition = Tacview.Telemetry.GetTransform(selectedObjectHandle,i)
 		local lastPosition = Tacview.Telemetry.GetTransform(selectedObjectHandle, i-samplePeriod)
@@ -318,15 +353,35 @@ function ObtainData(startTime,endTime, selectedObjectHandle)
 		local y0 = lastPosition.longitude
 		local x1 = currentPosition.latitude
 		local y1 = currentPosition.longitude
+
+		local distance = GetSphericalDistance(x0,y0,x1,y1)		
 		
-		local speedMpS = GetSphericalDistance(x0,y0,x1,y1)/samplePeriod
+		local speed = distance/samplePeriod
 
-		-- find other necessary info 
+		-- Find other necessary info 
 
-		local fuelFlowWeight, isSampleValid = Tacview.Telemetry.GetNumericSample(selectedObjectHandle, i, fuelFlowWeightPropertyIndex)
+		local fuelFlowWeight
+		local fuelVolume
+		local isSampleValid1
+		local isSampleValid2
 
-		if not isSampleValid then
-			break
+		if fuelFlowWeightAvailable then
+
+			fuelFlowWeight, isSampleValid1 = Tacview.Telemetry.GetNumericSample(selectedObjectHandle, i, fuelFlowWeightPropertyIndex)
+	
+			if not isSampleValid1 then
+				
+				fuelFlowWeight = nil
+			end
+
+		elseif fuelVolumeAvailable then
+
+			fuelVolume, isSampleValid2 = Tacview.Telemetry.GetNumericSample(selectedObjectHandle, i, fuelVolumePropertyIndex)
+
+			if not isSampleValid2 then
+				
+				fuelVolume = nil;
+			end
 		end
 
 		local throttle, isSampleValid = Tacview.Telemetry.GetNumericSample(selectedObjectHandle, i, throttlePropertyIndex)
@@ -336,8 +391,17 @@ function ObtainData(startTime,endTime, selectedObjectHandle)
 		end
 
 		-- keep track of info in a table
+		
+		if fuelFlowWeightAvailable then
 
-		values[#values + 1] = { altitude=currentPosition.altitude, fuelFlowWeight = fuelFlowWeight, throttle = throttle, groundSpeed = speedMpS }
+			values[#values + 1] = { altitude=currentPosition.altitude, distance = distance, fuelFlowWeight = fuelFlowWeight, throttle = throttle, groundSpeed = speed }
+		
+		elseif fuelVolumeAvailable then
+
+			values[#values + 1] = { altitude=currentPosition.altitude, distance = distance, fuelVolume = fuelVolume, previousFuelVolume = previousFuelVolume, throttle = throttle, groundSpeed = speed }
+		end
+
+		previousFuelVolume = fuelVolume
 
 	end
 
@@ -392,7 +456,6 @@ function DisplayBackground()
 
 end
 
-
 function DisplayChartData()
 
 	-- select chart options
@@ -422,10 +485,14 @@ function DisplayChartData()
 
 	local chartData = ""
 
-	if Tacview.Settings.GetAltitudeUnit() == Tacview.Settings.Units.Feet then
+	if fuelFlowWeightAvailable and Tacview.Settings.GetAltitudeUnit() == Tacview.Settings.Units.Feet then
 		chartData = " ASL(ft)                              FUEL CONSUMPTION lb/mi\n"
-	else
+	elseif fuelFlowWeightAvailable and Tacview.Settings.GetAltitudeUnit() == Tacview.Settings.Units.Meters then
 		chartData = " ASL(m)                               FUEL CONSUMPTION kg/km\n"
+	elseif fuelVolumeAvailable and Tacview.Settings.GetAltitudeUnit() == Tacview.Settings.Units.Feet then
+		chartData = " ASL(ft)                               FUEL CONSUMPTION l/km\n"
+	elseif fuelVolumeAvailable and Tacview.Settings.GetAltitudeUnit() == Tacview.Settings.Units.Meters then
+		chartData = " ASL(m)                               FUEL CONSUMPTION l/km\n"
 	end
 
 	for y=yEntries-1,0,-1 do
@@ -487,8 +554,6 @@ function DisplayChartData()
 	Tacview.UI.Renderer.Print(chartDataTransform, chartDataRenderStateHandle, chartData)
 
 end
-
-	
 
 function OnDrawTransparentUI()
 
@@ -560,8 +625,6 @@ function OnDocumentLoaded()
 end
 
 function SetUnits()
-
-	-- print("Tacview.Settings.GetAltitudeUnit()"..Tacview.Settings.GetAltitudeUnit())
 
 	if Tacview.Settings.GetAltitudeUnit() == Tacview.Settings.Units.Feet then
 

@@ -1,7 +1,7 @@
 
 -- Terrain Downloader
 -- Author: Erin 'BuzyBee' O'Reilly
--- Last update: 2020-11-20 (Tacview 1.8.5)
+-- Last update: 2022-03-03 (Tacview 1.8.8)
 
 -- IMPORTANT: This script act both as a tutorial and as a real addon for Tacview.
 -- Feel free to modify and improve this script!
@@ -10,7 +10,7 @@
 
 MIT License
 
-Copyright (c) 2020 Raia Software Inc.
+Copyright (c) 2020-2022 Raia Software Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -62,6 +62,8 @@ local mapQuestOptionMapSettingName = "MapQuest Option Map"
 local mapQuestOptionLightSettingName = "MapQuest Option Light"
 local mapQuestOptionDarkSettingName = "MapQuest Option Dark"
 local mapQuestOptionHybridSettingName = "MapQuest Option Hybrid"
+local mapQuestOptionSatelliteSettingName = "MapQuest Option Satellite"
+
 
 local mapQuestOptionTranslucentSettingName = "MapQuest Translucent"
 
@@ -72,6 +74,7 @@ local mapQuestOptionMap = false
 local mapQuestOptionLight = false
 local mapQuestOptionDark = false
 local mapQuestOptionHybrid = true -- default
+local mapQuestOptionSatellite = false
 
 local mapQuestOptionTranslucent = true -- default
 
@@ -83,6 +86,7 @@ local mapQuestOptionMapMenuHandle
 local mapQuestOptionLightMenuHandle
 local mapQuestOptionDarkMenuHandle
 local mapQuestOptionHybridMenuHandle
+local mapQuestOptionSatelliteMenuHandle
 
 local deleteAllTilesMenuHandle
 
@@ -346,11 +350,11 @@ function OnMapQuest()
 		end
 
 		-- Check for existing tiles with the same latitude and longitude
-
-		local filepath_png = "C:/ProgramData/Tacview/Data/Terrain/Textures/"..latitudeString..longitudeString..".png"
-		local filepath_jpg = "C:/ProgramData/Tacview/Data/Terrain/Textures/"..latitudeString..longitudeString..".jpg"
-		local filepath_png_t = "C:/ProgramData/Tacview/Data/Terrain/Textures/"..latitudeString..longitudeString.."T"..".png"
-		local filepath_jpg_t = "C:/ProgramData/Tacview/Data/Terrain/Textures/"..latitudeString..longitudeString.."T"..".jpg"
+		
+		local filepath_png = os.getenv("ProgramData") .. "/Tacview/Data/Terrain/Textures/"..latitudeString..longitudeString..".png"
+		local filepath_jpg = os.getenv("ProgramData") .. "/Tacview/Data/Terrain/Textures/"..latitudeString..longitudeString..".jpg"
+		local filepath_png_t = os.getenv("ProgramData") .. "/Tacview/Data/Terrain/Textures/"..latitudeString..longitudeString.."T"..".png"
+		local filepath_jpg_t = os.getenv("ProgramData") .. "/Tacview/Data/Terrain/Textures/"..latitudeString..longitudeString.."T"..".jpg"
 
 		local file_png = io.open(filepath_png, "rb")
 		local file_jpg = io.open(filepath_jpg, "rb")
@@ -419,7 +423,11 @@ function OnMapQuest()
 			mapType = "map"
 			fileType = "png"
 			fileExt = ".png"
-		else
+		elseif mapQuestOptionSatellite then
+			mapType = "sat"
+			fileType = "jpg"
+			fileExt = ".jpg"
+		else	--hybrid/default
 			mapType = "hyb"
 			fileType = "jpg80"
 			fileExt = ".jpg"
@@ -506,7 +514,7 @@ function OnMapQuest()
 
 		-- Create the new file 
 
-		local f, err = io.open("C:/ProgramData/Tacview/Data/Terrain/Textures/"..latitudeString..longitudeString..translucency..fileExt, "wb") -- open in "binary" mode
+		local f, err = io.open(os.getenv("ProgramData") .. "/Tacview/Data/Terrain/Textures/"..latitudeString..longitudeString..translucency..fileExt, "wb") -- open in "binary" mode
 
 		if f then
 			f:write(data)
@@ -566,6 +574,25 @@ function OnUpdate()
 
 end
 
+function UpdateMenus()
+
+	-- Save option value in registry
+
+	Tacview.AddOns.Current.Settings.SetBoolean(mapQuestOptionMapSettingName, mapQuestOptionMap)
+	Tacview.AddOns.Current.Settings.SetBoolean(mapQuestOptionLightSettingName, mapQuestOptionLight)
+	Tacview.AddOns.Current.Settings.SetBoolean(mapQuestOptionDarkSettingName, mapQuestOptionDark)
+	Tacview.AddOns.Current.Settings.SetBoolean(mapQuestOptionHybridSettingName, mapQuestOptionHybrid)
+	Tacview.AddOns.Current.Settings.SetBoolean(mapQuestOptionSatelliteSettingName, mapQuestOptionSatellite)
+
+	-- Update menu with the new option value
+
+	Tacview.UI.Menus.SetOption(mapQuestOptionMapMenuHandle, mapQuestOptionMap)
+	Tacview.UI.Menus.SetOption(mapQuestOptionLightMenuHandle, mapQuestOptionLight)
+	Tacview.UI.Menus.SetOption(mapQuestOptionDarkMenuHandle, mapQuestOptionDark)
+	Tacview.UI.Menus.SetOption(mapQuestOptionHybridMenuHandle, mapQuestOptionHybrid)
+	Tacview.UI.Menus.SetOption(mapQuestOptionSatelliteMenuHandle, mapQuestOptionSatellite)
+end
+
 
 function OnMapQuestOptionMap()
 
@@ -573,21 +600,9 @@ function OnMapQuestOptionMap()
 	mapQuestOptionLight = false
 	mapQuestOptionDark = false
 	mapQuestOptionHybrid = false
+	mapQuestOptionSatellite = false
 
-	-- Save option value in registry
-
-	Tacview.AddOns.Current.Settings.SetBoolean(mapQuestOptionMapSettingName, mapQuestOptionMap)
-	Tacview.AddOns.Current.Settings.SetBoolean(mapQuestOptionLightSettingName, mapQuestOptionLight)
-	Tacview.AddOns.Current.Settings.SetBoolean(mapQuestOptionDarkSettingName, mapQuestOptionDark)
-	Tacview.AddOns.Current.Settings.SetBoolean(mapQuestOptionHybridSettingName, mapQuestOptionHybrid)
-
-	-- Update menu with the new option value
-
-	Tacview.UI.Menus.SetOption(mapQuestOptionMapMenuHandle, mapQuestOptionMap)
-	Tacview.UI.Menus.SetOption(mapQuestOptionLightMenuHandle, mapQuestOptionLight)
-	Tacview.UI.Menus.SetOption(mapQuestOptionDarkMenuHandle, mapQuestOptionDark)
-	Tacview.UI.Menus.SetOption(mapQuestOptionHybridMenuHandle, mapQuestOptionHybrid)
-
+	UpdateMenus()
 end
 
 function OnMapQuestOptionLight()
@@ -595,46 +610,10 @@ function OnMapQuestOptionLight()
 	mapQuestOptionMap = false
 	mapQuestOptionLight = not mapQuestOptionLight
 	mapQuestOptionDark = false
-	mapQuestOptionHybrid = false 
+	mapQuestOptionHybrid = false
+	mapQuestOptionSatellite = false
 
-	-- Save option value in registry
-
-	Tacview.AddOns.Current.Settings.SetBoolean(mapQuestOptionMapSettingName, mapQuestOptionMap)
-	Tacview.AddOns.Current.Settings.SetBoolean(mapQuestOptionLightSettingName, mapQuestOptionLight)
-	Tacview.AddOns.Current.Settings.SetBoolean(mapQuestOptionDarkSettingName, mapQuestOptionDark)
-	Tacview.AddOns.Current.Settings.SetBoolean(mapQuestOptionHybridSettingName, mapQuestOptionHybrid)
-
-	-- Update menu with the new option value
-
-	Tacview.UI.Menus.SetOption(mapQuestOptionMapMenuHandle, mapQuestOptionMap)
-	Tacview.UI.Menus.SetOption(mapQuestOptionLightMenuHandle, mapQuestOptionLight)
-	Tacview.UI.Menus.SetOption(mapQuestOptionDarkMenuHandle, mapQuestOptionDark)
-	Tacview.UI.Menus.SetOption(mapQuestOptionHybridMenuHandle, mapQuestOptionHybrid)
-
-end
-
-
-function OnMapQuestOptionHybrid()
-
-	mapQuestOptionMap = false
-	mapQuestOptionLight = false
-	mapQuestOptionDark = false
-	mapQuestOptionHybrid = not mapQuestOptionHybrid
-
-	-- Save option value in registry
-
-	Tacview.AddOns.Current.Settings.SetBoolean(mapQuestOptionMapSettingName, mapQuestOptionMap)
-	Tacview.AddOns.Current.Settings.SetBoolean(mapQuestOptionLightSettingName, mapQuestOptionLight)
-	Tacview.AddOns.Current.Settings.SetBoolean(mapQuestOptionDarkSettingName, mapQuestOptionDark)
-	Tacview.AddOns.Current.Settings.SetBoolean(mapQuestOptionHybridSettingName, mapQuestOptionHybrid)
-
-	-- Update menu with the new option value
-
-	Tacview.UI.Menus.SetOption(mapQuestOptionMapMenuHandle, mapQuestOptionMap)
-	Tacview.UI.Menus.SetOption(mapQuestOptionLightMenuHandle, mapQuestOptionLight)
-	Tacview.UI.Menus.SetOption(mapQuestOptionDarkMenuHandle, mapQuestOptionDark)
-	Tacview.UI.Menus.SetOption(mapQuestOptionHybridMenuHandle, mapQuestOptionHybrid)
-
+	UpdateMenus()
 end
 
 function OnMapQuestOptionDark()
@@ -643,21 +622,32 @@ function OnMapQuestOptionDark()
 	mapQuestOptionLight = false
 	mapQuestOptionDark = not mapQuestOptionDark
 	mapQuestOptionHybrid  = false
+	mapQuestOptionSatellite = false
 
-	-- Save option value in registry
+	UpdateMenus()
+end
 
-	Tacview.AddOns.Current.Settings.SetBoolean(mapQuestOptionMapSettingName, mapQuestOptionMap)
-	Tacview.AddOns.Current.Settings.SetBoolean(mapQuestOptionLightSettingName, mapQuestOptionLight)
-	Tacview.AddOns.Current.Settings.SetBoolean(mapQuestOptionDarkSettingName, mapQuestOptionDark)
-	Tacview.AddOns.Current.Settings.SetBoolean(mapQuestOptionHybridSettingName, mapQuestOptionHybrid)
+function OnMapQuestOptionHybrid()
 
-	-- Update menu with the new option value
+	mapQuestOptionMap = false
+	mapQuestOptionLight = false
+	mapQuestOptionDark = false
+	mapQuestOptionHybrid = not mapQuestOptionHybrid
+	mapQuestOptionSatellite = false
 
-	Tacview.UI.Menus.SetOption(mapQuestOptionMapMenuHandle, mapQuestOptionMap)
-	Tacview.UI.Menus.SetOption(mapQuestOptionLightMenuHandle, mapQuestOptionLight)
-	Tacview.UI.Menus.SetOption(mapQuestOptionDarkMenuHandle, mapQuestOptionDark)
-	Tacview.UI.Menus.SetOption(mapQuestOptionHybridMenuHandle, mapQuestOptionHybrid)
+	UpdateMenus()
+end
 
+
+function OnMapQuestOptionSatellite()
+
+	mapQuestOptionMap = false
+	mapQuestOptionLight = false
+	mapQuestOptionDark = false
+	mapQuestOptionHybrid  = false
+	mapQuestOptionSatellite = not mapQuestOptionSatellite
+
+	UpdateMenus()
 end
 
 function OnMapQuestOptionTranslucent()
@@ -676,15 +666,26 @@ function OnMapQuestOptionTranslucent()
 
 end
 
+local function ends_with(str, ending)
+   return ending == "" or str:sub(-#ending) == ending
+end
+
 function OnDeleteAllTiles()
 
 	if Tacview.UI.MessageBox.Question("Are your sure you want to delete all terrain texture tiles") == Tacview.UI.MessageBox.OK then
+	
+	    for file in lfs.dir(os.getenv("ProgramData") .. "/Tacview/Data/Terrain/Textures/") do
+			if ends_with(tostring(file),".jpg") or ends_with(tostring(file),".png") then
+				Tacview.Log.Info("Deleting file " .. tostring(file))
+				os.remove(os.getenv("ProgramData") .. "/Tacview/Data/Terrain/Textures/"..file)				
+			end
+		end
 
 		-- Delete the folder and all its contents
-		os.execute('rd /s/q "'.."C:/ProgramData/Tacview/Data/Terrain/Textures/"..'"')
+		--os.execute('rd /s/q "'..os.getenv("ProgramData") .. "/Tacview/Data/Terrain/Textures/"..'"')
 		
 		-- Recreate the folder, empty, for future use
-		os.execute("mkdir " .. "\"C:/ProgramData/Tacview/Data/Terrain/Textures/\"")
+		--os.execute("mkdir " .. "\"" ..os.getenv("ProgramData") .. "/Tacview/Data/Terrain/Textures/\"")
 
 	end
 end
@@ -700,7 +701,7 @@ function Initialize()
 	local currentAddOn = Tacview.AddOns.Current
 
 	currentAddOn.SetTitle("Terrain Downloader")
-	currentAddOn.SetVersion("0.1")
+	currentAddOn.SetVersion("1.8.8.102")
 	currentAddOn.SetAuthor("BuzyBee")
 	currentAddOn.SetNotes("Download cartography and/or topography.")
 
@@ -719,6 +720,7 @@ function Initialize()
 	mapQuestOptionLight = Tacview.AddOns.Current.Settings.GetBoolean(mapQuestOptionLightSettingName, mapQuestOptionLight)
 	mapQuestOptionDark = Tacview.AddOns.Current.Settings.GetBoolean(mapQuestOptionDarkSettingName, mapQuestOptionDark)
 	mapQuestOptionHybrid = Tacview.AddOns.Current.Settings.GetBoolean(mapQuestOptionHybridSettingName, mapQuestOptionHybrid)
+	mapQuestOptionSatellite = Tacview.AddOns.Current.Settings.GetBoolean(mapQuestOptionSatelliteSettingName, mapQuestOptionSatellite)
 
 	mapQuestOptionTranslucent = Tacview.AddOns.Current.Settings.GetBoolean(mapQuestOptionTranslucentSettingName, mapQuestOptionTranslucent)
 
@@ -732,8 +734,8 @@ function Initialize()
 	Tacview.UI.Menus.AddSeparator(mainMenuHandle)
 	deleteAllTilesMenuHandle = Tacview.UI.Menus.AddCommand(mainMenuHandle, "Delete All Tiles...", OnDeleteAllTiles)
 
-
 	--local thunderForestMenuHandle =Tacview.UI.Menus.AddMenu(cartographyMenuHandle, "Thunderforest")
+
 	local mapQuestMenuHandle =Tacview.UI.Menus.AddMenu(cartographyMenuHandle, "MapQuest")
 
 	--Tacview.UI.Menus.AddCommand(thunderForestMenuHandle, "Download Thunderforest Tiles", OnThunderforest)
@@ -748,7 +750,8 @@ function Initialize()
 	mapQuestOptionLightMenuHandle = Tacview.UI.Menus.AddExclusiveOption( mapQuestMenuHandle , "Light" , mapQuestOptionLight , OnMapQuestOptionLight )
 	mapQuestOptionDarkMenuHandle = Tacview.UI.Menus.AddExclusiveOption( mapQuestMenuHandle , "Dark" , mapQuestOptionDark , OnMapQuestOptionDark )
 	mapQuestOptionHybridMenuHandle = Tacview.UI.Menus.AddExclusiveOption( mapQuestMenuHandle , "Hybrid" , mapQuestOptionHybrid , OnMapQuestOptionHybrid )
-	
+	mapQuestOptionSatelliteMenuHandle = Tacview.UI.Menus.AddExclusiveOption( mapQuestMenuHandle , "Satellite" , mapQuestOptionSatellite , OnMapQuestOptionSatellite )
+
 	Tacview.UI.Menus.AddSeparator(mapQuestMenuHandle)
 
 	mapQuestOptionTranslucentMenuHandle = Tacview.UI.Menus.AddOption(mapQuestMenuHandle, "Translucent", mapQuestOptionTranslucent, OnMapQuestOptionTranslucent)
