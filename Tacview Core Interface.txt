@@ -1,7 +1,7 @@
 --------------------------------------------------------------------------------------------------------------------------------
 
-	Tacview 1.8.5 Lua Core Interface
-	Last update: 2020-09-29
+	Tacview 1.8.7 Lua Core Interface
+	Last update: 2021-07-13
 
 --------------------------------------------------------------------------------------------------------------------------------
 
@@ -17,7 +17,7 @@ For example you could store your addon main script as:
 
 At the beginning of your script you will typically retrieve the available Lua interface for which your add-on has been programmed:
 
-	Tacview = require("Tacview180")			-- Request Tacview 1.8.0 API
+	Tacview = require("Tacview187")			-- Request Tacview 1.8.7 API
 
 Then you can access any of the following methods like the following:
 
@@ -421,13 +421,13 @@ Math
 			z = number,
 		}
 
-Math.Angle.Subtract( leftAngle , rightAngle ) -- Tacview 1.7.2
+Math.Angle.Subtract( angle1 , angle2 ) -- Tacview 1.7.2
 
 	Substracts two radian angles.
 
 	Return value:
 
-		Difference between leftAngle and rightAngle.
+		Difference between angle1 and angle2.
 		The result is normalized to ]-π,+π]
 
 Math.Angle.NormalizePi( angle ) -- Tacview 1.8.5
@@ -440,11 +440,27 @@ Math.Angle.Normalize2Pi( angle ) -- Tacview 1.8.5
 
 Math.Units.FeetToMeters( value ) -- Tacview 1.8.0
 
-	Converts feet distances in meters
+	Converts feet distances in meters.
+
+Math.Units.MetersToFeet( value ) -- Tacview 1.8.7
+
+	Converts meters to feet.
 
 Math.Units.NauticalMilesToMeters( value ) -- Tacview 1.8.0
 
 	Converts nautical miles distances in meters
+
+Math.Units.MetersToNauticalMiles( value ) -- Tacview 1.8.7
+
+	Converts meters to nautical miles.
+
+Math.Units.KnotsToMetersPerSecond( value ) -- Tacview 1.8.7
+
+	Converts knots to meter per second.
+
+Math.Units.MetersPerSecondToKnots( value ) -- Tacview 1.8.7
+
+	Converts knots to meter per second.
 
 Math.Vector.LongitudeLatitudeToCartesian( {longitude = radian , latitude = radian , altitude = meter} ) -- Tacview 1.7.2
 
@@ -481,6 +497,24 @@ Math.Vector.BearingRangeAltitudeToLongitudeLatitude( referenceLongitude , refere
 	Return value:
 
 		Position of the target point as {longitude = number , latitude = number , altitude = number}
+
+Math.Vector.LongitudeLatitudeToBearingRangeAltitude( referenceLongitude , referenceLatitude , referenceAltitude , targetLongitude , targetLatitude , targetAltitude ) -- Tacview 1.8.7
+
+	Retrieve BRA of the target point relative to a reference point on earth.
+
+		- Longitude and latitude are expressed in radian.
+		- Altitude is expressed in meters.
+
+		The range returned is the true 3D range. If you want a 2D range,
+		then you can specify identical altitude for both objects (either 0.0 or the average altitude of the two objects).
+
+	Return value:
+
+		BRA of the target point {bearing = number , range = number , altitude = number}
+
+		- Bearing is expressed in degrees relative to true north.
+		- Range is expressed in meters.
+		- Relative Altitude is expressed in meters.
 
 Math.Vector.Add( vector1 , vector2 ) -- Tacview 1.7.2
 
@@ -607,10 +641,13 @@ Events.DocumentLoaded.RegisterListener( function ) -- Tacview 1.8.2
 	Tacview will call the given function as soon as a document has been loaded/merged.
 	This is useful to trigger post load processing, especially to automatize the cleanup of new data.
 
-		OnDocumentLoaded()
+		OnDocumentLoaded( fileNames )
 
 			Called right after more telemetry data has been loaded via the File->Load/Merge option.
 			Called once at the end of a real-time telemetry recording.
+
+			fileNames lists the full path of all the files which have just been loaded separated by a vertical bar '|' character.
+			This file list may be empty if this call is the result of a generic or real-time telemetry update.
 
 Events.DocumentUnload.RegisterListener( function ) -- Tacview 1.8.2
 
@@ -642,20 +679,12 @@ Context.GetAbsoluteTime() -- Tacview 1.7.5
 
 	Retrieves the current telemetry time in seconds since 1970-01-01 (this parameter is useful to talk with the Telemetry module)
 
-Context.SetAbsoluteTime( absoluteTime ) -- Tacview 1.7.6
+Context.GetDocumentPath() -- Tacview 1.8.7
 
-	Set current telemetry time for data playback in seconds since 1970-01-01
+	Retrieve the full path (directory + file name) of the current document if applicable.
+	This path could be the name of the last file merged if several documents have been loaded together.
 
-	NOTE: DO NOT force the time at every frame, especially during real-time telemetry recording.
-	This would conflict with Tacview internal time update leading to 3D view stutter.
-
-	If you want to synchronize Tacview time with an external tool, you should do so only when there is a important delta-time between both tools:
-
-	-- Resynchronize Tacview time only if more there is more than one second difference with the external tool
-
-	if math.abs(Context.GetAbsoluteTime() - externalToolTime) > 1.0 then
-		Context.SetAbsoluteTime(externalToolTime)
-	end
+	Returns nil if no document has been loaded yet.
 
 --------------------------------------------------------------------------------------------------------------------------------
 StaticObjects
@@ -665,7 +694,7 @@ StaticObjects.GetObjectHandleByName( objectName )
 	Retrieve static object handle from its name.
 	The name of the object can be defined via the <name> xml tag in kml files.
 
-	Names are case sensitive and may not be unique.
+	Names are case sensitive. It is recommended to use unique names.
 	This function will return the first matching object.
 	Beware that object handles are volatile and may not be preserved the next time your addon is being called by Tacview.
 
@@ -706,6 +735,7 @@ Telemetry.Tags -- Tacview 1.7.3
 		Telemetry.Tags.Air
 		Telemetry.Tags.Ground
 		Telemetry.Tags.Sea
+		Telemetry.Tags.Space
 
 		Telemetry.Tags.Weapon
 		Telemetry.Tags.Sensor
@@ -725,6 +755,7 @@ Telemetry.Tags -- Tacview 1.7.3
 
 		Telemetry.Tags.FixedWing
 		Telemetry.Tags.Rotorcraft
+		Telemetry.Tags.Spacecraft
 
 		Telemetry.Tags.Armor
 		Telemetry.Tags.AntiAircraft
@@ -759,6 +790,7 @@ Telemetry.Tags -- Tacview 1.7.3
 
 		Telemetry.Tags.Shell
 		Telemetry.Tags.Bullet
+		Telemetry.Tags.Grenade						-- Tacview 1.8.8
 
 		Telemetry.Tags.Flare
 		Telemetry.Tags.Chaff
@@ -942,7 +974,7 @@ Telemetry.GetCurrentTransform( objectHandle ) -- Tacview 1.7.2
 
 		value , validity
 		validity is set to false if the value does not really apply for the given time (typically if the object does not exist at the given time)
-		even when validity is set to false, the value is valid and usable (this simplify the client code)
+		even when validity is set to false, the value is valid and usable (to simplify client code)
 
 Telemetry.GetTransformCount( objectHandle ) -- Tacview 1.8.6
 Telemetry.GetTransformFromIndex( objectHandle , sampleIndex ) -- Tacview 1.8.6
@@ -1212,6 +1244,17 @@ Telemetry.SetLifeTimeEnd( objectHandle , absoluteTime ) -- Tacview 1.7.5
 	Defines the end-of-life of the specified object.
 	Typically used to specify when an object has been destroyed or has been removed from the battlefield.
 
+Telemetry.RemoveTransformSample( objectHandle , absoluteTime ) -- Tacview 1.8.7
+Telemetry.RemoveTransformSampleFromIndex( objectHandle , sampleIndex ) -- Tacview 1.8.7
+
+	Delete transform value at the specified time or index.
+	This could change the life spawn of an object.
+
+	Return value:
+
+		true if the operation has succeeded
+		false if one of the parameter is out-dated (because of real-time telemetry change for example)
+
 Telemetry.RemoveNumericSample( objectHandle , absoluteTime , propertyIndex ) -- Tacview 1.8.0
 Telemetry.RemoveNumericSampleFromIndex( objectHandle , sampleIndex , propertyIndex ) -- Tacview 1.8.0
 Telemetry.RemoveTextSample( objectHandle , absoluteTime , propertyIndex ) -- Tacview 1.8.0
@@ -1250,6 +1293,13 @@ Telemetry.GetObjectId( objectHandle ) -- Tacview 1.7.6
 
 	Beware that object ids can be recycled and cannot uniquely identify objects.
 	For that reason, avoid using them, unless it is for telemetry injection (event creation) or export.
+
+Telemetry.GetCurrentParentHandle( childObjectHandle ) -- Tacview 1.8.8
+
+	Retrieve given object parent handle (if any).
+
+	This function will either return the handle of the object's parent as per the object's "Parent" property,
+	or the handle of the object which Tacview determines is most likely to be the parent. 
 
 Telemetry.OnLoadStart( mergeWithExistingData ) -- Tacview 1.8.5
 
@@ -1384,3 +1434,265 @@ Terrain.GetElevation( longitude , latitude ) -- Tacview 1.7.5
 
 	Retrieve given point elevation in meter.
 	Longitude and latitude are in radian.
+
+Terrain.AddCustomTexture( textureId , layerId , fileName , filter , topLeftLongitude , topLeftLatitude , topRightLongitude , topRightLatitude , bottomRightLongitude , bottomRightLatitude , bottomLeftLongitude , bottomLeftLatitude ) -- Tacview 1.8.7
+
+	Declare a new custom texture which will be visible by default.
+
+	Each custom texture is uniquely identified via its text textureId.
+
+	Use layerId to display the texture only when data from a specific source is loaded,
+	leave it blank to load the texture regardless of the simulator. It is not currently possible to specify multiple layers for one texture.
+
+	Currently supported layers:
+
+		- "Real World"
+		- "DCS World"
+		- "Falcon 4"
+		- "IL2"
+		- "EECH"
+
+	NOTE: X-Plane and Microsoft Flight Simulator / P3D will use the "Real World" layer.
+
+	FileName is a case sensitive name of the texture file stored in %ProgramData%\Tacview\Data\Terrain\Textures\ or %APPDATA%\Tacview\Data\Terrain\Textures\
+
+	Currently supported file format/extension:
+
+		- webp
+		- png
+		- jpg/jpeg
+		- tga
+
+	Use the filter parameter to choose the way the texture is overlaid onto the terrain:
+		- nil: original (using texture native alpha channel when available for blend)
+		- "Translucent": 50% translucent picture
+		- "AdaptiveGreyScale": adaptive grey scale layer
+		- "AdaptiveColor": adaptive color layer
+
+	When fully qualitied such as "IL2-BoS.png", Tacview will load the image with the specified filter.
+
+	If the file name is specified without any extension (e.g. "DCS-Caucasus4Tacview-v1"), Tacview will attempt to load any image starting with
+	the name followed by a special character specifying the way the texture will be displayed:
+
+		- T: 50% translucent picture
+		- B: adaptive grey scale layer
+		- C: adaptive color layer
+
+	For example:
+
+		"IL2-BoS.png" will load the file "\Data\Terrain\Textures\IL2-BoS.png"
+		"DCS-Caucasus4Tacview-v1" will load the file "\Data\Terrain\Textures\DCS-Caucasus4Tacview-v1T.png" and display it half translucent over the base layer.
+
+	The texture coordinates are in radian, and the projection will be quadratic.
+
+	NOTE: Tacview will automatically cache any declared texture, there is no need to explicitly load/unload a texture.
+
+	NOTE: Because of the way Tacview manages files resources, it will not be able to display a new picture which did not exist on the disk
+	before the application start. A work around that limitation, is to provide a full path for your texture file, this will bypass Tacview file manager and
+	directly load the data. The picture will still be cached, this will not degrade loading performances.
+
+Terrain.ShowCustomTexture( textureId ) -- Tacview 1.8.7
+Terrain.HideCustomTexture( textureId ) -- Tacview 1.8.7
+
+	Show or hide previously declared custom texture either in \Data\Terrain\Textures\CustomTextureList.xml or via Terrain.AddCustomTexture()
+	textureId is a text which uniquely identify the texture.
+
+--------------------------------------------------------------------------------------------------------------------------------
+Path
+
+Path.GetDirectoryName( path ) -- Tacview 1.8.7
+
+	Retrieve the name of the directory contained in the provided path.
+
+	For example:
+
+		Path.GetDirectoryName("C:\MyDir\MySubDir\myfile.ext")
+
+			will returns -> "C:\MyDir\MySubDir\"
+
+Path.GetFileName( path ) -- Tacview 1.8.7
+
+	Returns the file name and extension of the specified path string.
+
+	For example:
+
+		Path.GetDirectoryName("C:\MyDir\MySubDir\myfile.ext")
+
+			will returns -> "myfile.ext"
+
+--------------------------------------------------------------------------------------------------------------------------------
+Directory
+
+Directory.CreateDirectory( directoryName ) -- Tacview 1.8.7
+
+	Creates all directories and subdirectories in the specified path unless they already exist.
+
+	returns true if successful
+
+Directory.Delete( directoryName [, recursive ] ) -- Tacview 1.8.7
+
+	if recursive is true, then deletes the specified directory and any subdirectories and files in the directory.
+	otherwise delete the directory only if it is empty.
+
+	returns true if successful
+
+Directory.GetFiles( directoryName [, recursive ] ) -- Tacview 1.8.7
+
+	Returns the names of files (including their paths) in the specified directory.
+
+--------------------------------------------------------------------------------------------------------------------------------
+RemoteControl
+
+	Remote controls can be used to control aircraft as well as mission triggers.
+	You can create as many remote controls as required for your needs.
+	It is also possible to send commands to the four default remote controls of Tacview via a dedicated API.
+
+RemoteControl.GetHandle( remoteControlIndex ) -- Tacview 1.8.7
+
+	Retrieves one of the default remote controls of Tacview.
+	This could be handy to use the connection parameters provided by the user.
+	Otherwise, it is easier to simply create you own brand new remote controls via the functions listed below.
+
+	There are currently 4 default remote controls (from 0 to 3).
+
+	Return value:
+
+		corresponding remote control handle.
+		nil if the index is invalid.
+
+RemoteControl.Create() -- Tacview 1.8.7
+RemoteControl.Delete( remoteControlHandle ) -- Tacview 1.8.7
+
+	Creates a new custom remote control. Returns the newly created remote-control handle.
+
+	Unlike for the default remove controls, no UI will be displayed,
+	if you need a UI, you can use Tacview dialog boxes API to create a custom one.
+
+RemoteControl.Connect( remoteControlHandle , address , port , password , userName) -- Tacview 1.8.7
+RemoteControl.Disconnect( remoteControlHandle ) -- Tacview 1.8.7
+
+	Connects the specified remote control to a simulator.
+	Make sure the appropriate Tacview exporter (for DCS, MSFS, XPL, P3D) is installed on the simulator system.
+	Password will be ignored by the host simulator if the connection is not protected.
+	Username may be displayed on screen and stored in logs as a reference.
+
+	Return value:
+
+		true if the connection operation is in progress.
+
+	NOTE: This is an asynchronous operation, a return of true does not mean the connection has been established yet.
+	You must IsActive() or GetStatus() once par update to know if the connection is successful or have been dropped.
+
+	The connection should be instantaneous. Otherwise:
+	 - The exporter is not installed or not running on the target system.
+	 - The remote control feature of the exporter is not enabled in the options (it is off by default).
+	 - The connection is protected by a password, and the password provided is incorrect.
+	 - A firewall issue (check if this work on your local system via 127.0.0.1)
+
+	The default port for Tacview remote controls is 42675.
+	You can change it in DCS World control panel.
+	There is currently no way to change it for FSX/XPL.
+
+	Example:
+
+		RemoteControl.Connect( remoteControlHandle, "127.0.0.1", 42675, "", "Viper" )
+
+RemoteControl.IsActive( remoteControlHandle ) -- Tacview 1.8.7
+
+	Returns true if the specified remote control is currently establishing a connection or the connection is active.
+
+RemoteControl.GetStatus( remoteControlHandle ) -- Tacview 1.8.7
+
+	Returns the detailed status of the connection:
+
+RemoteControl.Status
+
+	Contains the following constants identifying the remote control status:
+
+	-- Operation not yet (never) started
+
+	NotStarted
+
+	-- Connection in progress IsActive()==true
+
+	Connecting
+	Connected
+
+	-- End of connection (success)
+
+	DisconnectedByRemotePeer
+	CanceledByLocalPeer
+
+	-- End of connection (failure)
+
+	UnsupportedProtocol
+	WrongPassword
+	ConnectionFailed
+
+RemoteControl.GetPeerName( remoteControlHandle ) -- Tacview 1.8.7
+
+	Retrieve the name of the user currently flying in the simulator the remote control is connected to.
+
+RemoteControl.SendCommand( remoteControlHandle , command , [ parameter ] ) -- Tacview 1.8.7
+
+	Send the specified command to a simulator via a connected remote control.
+	Note that not all commands are supported by all simulators.
+
+	The command is a text string containing an instruction followed by parameter when applicable:
+
+		-- General control
+
+			"General.Pause"		-- Pauses the simulator
+			"General.Resume"	-- Resume the simulation
+
+			"General.Respawn"	-- Respawn current user
+
+		-- Aircraft systems
+
+			"FlightControl.Flaps.Up"
+			"FlightControl.Flaps.Down"
+
+			"System.LandingGear.Up"
+			"System.LandingGear.Down"
+
+			"System.Eject"
+			"System.Smoke"
+
+		-- Flight controls
+
+			"Axis.Roll.Value,<value>"
+			"Axis.Pitch.Value,<value>"
+			"Axis.Yaw.Value,<value>"
+			"Axis.Throttle.Value,<value>"
+
+		-- Mission commands
+
+			"Custom.Command,<flag_number>,<flag_value>"
+
+	parameter is optional and used to specify the argument of the command when applicable
+
+		float used to specify axis value (generally from -1.0 to +1.0)
+		integer used to specify flag id to set
+
+	Flight control values are floats: -1 is full left/down, +1 is full right/up.
+
+		To prevent jittering, controls values will remain in the requested position for 0.5 second after the last injection.
+		If you want the control to go to neutral instantaneously, you must then explicitly inject 0.0.
+
+		After 0.5 seconds, the simulator may return the control to its previous position.
+		Which could be centered or any position the physical joystick connected to the simulator could be for example.
+
+		Examples:
+
+			RemoteControl.SendCommand( remoteControlHandle , "System.LandingGear.Up" )
+			RemoteControl.SendCommand( remoteControlHandle , "Axis.Pitch.Value" , 0.25 )		-- slight pitch up
+			RemoteControl.SendCommand( remoteControlHandle , "Axis.Throttle.Value" , 1 )		-- 100% throttle
+
+	Mission commands will set corresponding numeric flags to the specified values
+
+		If you want to set the flag 33 to 127 send the following command:
+
+			"Custom.Command,33,127"
+
+		Then, in your simulator (typically DCS World for now), you can define a trigger which is going to do something
+		(such as trigging a patrol) as soon as the flat number 33 is set to the value 127.

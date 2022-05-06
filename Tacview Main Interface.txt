@@ -1,7 +1,7 @@
 --------------------------------------------------------------------------------------------------------------------------------
 
-	Tacview 1.8.5 Lua General Interface
-	Last update: 2020-09-29
+	Tacview 1.8.7 Lua General Interface
+	Last update: 2021-07-13
 
 --------------------------------------------------------------------------------------------------------------------------------
 
@@ -654,7 +654,7 @@ UI.Renderer.Print( transform , renderStateHandle , text ) -- Tacview 1.7.3
 
 	transform =
 	{
-		-- If the cartesian xyz position in the Earth global space is not provided, it will be calculated based on the spherical position (longitude, latitude, altitude).
+		-- 0,0 is the bottom left corner of the screen
 
 		x = number,
 		y = number,
@@ -745,6 +745,21 @@ Context
 
 	This contains all the information relative the telemetry representation on screen.
 	NOTE: See Lua Core Interface for additional functions.
+
+Context.SetAbsoluteTime( absoluteTime ) -- Tacview 1.7.6
+
+	Set current telemetry time for data playback in seconds since 1970-01-01
+
+	NOTE: DO NOT force the time at every frame, especially during real-time telemetry recording.
+	This would conflict with Tacview internal time update leading to 3D view stutter.
+
+	If you want to synchronize Tacview time with an external tool, you should do so only when there is a important delta-time between both tools:
+
+	-- Resynchronize Tacview time only if more there is more than one second difference with the external tool
+
+	if math.abs(Context.GetAbsoluteTime() - externalToolTime) > 1.0 then
+		Context.SetAbsoluteTime(externalToolTime)
+	end
 
 Context.GetSelectedObject( objectIndex ) -- Tacview 1.7.2
 
@@ -863,15 +878,32 @@ Media
 
 	Functions to control synchronized audio/video media playback
 
-Media.Load( playerId , fileName , absoluteTime ) -- Tacview 1.8.5
+Media.Load( playerId , fileName [, absoluteTime] ) -- Tacview 1.8.5
 
 	Loads the specified media file in one of Tacview audio/video media player.
 
 	playerId: Index of the player (0 to 3) where the media file must be loaded. This may replace any media previously loaded in the corresponding player.
+
 	fileName: Full qualified path to the media file to be loaded.
-	absoluteTime: Unix timestamp corresponding to the beginning of the media. Tacview will automatically synchronize the media playback with any telemetry data currently loaded.
+
+	absoluteTime (optional):
+		Unix timestamp corresponding to the beginning of the media. Tacview will automatically synchronize the media playback
+		with any telemetry data currently loaded. If this parameter is not specified, Tacview will automatically synchronize
+		the media with the telemetry based on meta-data or time stamp in the file name.
 
 	Returns true if the media file has been successfully loaded. A failure may indicate an invalid path or a missing audio/video codec.
 
 	Because Tacview uses audio/video codecs installed on your system to playback media, make sure that you have installed any necessary pack. 
 	Recommended codec pack: https://codecguide.com/download_k-lite_codec_pack_basic.htm
+
+Media.Unload( playerId ) -- Tacview 1.8.7
+
+	Close the media currently loaded in the specified player.
+	Has no effect if no media is currently loaded.
+
+	This function does not close the corresponding media window.
+
+Media.Close( playerId ) -- Tacview 1.8.7
+
+	Close the specified player window.
+	The opened media will be temporarily closed until the window is reopened.
