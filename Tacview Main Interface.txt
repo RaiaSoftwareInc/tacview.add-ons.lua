@@ -1,7 +1,7 @@
 --------------------------------------------------------------------------------------------------------------------------------
 
-	Tacview 1.8.7 Lua General Interface
-	Last update: 2021-07-13
+	Tacview 1.9.0 Lua General Interface
+	Last update: 2023-01-16
 
 --------------------------------------------------------------------------------------------------------------------------------
 
@@ -288,6 +288,13 @@ UI.Menus.AddCommand( parentMenuId , textLabel , function ) -- Tacview 1.7.2
 	You can specify the id of a parent menu, or you can use nil to insert your menu in Tacview addons main menu.
 	function will be called whenever this very menu command has been clicked.
 
+	Callback signature:
+
+		Tacview specifies the item id when calling the menu callback.
+		Therefore you can use the same callback for several similar menu items.
+
+		MenuCallback( commandId )
+
 	Return value:
 
 		a menu id (integer) which can be used late to insert sub items or to remove the menu.
@@ -326,6 +333,22 @@ UI.Renderer.GetWidth() -- Tacview 1.7.2
 UI.Renderer.GetHeight() -- Tacview 1.7.2
 
 	Retrieve the renderer height in pixels or nil when not in a draw event.
+
+UI.Renderer.GetProjectedPosition( objectHandle ) -- Tacview 1.9.0
+
+	Retrieve the specified telemetry object 2D position in the 3D view.
+	This function can be useful to display a 2D text of graphic next to the specified object in the 3D view.
+
+	Return value:
+
+		x, y
+
+		or
+
+		nil
+
+	X and Y are the last valid projected position in the 3D view.
+	If the object is not currently being displayed, this function returns nil
 
 UI.Renderer.LoadTexture( texturePath [, wrapRepeat [, compressed] ) -- Tacview 1.7.3
 UI.Renderer.UnloadTexture( textureHandle ) -- Tacview 1.7.3
@@ -416,8 +439,8 @@ UI.Renderer.ReleaseRenderState( renderStateHandle ) -- Tacview 1.7.2
 
 		handle (integer) of the compiled state or nil if the array is invalid.
 
-UI.Renderer.DrawLines( renderStateHandle , thickness , vertexArray ) -- Tacview 1.8.4
-UI.Renderer.DrawLineStrip( renderStateHandle , thickness , vertexArray ) -- Tacview 1.8.4
+UI.Renderer.DrawLines( renderStateHandle , thickness , vertices ) -- Tacview 1.8.4
+UI.Renderer.DrawLineStrip( renderStateHandle , thickness , vertices ) -- Tacview 1.8.4
 
 	Draw the given lines or linestrip. Can be used during opaque and transparent rendering phase.
 	Will work for both 2D and 3D rendering.
@@ -434,7 +457,7 @@ UI.Renderer.DrawLineStrip( renderStateHandle , thickness , vertexArray ) -- Tacv
 
 	You can optionally specify a rgba attribute per line:
 
-	vertexArray =
+	vertices =
 	{
 		{x, y, z},
 		...
@@ -442,7 +465,7 @@ UI.Renderer.DrawLineStrip( renderStateHandle , thickness , vertexArray ) -- Tacv
 
 	or
 
-	vertexArray =
+	vertices =
 	{
 		{x, y, z, rgba_color},
 		...
@@ -482,14 +505,89 @@ UI.Renderer.DrawObjectVertexArray( transform , renderStateHandle , vertexArrayHa
 
 	Draw the given 3D model (from a previous call to UI.Renderer.CreateVertexArray) using the given state (from a previous call to UI.Renderer.CreateRenderState) at the given position/rotation/scale in the 3D view.
 	State and vertex array must be created only ONCE.
-	DO NOT re-declare the state and/or the vertex array at each draw call, this will result in a resource leak.
+	DO NOT re-declare the state and/or the vertex array at each draw call, this would result in a resource leak.
+
+UI.Renderer.DrawUITriangleList( transform , renderStateHandle , vertices ) -- Tacview 1.9.0
+UI.Renderer.DrawUITriangleStrip( transform , renderStateHandle , vertices [, textureCoordinates] ) -- Tacview 1.9.0
+
+	Draw the given triangle list or triangle strip. Can be used during opaque and transparent rendering phase.
+
+	This function is efficient to draw dynamic shapes. If you want to efficiently display a 3D model which does not change,
+	use a precompiled vertex array with UI.Renderer.DrawUIVertexArray() instead.
+
+	transform =
+	{
+		-- Mandatory screen coordinates
+
+		x = number,
+		y = number,
+		z = number,				-- 0 by default
+
+		-- Optional orientation
+
+		roll = radian,
+		pitch = radian,
+		yaw = radian,
+
+		-- Optional uniform scale
+
+		scale = number
+
+		-- Optional non-uniform scale
+
+		scaleX = number
+		scaleY = number
+	}
+
+	During the UI pass, 2D coordinates are like the following:
+
+	UI.Renderer.GetHeight()
+
+	    ^
+	    |transform.Y
+	    |
+	    |
+	    |      transform.x
+	    +------------------> UI.Renderer.GetWidth()
+	   0,0
+
+	Note that alpha channel of your colors and the blendMode of renderState will work only during the transparent phase.
+	Textures are not supported.
+
+	DrawUITriangleList will display independent lines listed in the vertex array which must have an even number of vertices.
+	DrawUITriangleStrip will display one strip starting at the first vertex up to the last vertex point.
+
+	You can optionally specify a rgba attribute per line:
+
+	vertices =
+	{
+		{x, y, z},
+		...
+	}
+
+	or
+
+	vertices =
+	{
+		{x, y, z, rgba_color},
+		...
+	}
 
 UI.Renderer.DrawUIVertexArray( transform , renderStateHandle , vertexArrayHandle ) -- Tacview 1.7.2
 UI.Renderer.DrawUIVertexArray( transform , renderStateHandle , vertexArrayHandle [, textureCoordinateArrayHandle] ) -- Tacview 1.7.3
 
+	Draw the given 2D/3D model (from a previous call to UI.Renderer.CreateVertexArray) using the given state (from a previous call to UI.Renderer.CreateRenderState())
+	at the given position/rotation/scale on top of the 3D view.
+
 	renderStateHandle is an integer previously returned by UI.Renderer.CreateRenderState()
 	vertexArrayHandle is an integer previously returned by UI.Renderer.CreateVertexArray()
 	textureCoordinateArrayHandle is an optional integer previously returned by UI.Renderer.CreateTextureCoordinateArray()
+
+	State and vertex array must be created only ONCE.
+	DO NOT re-declare the state and/or the vertex array at each draw call, this will result in a resource leak.
+
+	This function is efficient to draw static shapes. If you want to efficiently display a 3D model which change at every frame,
+	use a dynamic vertex array with UI.Renderer.DrawUITriangle*() instead.
 
 	transform =
 	{
@@ -527,10 +625,6 @@ UI.Renderer.DrawUIVertexArray( transform , renderStateHandle , vertexArrayHandle
 	    |      transform.x
 	    +------------------> UI.Renderer.GetWidth()
 	   0,0
-
-	Draw the given 2D/3D model (from a previous call to UI.Renderer.CreateVertexArray) using the given state (from a previous call to UI.Renderer.CreateRenderState()) at the given position/rotation/scale on top of the 3D view.
-	State and vertex array must be created only ONCE.
-	DO NOT re-declare the state and/or the vertex array at each draw call, this will result in a resource leak.
 
 UI.Renderer.DrawOpaqueObject( objectHandle , transform [, alpha ]] ) -- Tacview 1.7.2
 UI.Renderer.DrawTransparentObject( objectHandle , transform [, alpha ]] ) -- Tacview 1.7.2
@@ -573,31 +667,6 @@ UI.Renderer.Load3DModel( fileName ) -- Tacview 1.8.5
 
 	Loads the specified 3D model in memory.
 
-	transform =
-	{
-		-- If the spherical position in not provided, Tacview will use cartesian xyz position in the Earth global space
-
-		x = number,
-		y = number,
-		z = number,
-
-		-- Spherical position will be used in priority to render the object
-
-		longitude = radian,
-		latitude = radian,
-		altitude = meters,
-
-		-- Optional rotation info
-
-		roll = radian,
-		pitch = radian,
-		yaw = radian,
-
-		-- Optional scale
-
-		scale = number
-	}
-
 	You can scale the object or set scale to -1 for automatic scale (depending on user settings)
 
 	Note this is an asynchronous operation. If this is the first time, the model is requested,
@@ -635,6 +704,31 @@ UI.Renderer.Draw3DModel( modelHandle , transform , color ) -- Tacview 1.8.5
 	 - And you render translucent objects in your Events.DrawTransparentObjects callback.
 
 	Otherwise you will get waste performance in the best case, and display errors or artifacts in the worst case.
+
+	transform =
+	{
+		-- If the spherical position in not provided, Tacview will use cartesian xyz position in the Earth global space
+
+		x = number,
+		y = number,
+		z = number,
+
+		-- Spherical position will be used in priority to render the object
+
+		longitude = radian,
+		latitude = radian,
+		altitude = meters,
+
+		-- Optional rotation info
+
+		roll = radian,
+		pitch = radian,
+		yaw = radian,
+
+		-- Optional scale
+
+		scale = number
+	}
 
 UI.Renderer.DrawSemiTransparent3DModel( modelHandle , transform , color ) -- Tacview 1.8.6
 
@@ -708,21 +802,31 @@ Events.DrawOpaqueObjects.RegisterListener( function ) -- Tacview 1.7.2
 Events.DrawTransparentObjects.RegisterListener( function ) -- Tacview 1.7.2
 
 	Once a frame, Tacview will call your function to draw 3D objects in the 3D view.
-	There is one pass for the opaque 3D models and one pass for the transparent models.
+	There is one pass for the opaque 3D models and one pass for the transparent models:
+
+		DrawOpaqueObjects()
+		DrawTransparentObjects()
+
 	See UI.Renderer.DrawObjectVertexArray() and UI.Renderer.DrawOpaqueObject() to draw objects in the 3D world.
 
 Events.DrawOpaqueUI.RegisterListener( function ) -- Tacview 1.7.2
 Events.DrawTransparentUI.RegisterListener( function ) -- Tacview 1.7.2
 
 	Once a frame, Tacview will call your function to draw 2D transparent foreground UI on top of the 3D view.
-	You function will not receive any parameter.
+	You function will not receive any parameter:
+
+		DrawOpaqueUI()
+		DrawTransparentUI()
+
 	See UI.Renderer.DrawUIVertexArray() to draw your UI on top of the 3D view.
 
 Events.DrawTransparentObjectsNear.RegisterListener( function ) -- Tacview 1.8.6
 
 	Once a frame, Tacview will call your function to draw 3D transparent foreground objects on top of the 3D view.
-
 	This function is typically usefully to display a cockpit for example.
+
+		DrawTransparentObjectsNear()
+
 	Because drawing a cockpit in the normal view may display some zbuffer artifacts,
 	this function provides an opportunity to render a cockpit without any zbuffer.
 
@@ -731,9 +835,11 @@ Events.PowerSave.RegisterListener( function ) -- Tacview 1.8.5
 	Use this callback if you addon need several updates to complete a specific task.
 	If your addon task needs at least another update to complete its job, you can return false, to prevent Tacview from idling.
 
+		PowerSave()
+
 	NOTE: This callback may never be called or be called at "random" times.
 	Do not count on it to update data or to make any calculations. You must only return a status.
-	Calculations must be made via the Events.Update() callback.
+	Calculations must be made in your Events.Update() callback.
 
 	WARNING: DO NOT abuse this function.
 	Return false, only if necessary. For instance, whenever the user is waiting for the result of a calculation which takes several updates.

@@ -1,7 +1,7 @@
 --------------------------------------------------------------------------------------------------------------------------------
 
-	Tacview 1.8.7 Lua Core Interface
-	Last update: 2021-07-13
+	Tacview 1.9.0 Lua Core Interface
+	Last update: 2022-12-05
 
 --------------------------------------------------------------------------------------------------------------------------------
 
@@ -708,6 +708,17 @@ StaticObjects.SetVisible( staticObjectHandle , isVisible )
 	Show or hide given object.
 	You can use StaticObjects.GetHandleByName() to retrieve the handle of the object you would like to show/hide.
 
+StaticObjects.IsPointInside( staticObjectHandle , longitude , latitude , altitude )
+
+	Check if the given coordinates are located inside or outside of the specified object.
+	The object must be a 2D or extruded polygon.
+	The altitude is verified only if the object is an extruded polygon. It is ignored for 2D polygons.
+
+	Return value:
+
+		true is the given coordinates are inside the specified object.
+		false in all other cases (including errors).
+
 --------------------------------------------------------------------------------------------------------------------------------
 Telemetry
 
@@ -844,6 +855,12 @@ Telemetry.Property -- Tacview 1.7.6
 		Telemetry.Property.Numeric.MinRange
 		Telemetry.Property.Numeric.MaxRange
 
+		-- Numeric properties (Tacview 1.9.0)
+
+		Telemetry.Property.Numeric.TriggerPressed
+		Telemetry.Property.Numeric.HeartRate
+		Telemetry.Property.Numeric.SpO2
+
 Telemetry.Clear() -- Tacview 1.7.2
 
 	Purge all telemetry data currently loaded in memory.
@@ -943,6 +960,9 @@ Telemetry.GetCurrentTransform( objectHandle ) -- Tacview 1.7.2
 	Some objects (typically bullets) may not have all the information available.
 	For example, the rotation information may not be available for all aircraft.
 	Native coordinates correspond the original coordinates in the source flight simulator (typically for BMS and DCS).
+
+	For performance reasons, angles retrieved by the telemetry manager are *NOT* always normalized between ]-π,+π]
+	Do not forget to normalize angles before displaying then as text to the final user!
 
 	Return value:
 
@@ -1179,12 +1199,6 @@ Telemetry.SetTransform( objectHandle , absoluteTime , transform ) -- Tacview 1.7
 
 	absoluteTime is a 64-bit floating point number which represents the number of seconds elapsed to 1970-01-01T00:00:00Z
 
-	Injected angles (including longitude and latitude) MUST be normalized between ]-π,+π]
-	Failure to do so may produce undefined results with some formulas.
-
-	For performance reasons, angles retrieved by the telemetry manager are *NOT* always normalized between ]-π,+π]
-	Do not forget to normalize angles before displaying then as text to the final user!
-
 	-- non specified members will be set to the interpolated value of the preceding and following samples.
 	-- it is also possible to replace only the specified members of an existing sample.
 
@@ -1198,9 +1212,9 @@ Telemetry.SetTransform( objectHandle , absoluteTime , transform ) -- Tacview 1.7
 
 		-- Rotation
 
-		f32 roll;			-- (radian) roll axis rotation
-		f32 pitch;			-- (radian) pitch axis rotation
-		f32 yaw;			-- (radian) yaw axis rotation
+		f32 roll;			-- (radian) roll axis rotation (positive when rolling the aircraft to the right)
+		f32 pitch;			-- (radian) pitch axis rotation (positive when taking-off)
+		f32 yaw;			-- (radian) yaw axis rotation (clockwise relative to the true north)
 
 		-- Native coordinates, mostly used to get accurate distance and speed calculation for flat world simulators.
 
@@ -1519,6 +1533,31 @@ Path.GetFileName( path ) -- Tacview 1.8.7
 		Path.GetDirectoryName("C:\MyDir\MySubDir\myfile.ext")
 
 			will returns -> "myfile.ext"
+
+Path.GetSpecialDirectoryName( directoryId ) -- Tacview 1.9.0
+
+	Retrieve the full path of a particular directory.
+
+	Because special folders locations my vary depending on the username and language, it is strongly
+	Recommended to use this function to retrieve the property location of a specific folder.
+	Otherwise, if you hardcode paths, your addon may not work on some systems or with some specific settings.
+
+	directoryId could be one of the following:
+
+		"UserApplicationData"
+		"UserDocuments"
+		"UserSavedGames"
+		"SystemApplicationData"
+		"Temp"
+
+	NOTE:
+
+		Use this function mainly to output data or read external data.
+		DO NOT use this function to locate and read your addon resources. Use instead: AddOns.Current.GetPath()
+
+	Example:
+
+		Path.GetSpecialDirectoryName( "SystemApplicationData" ) would return "C:\ProgramData\" on some systems.
 
 --------------------------------------------------------------------------------------------------------------------------------
 Directory
