@@ -5,6 +5,9 @@
 
 // History:
 
+//2023-03-09 (Updated by BuzyBee)
+// * FIXED bug - hits reported as kills
+
 // 2021-07-28 (Updated by BuzyBee)
 // * ADDED aircraft identification photos for new aircraft
 // * ADDED Occurrences of multiple projectiles fired at the same time. 
@@ -356,15 +359,56 @@ class tacview
 						break;
 
 					case "HasFired":
-
-						$this->increaseStat($this->stats[$primaryObjectPilot], "Fired", "Count");
-						$this->increaseStat($this->stats[$primaryObjectPilot], "Fired", $event["SecondaryObject"]["Name"]);
+					
+						if	(	array_key_exists("SecondaryObject",$event) and
+								array_key_exists("Type",$event["SecondaryObject"]) and
+								$event["SecondaryObject"]["Type"] != "Parachutist"
+							)
+						{
+							$this->increaseStat($this->stats[$primaryObjectPilot], "Fired", "Count");
+							$this->increaseStat($this->stats[$primaryObjectPilot], "Fired", $event["SecondaryObject"]["Name"]);
+						}
 
 						break;
-
+						
 					case "HasBeenDestroyed":
 
 						$this->increaseStat($this->stats[$primaryObjectPilot], "Destroyed", "Count");
+						
+						if (	array_key_exists("SecondaryObject",$event) and
+								array_key_exists("Pilot", $event["SecondaryObject"]) 
+							)
+						{							
+							$secondaryObjectPilot = $event["SecondaryObject"]["Pilot"];
+							
+							if (!isset($this->stats[$secondaryObjectPilot]))
+							{
+								// If Pilot of Seconday Object does not exist  yet, create them.
+
+								$this->stats[$secondaryObjectPilot]["Aircraft"] = $event["SecondaryObject"]["Name"];
+								$this->stats[$secondaryObjectPilot]["Group"]    = $event["SecondaryObject"]["Group"];
+
+								if (!array_key_exists("Events", $this->stats[$secondaryObjectPilot]))
+								{
+									$this->stats[$secondaryObjectPilot]["Events"] = array();
+								}
+								
+							}
+							
+							array_push($this->stats[$secondaryObjectPilot]["Events"], $event);
+						}
+						else
+						{
+							continue;
+						}							
+							
+						if (!array_key_exists("Killed", $this->stats[$secondaryObjectPilot]))
+						{
+							$this->stats[$secondaryObjectPilot]["Killed"] = array();
+						}
+	
+						$this->increaseStat($this->stats[$secondaryObjectPilot]["Killed"], $event["PrimaryObject"]["Type"], "Count"); 
+						$this->increaseStat($this->stats[$secondaryObjectPilot]["Killed"], $event["PrimaryObject"]["Type"], $event["PrimaryObject"]["Name"]);
 
 						break;
 
@@ -373,50 +417,45 @@ class tacview
 						$this->increaseStat($this->stats[$primaryObjectPilot], "Hit", "Count");
 						$this->increaseStat($this->stats[$primaryObjectPilot], "Hit", $event["SecondaryObject"]["Name"]);
 
-						if (	array_key_exists("ParentObject",$event) and
-								array_key_exists("Pilot", $event["ParentObject"]) and
-								$event["ParentObject"]["Pilot"] != "" and
-								substr($event["ParentObject"]["Pilot"], 0, 6) != "Pilot")
+						if 	(	array_key_exists("ParentObject",$event) and
+								array_key_exists("Pilot", $event["ParentObject"])
+							)
 						{
 
 							$parentObjectPilot = $event["ParentObject"]["Pilot"];
-
-							// Friendly Fire
-
-							if ($event["ParentObject"]["Coalition"] == $event["PrimaryObject"]["Coalition"])
+							
+							if (!isset($this->stats[$parentObjectPilot]))
 							{
-								$this->increaseStat($this->stats[$parentObjectPilot], "FriendlyFire", "Count");
-								$this->increaseStat($this->stats[$parentObjectPilot], "FriendlyFire", $event["PrimaryObject"]["Name"]);
-							}
-							elseif (!isset($this->stats[$parentObjectPilot]))
-							{
-								// pilota non ancora inserito -> viene creato il ramo
-
+								// If Pilot of Parent Object does not exist yet, create them.
+	
 								$this->stats[$parentObjectPilot]["Aircraft"] = $event["ParentObject"]["Name"];
 								$this->stats[$parentObjectPilot]["Group"]    = $event["ParentObject"]["Group"];
-
+	
 								if (!array_key_exists("Events", $this->stats[$parentObjectPilot]))
 								{
 									$this->stats[$parentObjectPilot]["Events"] = array();
 								}
-
-								array_push($this->stats[$parentObjectPilot]["Events"], $event);
-
-								// fine creazione ramo
-
 							}
-
-							if (!array_key_exists("Killed", $this->stats[$parentObjectPilot]))
-							{
-								$this->stats[$parentObjectPilot]["Killed"] = array();
-							}
-
-							$this->increaseStat($this->stats[$parentObjectPilot]["Killed"], $event["PrimaryObject"]["Type"], "Count"); // Fix bug display Kill change from SecondaryObject to ParentObject
-							$this->increaseStat($this->stats[$parentObjectPilot]["Killed"], $event["PrimaryObject"]["Type"], $event["SecondaryObject"]["Name"]); // Fix bug display Kill change from SecondaryObject to ParentObject*/
-
+													
+							array_push($this->stats[$parentObjectPilot]["Events"], $event);
 						}
-						break;
+						else
+						{
+							continue;
+						}
 
+						// Friendly Fire?
+
+							if 	(	array_key_exists("Coalition", $event["ParentObject"]) and
+									array_key_exists("Coalition",$event["PrimaryObject"]) and
+									$event["ParentObject"]["Coalition"] == $event["PrimaryObject"]["Coalition"]
+								)
+						{
+								$this->increaseStat($this->stats[$parentObjectPilot], "FriendlyFire", "Count");
+								$this->increaseStat($this->stats[$parentObjectPilot], "FriendlyFire", $event["PrimaryObject"]["Name"]);
+						}
+											
+						break;
 				}
 			}
 			elseif ($event["PrimaryObject"]["Type"] == "Tank" or
@@ -429,29 +468,27 @@ class tacview
 					switch ($event["Action"])
 					{
 						case "HasBeenHitBy":
-
-							if (	array_key_exists("ParentObject",$event) and
-									array_key_exists("Pilot", $event["ParentObject"]) and
-									$event["ParentObject"]["Pilot"] != "" and
-									substr($event["ParentObject"]["Pilot"], 0, 6) != "Pilot")
+						
+							if 	(	array_key_exists("ParentObject",$event) and
+									array_key_exists("Pilot", $event["ParentObject"])
+								)
 							{
-									$parentObjectPilot = $event["ParentObject"]["Pilot"];
+								$parentObjectPilot = $event["ParentObject"]["Pilot"];
 
-									if (!isset($this->stats[$parentObjectPilot]))
+								if (!isset($this->stats[$parentObjectPilot]))
+								{
+									// If Pilot of Parent Object does not exist yet, create them.
+
+									$this->stats[$parentObjectPilot]["Aircraft"] = $event["ParentObject"]["Name"];
+									$this->stats[$parentObjectPilot]["Group"]    = $event["ParentObject"]["Group"];
+
+									if (!array_key_exists("Events", $this->stats[$parentObjectPilot]))
 									{
-										// If Pilot of Parent Object does not exist yet, create them.
-
-										$this->stats[$parentObjectPilot]["Aircraft"] = $event["ParentObject"]["Name"];
-										$this->stats[$parentObjectPilot]["Group"]    = $event["ParentObject"]["Group"];
-
-										if (!array_key_exists("Events", $this->stats[$parentObjectPilot]))
-										{
-											$this->stats[$parentObjectPilot]["Events"] = array();
-										}
+										$this->stats[$parentObjectPilot]["Events"] = array();
 									}
+								}
 
-									array_push($this->stats[$parentObjectPilot]["Events"], $event);
-
+								array_push($this->stats[$parentObjectPilot]["Events"], $event);
 							}
 							else
 							{
@@ -460,34 +497,22 @@ class tacview
 
 							// Was it Friendly Fire?
 
-							if ($event["ParentObject"]["Coalition"] == $event["PrimaryObject"]["Coalition"])
+							if 	(	array_key_exists("Coalition", $event["ParentObject"]) and
+									array_key_exists("Coalition",$event["PrimaryObject"]) and
+									$event["ParentObject"]["Coalition"] == $event["PrimaryObject"]["Coalition"]
+								)
 							{
 								  $this->increaseStat($this->stats[$parentObjectPilot], "FriendlyFire", "Count");
 								  $this->increaseStat($this->stats[$parentObjectPilot], "FriendlyFire", $event["PrimaryObject"]["Name"]);
 							}
 
-							/*if (!array_key_exists("Killed", $this->stats[$parentObjectPilot]))
-							{
-							   $this->stats[$parentObjectPilot]["Killed"] = array();
-							}
-
-							$this->increaseStat($this->stats[$parentObjectPilot]["Killed"], $event["PrimaryObject"]["Type"], "Count");
-							$this->increaseStat($this->stats[$parentObjectPilot]["Killed"], $event["PrimaryObject"]["Type"], $event["SecondaryObject"]["Name"]); */
-
-
-							//echo "************************<br>";
-							//echo $event ["SecondaryObject"] ["Pilot"]."<br>";
-							//echo $event ["Time"]."--".$event ["PrimaryObject"]["Type"]."<br>";
-							//echo "************************<br>";
-
 						break;
 
 						case "HasBeenDestroyed":
 
-							if (	array_key_exists("SecondaryObject",$event) and
-									array_key_exists("Pilot", $event["SecondaryObject"]) and
-									$event["SecondaryObject"]["Pilot"] != "" and
-									substr($event["SecondaryObject"]["Pilot"], 0, 6) != "Pilot")
+							if 	(	array_key_exists("SecondaryObject",$event) and
+									array_key_exists("Pilot", $event["SecondaryObject"])
+								)
 							{
 								$secondaryObjectPilot = $event["SecondaryObject"]["Pilot"];
 
@@ -505,19 +530,10 @@ class tacview
 								}
 
 								array_push($this->stats[$secondaryObjectPilot]["Events"], $event);
-
 							}
 							else
 							{
 								continue;
-							}
-
-							// Was it Friendly Fire?
-
-							if ($event["SecondaryObject"]["Coalition"] == $event["PrimaryObject"]["Coalition"])
-							{
-								  $this->increaseStat($this->stats[$secondaryObjectPilot], "FriendlyFire", "Count");
-								  $this->increaseStat($this->stats[$secondaryObjectPilot], "FriendlyFire", $event["PrimaryObject"]["Name"]);
 							}
 
 							if (!array_key_exists("Killed", $this->stats[$event["SecondaryObject"]["Pilot"]]))
@@ -530,12 +546,6 @@ class tacview
 
 						break;
 					}
-
-				//echo '============================================================================';
-				//echo '<pre>'; print_r($event ["PrimaryObject"] ["Name"]); echo " - action:".$event ["Action"]; echo '</pre>';
-				//echo '============================================================================';
-				//echo '<pre>'; print_r($this->stats [$this->sam_enemies [$event ["PrimaryObject"] ["Name"]]] ); echo '</pre>';
-				//echo '****************************************************************************';
 
 				}
 		}
@@ -884,27 +894,7 @@ class tacview
 					}
 				}
 
-				if 	(!isset($stat["Killed"]["Tank"]) or $stat["Killed"]["Tank"]["Count"] == "")
-				{
-					$this->addOutput('<p>(' . $this->L("nothing") . ')</p>');
-				}
-
-				// Kill Car
-
-				$this->addOutput('<span>' . $this->L("killedCar") . ' :</span>');
-
-				if (isset($stat["Killed"]["Car"]) and is_array($stat["Killed"]["Car"]))
-				{
-					foreach ($stat["Killed"]["Car"] as $k => $v)
-					{
-						if ($k != "Count")
-						{
-							$this->addOutput('<p>&nbsp;' . $k . ' (' . $v . ')</p>');
-						}
-					}
-				}
-
-				if 	( !isset($stat["Killed"]["Car"]) or $stat["Killed"]["Car"]["Count"] == "") 
+				if 	(!isset($stat["Killed"]["Car"]) or $stat["Killed"]["Car"]["Count"] == "")
 				{
 					$this->addOutput('<p>(' . $this->L("nothing") . ')</p>');
 				}
@@ -1051,6 +1041,8 @@ class tacview
 			$class = $event["Action"] == "HasBeenHitBy" ? 'rowHit' : 'rowDestroy';
 
 			if (	array_key_exists("SecondaryObject", $event) and 
+					array_key_exists("Coalition", $event["PrimaryObject"]) and
+					array_key_exists("Coalition", $event["SecondaryObject"]) and
 					$event["PrimaryObject"]["Coalition"] == $event["SecondaryObject"]["Coalition"])
 			{
 				$class = "rowTeamKill";
@@ -1060,7 +1052,7 @@ class tacview
 		if ($class != "rowDestroy" && $class != "rowTeamKill")
 		{
 			// echo "clas to coalition:".var_dump($event["PrimaryObject"]);
-			if (isset($event["PrimaryObject"]["Coalition"]))
+			if (array_key_exists("Coalition", $event["PrimaryObject"]) and isset($event["PrimaryObject"]["Coalition"]))
 			{
 				$class = 'row' . $event["PrimaryObject"]["Coalition"];
 			}
@@ -1077,10 +1069,10 @@ class tacview
 		$pilotExists = array_key_exists("Pilot", $event["PrimaryObject"]) and $event["PrimaryObject"]["Pilot"] != "";
 		$groupExists = array_key_exists("Group", $event["PrimaryObject"]) and $event["PrimaryObject"]["Group"] != "";
 
-		if($class == "rowTeamKill")
+		/*if($class == "rowTeamKill")
 		{
-			$lmsg = $lmsg . '<span>*' . $this->L('teamKill') . '*</span> ';
-		}
+			$lmsg = $lmsg . $this->L('teamKill');
+		}*/
 
 		if ($nameExists)
 		{
@@ -1180,6 +1172,16 @@ class tacview
 				}
 
 				$this->addOutput($event["SecondaryObject"]["Name"]);
+
+				break;
+				
+				
+			case "HasBeenDestroyed":
+			
+				if (array_key_exists("SecondaryObject",$event) and array_key_exists("Pilot",$event["SecondaryObject"]))
+				{				
+					$this->addOutput(' by ' . $event["SecondaryObject"]["Pilot"]);
+				}
 
 				break;
 		}
