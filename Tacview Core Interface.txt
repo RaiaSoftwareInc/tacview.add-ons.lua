@@ -1111,7 +1111,7 @@ Telemetry.GetTurnRate( objectHandle , absoluteTime , dt ) -- Tacview 1.8.4
 Telemetry.GetCurrentTurnRate( objectHandle ) -- Tacview 1.8.4
 Telemetry.GetCurrentTurnRate( objectHandle , dt ) -- Tacview 1.8.4
 
-	Returns given object turn rate in degrees per second.
+	Returns given object turn rate in radian per second.
 	Specify dt if you want a turn-rate over a specific period of time (typically to get instantaneous vs sustained turn-rate)
 
 	Return value:
