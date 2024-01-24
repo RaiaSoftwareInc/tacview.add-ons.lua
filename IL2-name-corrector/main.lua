@@ -4,7 +4,7 @@
 	Correct the way IL-2 displays names
 
 	Author: BuzyBee
-	Last update: 2019-12-17 (Tacview 1.8.2)
+	Last update: 2023-12-18 (Tacview 1.9.3)
 
 	Feel free to modify and improve this script!
 --]]
@@ -66,17 +66,9 @@ function FixPilotNamesNow()
 	local telemetry = Tacview.Telemetry
 	local tags = telemetry.Tags
 	local getCurrentTags = telemetry.GetCurrentTags
+	local context = Tacview.Context
 
-	-- Retrieve the list of currently active (alive) objects
-
-	local numberOfObjects = Tacview.Telemetry.GetObjectCount()
-
-	local pilotPropertyIndex = telemetry.GetObjectsTextPropertyIndex( "Pilot" , false )
-
-	if pilotPropertyIndex == telemetry.InvalidPropertyIndex then
-		Tacview.Log.Debug("Pilot property index is invalid - unable to proceed with fixing any pilot names")
-		return
-	end	
+	local pilotPropertyIndex = telemetry.GetObjectsTextPropertyIndex( "Pilot" , true )
 
 	local namePropertyIndex = telemetry.GetObjectsTextPropertyIndex("Name",false)
 
@@ -84,57 +76,57 @@ function FixPilotNamesNow()
 		Tacview.Log.Debug("Name property index is invalid - unable to proceed with fixing any pilot names")
 		return
 	end	
+	
+	-- Iterate through the objects
+	
+	local numberOfObjects = Tacview.Telemetry.GetObjectCount()
 
 	for i=0,numberOfObjects-1 do
 
 		local objectHandle = Tacview.Telemetry.GetObjectHandleByIndex(i)
+		
+		local objectTags = getCurrentTags(objectHandle)
+		
+		local lifeTimeBegin = telemetry.GetLifeTime(objectHandle)
+		
+		-- Identify fixed wing or tank objects 
+		
+		if (objectTags & tags.FixedWing) ~= 0 or (objectTags & tags.Tank) ~= 0 then
+		
+			local IL2GeneratedName, nameSampleIsValid = telemetry.GetTextSample(objectHandle, lifeTimeBegin, namePropertyIndex)
+			
+			if nameSampleIsValid then
 
-		-- If pilot name exists, do nothing.
+				-- Determine which part of the IL2-generated "name" is the pilot name and remove it. It comes after the series of characters " - ". 
+				
+				if IL2GeneratedName:reverse():find("%s+%-+%s+") then
+				
+					local startChar = #IL2GeneratedName - IL2GeneratedName:reverse():find("%s+%-+%s+") + 2
+				
+					if startChar then
+				
+						local name = string.sub(IL2GeneratedName,0,startChar-3)
+						name = trim(name)
+						
+						telemetry.SetTextSample(objectHandle, lifeTimeBegin, namePropertyIndex, name)
+						
+						-- Set Pilot property only if it does not already exist.
 
-		local existingPilotName, sampleIsValid = telemetry.GetTextSample(objectHandle, Tacview.Telemetry.BeginningOfTime, pilotPropertyIndex)
+						local IL2GeneratedPilot, pilotSampleIsValid = telemetry.GetTextSample(objectHandle, lifeTimeBegin, pilotPropertyIndex)
+						
+						if not pilotSampleIsValid or IL2GeneratedPilot=="" then
 
-		if not sampleIsValid then
+							local pilot = string.sub(IL2GeneratedName,startChar)
+							pilot = trim(pilot)
 
-			-- Parse out the pilot name for Fixed Wing or Tank objects
-
-			local objectTags = getCurrentTags(objectHandle)
-
-			if (objectTags & tags.FixedWing) ~= 0 or (objectTags & tags.Tank) ~= 0 then
-							
-				-- Retrieve IL-2 Generated Name
-
-				local IL2GeneratedName, sampleIsValid = telemetry.GetTextSample(objectHandle, Tacview.Telemetry.BeginningOfTime, namePropertyIndex)
-
-				if sampleIsValid then
-
-					--------------------------------------------------------------------
-					-- Determine which part of the IL2 Generated Name is the pilot name,
-					-- and set Pilot Text Sample accordingly.
-					--------------------------------------------------------------------
-
-
-					if IL2GeneratedName:reverse():find("%s+%-+%s+") then
-
-						local startChar = #IL2GeneratedName - IL2GeneratedName:reverse():find("%s+%-+%s+") + 2
-
-						if startChar then
-
-							local pilotName = string.sub(IL2GeneratedName,startChar)
-
-							pilotName = trim(pilotName)
-
-							telemetry.SetTextSample( objectHandle , Tacview.Telemetry.BeginningOfTime , pilotPropertyIndex , pilotName ) 
-							
+							telemetry.SetTextSample(objectHandle, lifeTimeBegin, pilotPropertyIndex, pilot) 
 						end
 					end
 				end
-				
-
-				
 			end
 		end
 	end
-	
+		
 	Tacview.UI.Update()
 
 end
@@ -209,17 +201,6 @@ function IsIL2Flight()
 
 end
 
---[[	
-function StartsWith(str, start)
-
-	str = str.toLowerCase()
-	start = start.toLowerCase
-
-	return str:sub(1, #start) == start
-
-end	
---]]
-
 function trim(s)
 
 	for i = 1, #s do
@@ -242,7 +223,7 @@ function Initialize()
 	-- Declare add-on information
 
 	Tacview.AddOns.Current.SetTitle("IL-2 Name Corrector")
-	Tacview.AddOns.Current.SetVersion("1.8.7")
+	Tacview.AddOns.Current.SetVersion("1.9.3")
 	Tacview.AddOns.Current.SetAuthor("BuzyBee")
 	Tacview.AddOns.Current.SetNotes("Correct the way IL-2 displays names.")
 

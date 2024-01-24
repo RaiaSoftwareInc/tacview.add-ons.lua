@@ -512,7 +512,7 @@ Math.Vector.LongitudeLatitudeToBearingRangeAltitude( referenceLongitude , refere
 
 		BRA of the target point {bearing = number , range = number , altitude = number}
 
-		- Bearing is expressed in degrees relative to true north.
+		- Bearing is expressed in radian relative to true north.
 		- Range is expressed in meters.
 		- Relative Altitude is expressed in meters.
 
@@ -568,6 +568,9 @@ Math.Vector.GetDistanceBetweenObjects( ObjectTransform1 , ObjectTransform2 ) -- 
 Math.Vector.GetDistanceOnEarth( longitude1 , latitude1 , longitude2 , latitude2 , altitude ) -- Tacview 1.8.0
 
 	Retrieve the distance between the specified coordinates on earth at the given above sea level altitude.
+
+	longitude1 , latitude1 , longitude2 , latitude2 are all in radian.
+	altitude is in meters ASL.
 
 Math.Vector.AngleBetween( vector1 , vector2 ) -- Tacview 1.7.2
 
@@ -689,7 +692,7 @@ Context.GetDocumentPath() -- Tacview 1.8.7
 --------------------------------------------------------------------------------------------------------------------------------
 StaticObjects
 
-StaticObjects.GetObjectHandleByName( objectName )
+StaticObjects.GetObjectHandleByName( objectName ) -- Tacview 1.8.0
 
 	Retrieve static object handle from its name.
 	The name of the object can be defined via the <name> xml tag in kml files.
@@ -701,14 +704,14 @@ StaticObjects.GetObjectHandleByName( objectName )
 	Return value:
 
 		handle of the static object
-		or nil of no object correspond to the given name	
+		or nil of no object correspond to the given name
 
-StaticObjects.SetVisible( staticObjectHandle , isVisible )
+StaticObjects.SetVisible( staticObjectHandle , isVisible ) -- Tacview 1.8.0
 
 	Show or hide given object.
 	You can use StaticObjects.GetHandleByName() to retrieve the handle of the object you would like to show/hide.
 
-StaticObjects.IsPointInside( staticObjectHandle , longitude , latitude , altitude )
+StaticObjects.IsPointInside( staticObjectHandle , longitude , latitude , altitude ) -- Tacview 1.9.0
 
 	Check if the given coordinates are located inside or outside of the specified object.
 	The object must be a 2D or extruded polygon.
@@ -1132,6 +1135,20 @@ Telemetry.GetCurrentMachNumber( objectHandle ) -- Tacview 1.8.4
 		Mach number if available.
 		nil when not enough data is available (or object does not exist at this time).
 
+Telemetry.GetTrack( objectHandle , absoluteTime ) -- Tacview 1.9.3
+Telemetry.GetCurrentTrack( objectHandle ) -- Tacview 1.9.3
+
+	Returns given object track at given time.
+
+	Track refers to the actual path that the object has followed or is following over the ground.
+	The track of an object can be influenced by several factors including its own propulsion and external influences like wind or current.
+	The track is what you would plot on a map to show where the object has been.
+
+	Return value:
+
+		Track in radian if available.
+		nil when not enough data is available (or object does not exist at this time).
+
 Telemetry.GetGlobalNumericPropertyIndex( propertyName , autoCreate ) -- Tacview 1.7.6
 Telemetry.GetGlobalTextPropertyIndex( propertyName , autoCreate ) -- Tacview 1.7.6
 
@@ -1373,6 +1390,25 @@ Telemetry.OnLoadEnd( documentName ) -- Tacview 1.8.5
 	If the operation has failed, then do not pass any file name to the function.
 		- Tacview will reset the UI to a stable empty document state.
 
+Telemetry.GetAbsoluteBearing( sourceObjectHandle , sourceTime , targetObjectHandle , targetTime , autoMagneticDeclination )
+
+	Retrieve the bearing from source object to target object at given time.
+	Set autoMagneticDeclination to true if you want Tacview to automatically returns the bearing relative to the magnetic north at the location of the source object.
+
+	Return value:
+
+		Bearing from sourceObject to targetObject in radian (including magnetic declination if requested)
+		nil if the objects do not exist at given time.
+
+Telemetry.GetRange2D( sourceObjectHandle , sourceTime , targetObjectHandle , targetTime )
+
+	Retrieve the 2D distance (view from the top) between two objects at given time.
+
+	Return value:
+
+		Distance between the two objects in meters.
+		nil if the objects do not exist at given time.
+
 --------------------------------------------------------------------------------------------------------------------------------
 Database
 
@@ -1448,6 +1484,16 @@ Terrain.GetElevation( longitude , latitude ) -- Tacview 1.7.5
 
 	Retrieve given point elevation in meter.
 	Longitude and latitude are in radian.
+
+Terrain.GetMagneticDeclination( longitude , latitude , altitude ) -- Tacview 1.9.3
+
+	Retrieve magnetic declination at the specified location at the current time.
+	Longitude and latitude are in radian, altitude in meters.
+
+	Return value:
+
+		Magnetic declination in radian.
+		You can substract it to a true north heading to get the corresponding magnetic heading.
 
 Terrain.AddCustomTexture( textureId , layerId , fileName , filter , topLeftLongitude , topLeftLatitude , topRightLongitude , topRightLatitude , bottomRightLongitude , bottomRightLatitude , bottomLeftLongitude , bottomLeftLatitude ) -- Tacview 1.8.7
 

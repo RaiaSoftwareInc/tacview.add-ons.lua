@@ -310,6 +310,13 @@ UI.Menus.AddExclusiveOption( parentMenuId , textLabel , optionBoolean , function
 
 	Exclusive options tick marks are displayed differently so the use knows that he can only make one choose amongst several.
 
+	Callback signature:
+
+		Tacview specifies the item id when calling the menu callback.
+		Therefore you can use the same callback for several similar menu items.
+
+		MenuCallback( commandId )
+
 	Return value:
 
 		Menu id which can later be used to change the option value using UI.Menus.SetOption().
@@ -341,7 +348,7 @@ UI.Renderer.GetProjectedPosition( objectHandle ) -- Tacview 1.9.0
 
 	Return value:
 
-		x, y
+		x, y, z
 
 		or
 
@@ -349,6 +356,11 @@ UI.Renderer.GetProjectedPosition( objectHandle ) -- Tacview 1.9.0
 
 	X and Y are the last valid projected position in the 3D view.
 	If the object is not currently being displayed, this function returns nil
+
+	Z has been added to Tacview 1.9.3
+
+	if ( Z < 0.0 ) then the object is not visible on screen (typically behind the observer)
+	if ( Z >= 1.0 ) then the object is not visible on screen (typically beyond the z-far, to the "infinite")
 
 UI.Renderer.LoadTexture( texturePath [, wrapRepeat [, compressed] ) -- Tacview 1.7.3
 UI.Renderer.UnloadTexture( textureHandle ) -- Tacview 1.7.3
@@ -758,15 +770,33 @@ UI.Renderer.Print( transform , renderStateHandle , text ) -- Tacview 1.7.3
 		scale = number
 	}
 
+	You can modulate the text color by injecting control characters in it:
+
+		GreenColor = string.char(1)
+		OrangeColor = string.char(2)
+		BlueColor = string.char(3)
+		RedColor = string.char(4)
+		BlackColor = string.char(5)
+		DefaultColor = string.char(6)
+
 UI.Renderer.ContextMenu.RegisterListener( function ) -- Tacview 1.7.6
 
 	Use this function to register a callback to add options to the context menu Tacview will display on right click in the 3D view.
 	Right before displaying the 3D view context menu Tacview will call the following function so you can have the opportunity to add custom option:
 
-		function( contextMenuId , objectHandle )
+		function( contextMenuId , objectHandle ) -- Tacview 1.7.6
+		function( contextMenuId , objectHandle [, mouseLongitude, mouseLatitude, mouseAltitude ] ) -- Tacview 1.9.3
 
 		-- contextMenuId (integer): Id of the context menu in which you can add options.
 		-- objectHandle (integer): object associated to the context menu (0 if no object is related to the menu)
+
+		Added in Tacview 1.9.3:
+
+		-- mouseLongitude/Latitude/Altitude (radian, meters): Spherical coordinate of the terrain clicked when applicable. (nil otherwise)
+
+		NOTE: While the latitude and longitude coordinates are quite accurante, the altitude accuracy depends on the zoom level of the Earth.
+		For instance, if the observer is high in orbit, the altitude returned will be very approximate.
+		Also, if the user has clicked on an object, the coordinates returned will be the ones of the object.
 
 	Use UI.Menus functions with parentMenuId set to contextMenuID to add your own options to the context menu according to the selected object.
 	The context menu is volatile and will be automatically destroyed as soon as it will be closed by the user.
