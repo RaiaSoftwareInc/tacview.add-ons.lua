@@ -428,6 +428,9 @@ Math.Angle.Subtract( angle1 , angle2 ) -- Tacview 1.7.2
 	Return value:
 
 		Difference between angle1 and angle2.
+
+			result = angle1 - angle2
+
 		The result is normalized to ]-π,+π]
 
 Math.Angle.NormalizePi( angle ) -- Tacview 1.8.5
@@ -585,7 +588,7 @@ Math.Vector.AngleBetween( vector1 , vector2 ) -- Tacview 1.7.2
 
 Math.Vector.AngleBetween( vector , referenceVector1 , referenceVector2 ) -- Tacview 1.7.2
 
-	Calculate the angle between using two normalized vectors.
+	Calculate the angle between two *normalized* vectors.
 	DO NOT forget to normalize the vectors before calling GetAngle!
 	Unlike AngleBetween( vector1 , vector2 ), this function gives the correct quadran.
 

@@ -947,6 +947,23 @@ Context.Camera.GetSphericalPosition() -- Tacview 1.8.5
 		Longitude & latitude are in radian,
 		altitude is in meters above mean sea level.
 
+Context.Camera.SetSphericalPosition( longitude , latitude , altitude ) -- Tacview 1.9.4
+
+	Set camera to a new spherical position
+
+	Return value: none
+
+Context.Camera.GetRotation() -- Tacview 1.9.4
+
+	Retrieve camera current orientation or relative orientation depending on camera mode.
+	See SetRotation() for more details.
+
+	Return value:
+
+		{ roll , pitch , yaw }
+
+		all in radian.
+
 Context.Camera.SetRotation( roll , pitch , yaw ) -- Tacview 1.8.0
 
 	Orient the camera.
@@ -968,6 +985,12 @@ Context.Camera.SetRotation( roll , pitch , yaw ) -- Tacview 1.8.0
 Context.Camera.SetRangeToTarget( range ) -- Tacview 1.8.0
 
 	Changes the distance between the camera and the observed object in external and satellite mode.
+	The range is expressed in meters.
+	In satellite mode, the range is relative to the mean sea level.
+
+Context.Camera.GetRangeToTarget() -- Tacview 1.9.4
+
+	Retrieve the distance between the camera and the observed object in external and satellite mode.
 	The range is expressed in meters.
 	In satellite mode, the range is relative to the mean sea level.
 
