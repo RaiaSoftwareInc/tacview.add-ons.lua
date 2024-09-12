@@ -1,13 +1,13 @@
 
 -- Turn Rate Report
 -- Author: Erin 'BuzyBee' O'REILLY
--- Last update: 2020-09-09 (Tacview 1.8.4)
+-- Last update: 2024-08-19 (Tacview 1.9.3)
 
 --[[
 
 MIT License
 
-Copyright (c) 2020 Raia Software Inc.
+Copyright (c) 2020-2024 Raia Software Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -35,7 +35,7 @@ SOFTWARE.
 
 require("lua-strict")
 
-local Tacview = require("Tacview185")
+local Tacview = require("Tacview193")
 
 local instantaneous = false
 local sustained = false
@@ -106,7 +106,13 @@ local previousSelectedObjectHandle
 
 -- keep track of whether data collection is done
 
-local done
+local done = true
+
+-- Display handles
+
+local backgroundRenderStateHandle
+local backgroundVertexArrayHandle
+local chartDataRenderStateHandle
 
 -- Cumulative Statistic
 
@@ -131,6 +137,8 @@ function InitializeCharts()
 			displayChart[y][x]=0
 		end
 	end
+	
+	done = true
 
 end
 
@@ -147,7 +155,7 @@ function OnUpdate(dt, absoluteTime)
 	if not instantaneous and not sustained then
 		return
 	end
-
+	
 	-- Use correct units
 
 	SetUnits()	
@@ -155,17 +163,35 @@ function OnUpdate(dt, absoluteTime)
 	-- Find selected object and its time range
 
 	local selectedObjectHandle = Tacview.Context.GetSelectedObject(0) or Tacview.Context.GetSelectedObject(1)
-
+	
 	if not selectedObjectHandle then
+		return
+	end
+	
+	local tags = Tacview.Telemetry.GetCurrentTags(selectedObjectHandle)
+	
+	if not Tacview.Telemetry.AnyGivenTagActive(tags, Tacview.Telemetry.Tags.FixedWing|Tacview.Telemetry.Tags.Rotorcraft) then
+		InitializeCharts()
 		return
 	end
 
 	local firstSampleTime, lastSampleTime= Tacview.Telemetry.GetTransformTimeRange(selectedObjectHandle)
 
 	-- Do not perform calculations on intemporal objects.
-
+	
 	if firstSampleTime <= Tacview.Telemetry.BeginningOfTime then 
-		return 
+		
+		local count = Tacview.Telemetry.GetTransformCount(selectedObjectHandle)
+		
+		-- Falcon BMS 4.37.3 is adding aircraft as intemporal objects
+		-- Compensate by using the second sample available
+		
+		if count > 1 then
+			local transform = Tacview.Telemetry.GetTransformFromIndex(selectedObjectHandle, 1)
+			firstSampleTime = transform.time
+		else
+			return
+		end
 	end
 
 	-- If object has changed, reinitialize charts.
@@ -427,7 +453,7 @@ end
 function ObtainData(selectedObjectHandle,startTime,endTime)
 
 	local values = {}
-
+	
 	-- iterate through the times at the chosen samplePeriod rate
 
 	for i = startTime+samplePeriod,endTime,samplePeriod do
@@ -464,7 +490,6 @@ end
 
 function DisplayBackground()
 
-	local backgroundRenderStateHandle
 
 	if not backgroundRenderStateHandle then
 
@@ -476,8 +501,6 @@ function DisplayBackground()
 		backgroundRenderStateHandle = Tacview.UI.Renderer.CreateRenderState(renderState)
 
 	end
-
-	local backgroundVertexArrayHandle
 
 	if not backgroundVertexArrayHandle then
 
@@ -496,7 +519,6 @@ function DisplayBackground()
 		backgroundVertexArrayHandle = Tacview.UI.Renderer.CreateVertexArray(vertexArray)
 
 	end
-
 
 	local backgroundTransform =
 	{
@@ -518,8 +540,6 @@ function DisplayChartData()
 		color = FontColor,
 		blendMode = Tacview.UI.Renderer.BlendMode.Additive,
 	}
-
-	local chartDataRenderStateHandle
 
 	if not chartDataRenderStateHandle then
 
@@ -576,9 +596,6 @@ function DisplayChartData()
 					goto continue
 				end
 
-				--print("instantaneousChart["..y.."]["..x.."]="..instantaneousChart[y][x] )
-				--print("sustainedChart["..y.."]["..x.."]="..sustainedChart[y][x] )
-
 				local sustainedRounded
 				
 				if sustainedChart[y][x] then
@@ -600,8 +617,6 @@ function DisplayChartData()
 					Tacview.Log.Debug("TURN-RATE: Missing flag high/low value")
 					goto continue
 				end
-
-				-- print("flagHighValueSustained="..flagHighValueSustained.."flagLowValueSustained="..flagLowValueSustained)
 
 				if sustainedRounded ~= 0 then
 					
@@ -753,8 +768,6 @@ end
 
 function OnDocumentLoaded()
 
-	done = false
-
 	InitializeCharts()
 
 end
@@ -780,9 +793,27 @@ end
 function OnPowerSaveOK()
 
 	return done
+	
 end
 
+function OnShutdown()
 
+	if backgroundRenderStateHandle then
+		Tacview.UI.Renderer.ReleaseRenderState(backgroundRenderStateHandle)
+		backgroundRenderStateHandle = nil
+	end
+	
+	if chartDataRenderStateHandle then
+		Tacview.UI.Renderer.ReleaseRenderState(chartDataRenderStateHandle)
+		chartDataRenderStateHandle = nil
+	end
+	
+	if backgroundVertexArrayHandle then
+		Tacview.UI.Renderer.ReleaseVertexArray(backgroundVertexArrayHandle)
+		backgroundVertexArrayHandle = nil
+	end
+	
+end
 
 ----------------------------------------------------------------
 -- Initialize this addon
@@ -791,13 +822,13 @@ end
 function Initialize()
 
 	-- Declare addon properties
-
+	
 	local currentAddOn = Tacview.AddOns.Current
 
 	SetUnits()	
 
 	currentAddOn.SetTitle("Turn Rate Report")
-	currentAddOn.SetVersion("0.9")
+	currentAddOn.SetVersion("1.9.4.10")
 	currentAddOn.SetAuthor("BuzyBee")
 	currentAddOn.SetNotes("Display instantaneous or sustained turn rate as a function of altitude and speed")
 
@@ -818,7 +849,8 @@ function Initialize()
 	Tacview.Events.DocumentLoaded.RegisterListener(OnDocumentLoaded)
 	Tacview.Events.DocumentUnload.RegisterListener(OnDocumentLoaded)
 	Tacview.Events.PowerSave.RegisterListener(OnPowerSaveOK)
-
+	Tacview.Events.Shutdown.RegisterListener(OnShutdown) 
+	
 end
 
 Initialize()

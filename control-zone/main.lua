@@ -1,7 +1,7 @@
 
 -- Control Zone for Tacview
 -- Author: Erin 'BuzyBee' O'REILLY
--- Last update: 2021-11-22 (Tacview 1.8.7)
+-- Last update: 2024-02-19 (Tacview 1.9.3)
 
 -- IMPORTANT: This script act both as a tutorial and as a real addon for Tacview.
 -- Feel free to modify and improve this script!
@@ -10,7 +10,7 @@
 
 MIT License
 
-Copyright (c) 2021 Raia Software Inc.
+Copyright (c) 2021-2024 Raia Software Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -38,7 +38,7 @@ SOFTWARE.
 
 require("LuaStrict")
 
-local Tacview = require("Tacview187")
+local Tacview = require("Tacview193")
 
 ----------------------------------------------------------------
 -- Preferences
@@ -387,6 +387,45 @@ function CreateVertexArrays()
 
 end
 
+function OnShutdown()
+	
+	if outerRenderStateHandle0 then
+		Tacview.UI.Renderer.ReleaseRenderState(outerRenderStateHandle0)
+		outerRenderStateHandle0 = nil
+	end
+	
+		
+	if innerRenderStateHandle0 then
+		Tacview.UI.Renderer.ReleaseRenderState(innerRenderStateHandle0)
+		innerRenderStateHandle0 = nil
+	end
+	
+		
+	if outerRenderStateHandle1 then
+		Tacview.UI.Renderer.ReleaseRenderState(outerRenderStateHandle1)
+		outerRenderStateHandle1 = nil
+	end
+	
+		
+	if innerRenderStateHandle1 then
+		Tacview.UI.Renderer.ReleaseRenderState(innerRenderStateHandle1)
+		innerRenderStateHandle1 = nil
+	end
+	
+		
+	if outerVertexArrayHandle then
+		Tacview.UI.Renderer.ReleaseVertexArray(outerVertexArrayHandle)
+		outerVertexArrayHandle = nil
+	end
+	
+		
+	if innerVertexArrayHandle then
+		Tacview.UI.Renderer.ReleaseVertexArray(innerVertexArrayHandle)
+		innerVertexArrayHandle = nil
+	end
+			
+end
+
 ----------------------------------------------------------------
 -- Initialize this addon
 ----------------------------------------------------------------
@@ -398,7 +437,7 @@ function Initialize()
 	local currentAddOn = Tacview.AddOns.Current
 
 	currentAddOn.SetTitle("Control Zone")
-	currentAddOn.SetVersion("1.8.8")
+	currentAddOn.SetVersion("1.9.4.1")
 	currentAddOn.SetAuthor("BuzyBee")
 	currentAddOn.SetNotes("Displays the control zone one or both selected aircraft.")
 
@@ -415,6 +454,7 @@ function Initialize()
 	-- Register callbacks
 
 	Tacview.Events.DrawTransparentObjects.RegisterListener(OnDrawTransparentObjects)
+	Tacview.Events.Shutdown.RegisterListener(OnShutdown) 
 
 end
 
