@@ -41,81 +41,11 @@ SOFTWARE.
 ----------------------------------------------------------------
 
 require("LuaStrict")
+require("disable-object")
+require("edit-event")
 
 local Tacview = require("Tacview194")
 
-local objectHandleToModify = 0
-
-function OnAlive()
-
-	
-	local disabledPropertyIndex = Tacview.Telemetry.GetObjectsNumericPropertyIndex("Disabled",true)
-	
-	Tacview.Telemetry.SetNumericSample(objectHandleToModify, Tacview.Context.GetAbsoluteTime(), disabledPropertyIndex, 0.0)
-
-	local disabledRequestPropertyIndex = Tacview.Telemetry.GetObjectsTextPropertyIndex("DisabledRequest",true);
-
-	Tacview.Telemetry.SetTextSample(objectHandleToModify, Tacview.Context.GetAbsoluteTime(), disabledRequestPropertyIndex, "0");
-
-end
-
-function OnKillRemoved()
-
-	local disabledPropertyIndex = Tacview.Telemetry.GetObjectsNumericPropertyIndex("Disabled",true)
-	
-	Tacview.Telemetry.SetNumericSample(objectHandleToModify, Tacview.Context.GetAbsoluteTime(), disabledPropertyIndex, 1.0)
-	
-	local disabledRequestPropertyIndex = Tacview.Telemetry.GetObjectsTextPropertyIndex("DisabledRequest",true);
-
-	Tacview.Telemetry.SetTextSample(objectHandleToModify, Tacview.Context.GetAbsoluteTime(), disabledRequestPropertyIndex, "1");
-	
-end
-
-function OnContextMenu(contextMenuId, objectHandle)
-
-	if objectHandle == 0 then
-		return
-	end
-	
-	local isDisabled = false
-	
-	local disabledRequestPropertyIndex = Tacview.Telemetry.GetObjectsTextPropertyIndex("DisabledRequest",false)
-	
-	if disabledRequestPropertyIndex ~= Tacview.Telemetry.InvalidPropertyIndex then
-	
-		local disabledRequest, sampleValid = Tacview.Telemetry.GetTextSample(objectHandle, Tacview.Context.GetAbsoluteTime(), disabledRequestPropertyIndex)
-		
-		if sampleValid and disabledRequest == "1" then
-		
-			isDisabled = true
-		end
-	end
-	
-	local disabledPropertyIndex = Tacview.Telemetry.GetObjectsNumericPropertyIndex("Disabled",false)
-	
-	if disabledPropertyIndex ~= Tacview.Telemetry.InvalidPropertyIndex then
-	
-		local disabled, sampleValid = Tacview.Telemetry.GetNumericSample(objectHandle, Tacview.Context.GetAbsoluteTime(), disabledPropertyIndex)
-		
-		if sampleValid and disabled == 1 then
-		
-			isDisabled = true
-		
-		end
-	end
-	
-	objectHandleToModify = objectHandle;
-	
-	if isDisabled then
-	
-		Tacview.UI.Menus.AddCommand(contextMenuId, "Alive", OnAlive)
-	else
-	
-		Tacview.UI.Menus.AddCommand(contextMenuId, "Kill Removed", OnKillRemoved)
-		
-	end
-end
-	
 ----------------------------------------------------------------
 -- Initialize this addon
 ----------------------------------------------------------------
@@ -130,10 +60,9 @@ function Initialize()
 	currentAddOn.SetVersion("1.9.4")
 	currentAddOn.SetAuthor("BuzyBee")
 	currentAddOn.SetNotes("Extra features for event log.")
-
-	-- Declare context menu for the 3D view
-
-	Tacview.UI.Renderer.ContextMenu.RegisterListener(OnContextMenu)
+	
 end
 
 Initialize()
+InitializeDisableObject()
+InitializeEditEvent()
