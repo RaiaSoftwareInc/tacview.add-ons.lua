@@ -151,6 +151,13 @@ function ClearRadar(objectHandle)
 	end
 end
 
+function OnDocumentUnload()
+
+previousObjectHandle0 = nil
+previousObjectHandle1 = nil
+
+end
+
 
 ----------------------------------------------------------------
 -- Initialize this addon
@@ -172,6 +179,7 @@ function Initialize()
 	-- Register callbacks
 
 	Tacview.Events.Update.RegisterListener(OnUpdate)
+	Tacview.Events.DocumentUnload.RegisterListener(OnDocumentUnload)
 
 end
 
