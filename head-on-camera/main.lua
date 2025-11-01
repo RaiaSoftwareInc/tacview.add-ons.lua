@@ -139,7 +139,16 @@ end
 function OnShutdown()
 
 	Tacview.Context.Camera.SetRotation(0,0,0)
-	Tacview.Context.Camera.SetOffset(0,0,0,0,0,0)
+		
+	Tacview.Context.Camera.SetOffset(	
+	{
+		lateral = 0,
+		longitudinal = 0,
+		vertical = 0 ,
+		roll = 0,
+		pitch = 0 ,
+		yaw = 0,
+	})
 
 end
 
