@@ -1,7 +1,7 @@
 --------------------------------------------------------------------------------------------------------------------------------
 
-	Tacview 1.9.0 Lua General Interface
-	Last update: 2023-01-16
+	Tacview 1.9.5 Lua General Interface
+	Last update: 2025-08-06
 
 --------------------------------------------------------------------------------------------------------------------------------
 
@@ -38,7 +38,7 @@ UI.SetWindowParent( parentWindowhandle ) -- Tacview 1.7.2
 
 UI.SetWindowPosition( x , y [, width , height] ) -- Tacview 1.7.2
 
-	Change Tacview main window position and size when with and height are provided.
+	Change Tacview main window position and size when width and height are provided.
 	Position is specified for the top/left corner of the window on the desktop, or in its parent window.
 
 UI.SetWindowSize( width , height ) -- Tacview 1.7.2
@@ -189,7 +189,7 @@ UI.DialogBox
 	About dimensions and position:
 
 		To properly support custom font size, dimensions and position of controls are all expressed un Dialog Units (not pixels).
-		To use default dimensions whenever applicable, simply use 0 for with and or height.
+		To use default dimensions whenever applicable, simply use 0 for width and or height.
 
 	NOTE: This interface is currently supported only in Lua because C++ and C# can already build more powerful interfaces.
 
@@ -231,9 +231,11 @@ UI.DialogBox.AddText( dialogBoxHandle , text , x , y , width , height ) -- Tacvi
 UI.DialogBox.AddEditBox( dialogBoxHandle , text , x , y , width , height , onChangeCallback ) -- Tacview 1.8.6
 UI.DialogBox.AddButton( dialogBoxHandle , text , x , y , width , height , onClickedCallback ) -- Tacview 1.8.6
 UI.DialogBox.AddCheckBox( dialogBoxHandle , text , checked , x , y , width , height , onClickedCallback ) -- Tacview 1.8.6
+UI.DialogBox.AddComboBox( dialogBoxHandle , text , x , y , width , height , isEditable , onChangeCallback ) -- Tacview 1.9.5
 
-	Creates an edit box, a regular button, or a check box at the specified location.
-	Location and dimensions are in Dialog Units (not pixels).
+	Creates an edit box, a standard button, or a checkbox at the specified location.
+	Location and dimensions are measured in dialog units (not pixels).
+	For a combo box, the height determines the size of the opened list. Ensure it is tall enough for comfortable use!
 
 	Use the optional callback to be notified whenever the corresponding control content has been modified.
 
@@ -242,11 +244,11 @@ UI.DialogBox.AddCheckBox( dialogBoxHandle , text , checked , x , y , width , hei
 		onChangeCallback(dialogBoxHandle , controlHandle)
 		onClickedCallback(dialogBoxHandle , controlHandle)
 
-UI.DialogBox.GetText( dialogBoxHandle , editBoxHandle ) -- Tacview 1.8.6
-UI.DialogBox.SetText( dialogBoxHandle , editBoxHandle , newText ) -- Tacview 1.8.6
+UI.DialogBox.GetText( dialogBoxHandle , controlHandle ) -- Tacview 1.8.6
+UI.DialogBox.SetText( dialogBoxHandle , controlHandle , newText ) -- Tacview 1.8.6
 
-	Retrieve or set the text displayed in corresponding edit box control.
-	Controls handles are returned by the function used to create it.
+	Retrieve or set the text displayed in corresponding edit-box or combo-box control.
+	Controls handles are returned by the function used to create them.
 
 UI.DialogBox.IsBoxChecked( dialogBoxHandle , checkBoxHandle ) -- Tacview 1.8.6
 UI.DialogBox.CheckBox( dialogBoxHandle , checkBoxHandle , checked ) -- Tacview 1.8.6
@@ -260,6 +262,68 @@ UI.DialogBox.EnableControl( dialogBoxHandle , checkBoxHandle , newState ) -- Tac
 	newState is a boolean.
 
 	NOTE: CURRENTLY SUPPORTED ONLY WHEN THE DIALOG BOX IS DISPLAYED.
+
+UI.DialogBox.AddItem( dialogBoxHandle , comboBoxHandle , text ) -- Tacview 1.9.5
+
+	Adds an item to a combo box or drop-down list within a dialog box in Tacview.
+
+	dialogBoxHandle:
+
+		Handle of the dialog box containing the combo box. This identifies the dialog box where the combo box resides.
+
+	comboBoxHandle:
+
+		Handle of the combo box or drop-down list where the item will be added.
+
+	text:
+
+		The display text for the item to be added. This is the string that will appear in the combo box or drop-down list.
+
+	Example:
+
+	itemIndex = UI.DialogBox.AddItem(dialogBoxHandle, comboBoxHandle, objectName)
+
+	Return value:
+
+		itemIndex: Returns the 0 based item index of the newly added item if the operation is successful.
+		0: Returns 0 if the operation fails (e.g., invalid dialog box or combo box handle, duplicate item handle, etc.).
+
+UI.DialogBox.SelectItem(dialogBoxHandle, comboBoxHandle, itemIndex) -- Tacview 1.9.5
+
+	Selects an item in a combo box or drop-down list by its index.
+
+	Example:
+
+		UI.DialogBox.SelectItem(dialogBoxHandle, comboBoxHandle, itemIndex)
+
+	Parameters
+
+		dialogBoxHandle: Handle of the dialog box containing the combo box.
+		comboBoxHandle: Handle of the combo box.
+		itemIndex: 0 based index of the item to be selected.
+
+	No return value.
+
+UI.DialogBox.GetSelectedItemIndex(dialogBoxHandle, comboBoxHandle) -- Tacview 1.9.5
+
+	Retrieves the handle of the currently selected item in a combo box or drop-down list.
+
+	Example:
+
+	itemIndex = UI.DialogBox.GetSelectedItemIndex(dialogBoxHandle, comboBoxHandle)
+
+	Parameters
+
+		dialogBoxHandle: Handle of the dialog box containing the combo box.
+		comboBoxHandle: Handle of the combo box.
+
+	Return Value
+
+		itemIndex: 0 based index of the selected item if applicable.
+
+		nil: If no item is selected.
+		For editable combo boxes, you may want to retrieve the current text value instead
+		via GetText(dialogBoxHandle, comboBoxHandle)
 
 --------------------------------------------------------------------------------------------------------------------------------
 UI.Menus
@@ -299,12 +363,12 @@ UI.Menus.AddCommand( parentMenuId , textLabel , function ) -- Tacview 1.7.2
 
 		a menu id (integer) which can be used late to insert sub items or to remove the menu.
 
-UI.Menus.AddOption( parentMenuId , textLabel , optionBoolean , function ) -- Tacview 1.7.2
-UI.Menus.AddExclusiveOption( parentMenuId , textLabel , optionBoolean , function ) -- Tacview 1.8.4
+UI.Menus.AddOption( parentMenuId , textLabel , checked , function ) -- Tacview 1.7.2
+UI.Menus.AddExclusiveOption( parentMenuId , textLabel , checked , function ) -- Tacview 1.8.4
 
 	Insert a command with a tick mark in the given menu.
 
-	If optionBoolean is true, then a tick mark will be displayed next to the command label.
+	If checked is true, then a tick mark will be displayed next to the command label.
 	You can specify the id of a parent menu, or you can use nil to insert your menu in Tacview addons main menu.
 	function will be called whenever this menu option has been clicked.
 
@@ -321,10 +385,12 @@ UI.Menus.AddExclusiveOption( parentMenuId , textLabel , optionBoolean , function
 
 		Menu id which can later be used to change the option value using UI.Menus.SetOption().
 
-UI.Menus.SetOption( menuId , optionBoolean ) -- Tacview 1.7.2
+UI.Menus.SetOption( menuId , checked ) -- Tacview 1.7.2
 
 	Change the value of a menu option.
-	If optionBoolean is true, then a tick mark will be displayed next to the corresponding command label.
+	If checked is true, then a tick mark will be displayed next to the corresponding command label.
+
+	No return value.
 
 --------------------------------------------------------------------------------------------------------------------------------
 UI.Renderer
@@ -566,8 +632,8 @@ UI.Renderer.DrawUITriangleStrip( transform , renderStateHandle , vertices [, tex
 	Note that alpha channel of your colors and the blendMode of renderState will work only during the transparent phase.
 	Textures are not supported.
 
-	DrawUITriangleList will display independent lines listed in the vertex array which must have an even number of vertices.
-	DrawUITriangleStrip will display one strip starting at the first vertex up to the last vertex point.
+	DrawUITriangleList will display independent triangles using the vertices listed in the array. The number of vertices must be a multiple of 3.
+	DrawUITriangleStrip will display a connected strip of triangles starting at the first vertex and continuing through the entire array (minimum 3 vertices required).
 
 	You can optionally specify a rgba attribute per line:
 
@@ -880,7 +946,10 @@ Events.PowerSave.RegisterListener( function ) -- Tacview 1.8.5
 Context
 
 	This contains all the information relative the telemetry representation on screen.
-	NOTE: See Lua Core Interface for additional functions.
+
+Context.GetAbsoluteTime() -- Tacview 1.7.5
+
+	Retrieves the current telemetry time in seconds since 1970-01-01 (this parameter is useful to talk with the Telemetry module)
 
 Context.SetAbsoluteTime( absoluteTime ) -- Tacview 1.7.6
 
@@ -919,6 +988,13 @@ Context.GetActiveObjectList() -- Tacview 1.7.3
 	Return value:
 
 		{ objectHandle1 , objectHandle2 , ... }
+
+Context.GetDocumentPath() -- Tacview 1.8.7
+
+	Retrieve the full path (directory + file name) of the current document if applicable.
+	This path could be the name of the last file merged if several documents have been loaded together.
+
+	Returns nil if no document has been loaded or saved yet.
 
 --------------------------------------------------------------------------------------------------------------------------------
 Context.Camera

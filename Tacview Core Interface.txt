@@ -1,7 +1,7 @@
 --------------------------------------------------------------------------------------------------------------------------------
 
-	Tacview 1.9.0 Lua Core Interface
-	Last update: 2022-12-05
+	Tacview 1.9.5 Lua Core Interface
+	Last update: 2025-08-06
 
 --------------------------------------------------------------------------------------------------------------------------------
 
@@ -118,14 +118,6 @@ Settings.GetString( settingFullPath ) -- Tacview 1.7.2
 
 		Corresponding setting string value.
 
-Settings.GetAltitudeUnit() -- Tacview 1.8.5
-
-	Retrieve the current unit of measure selected by the user to represent altitude.
-
-	Return value:
-
-		one of Settings.Unit
-
 Settings.Units -- Tacview 1.8.5
 
 	Unit of measurement. Typically based on user preferences, to display output values on screen.
@@ -136,7 +128,31 @@ Settings.Units -- Tacview 1.8.5
 	You should convert to/from user preferences only during UI input/output operations.
 
 		Settings.Units.Meters
+		Settings.Units.Kilometers
 		Settings.Units.Feet
+		Settings.Units.StatuteMilesFeet
+		Settings.Units.NauticalMilesFeet
+
+Settings.GetAltitudeUnit() -- Tacview 1.8.5
+
+	Retrieves the unit of measurement currently selected by the user for altitude.
+
+	Return Value:
+
+		Settings.Units.Meters
+		Settings.Units.Feet
+
+Settings.GetDistanceUnit() -- Tacview 1.9.5
+
+	Retrieves the unit of measurement currently selected by the user for distances.
+
+	Return Value:
+
+		Settings.Units.Meters				(typically used for data analysis)
+		Settings.Units.Kilometers
+		Settings.Units.Feet					(typically used for data analysis)
+		Settings.Units.StatuteMilesFeet
+		Settings.Units.NauticalMilesFeet
 
 --------------------------------------------------------------------------------------------------------------------------------
 AddOns
@@ -305,7 +321,7 @@ UI.Format.TextToDistanceLocalized( formatedDistance ) -- Tacview 1.8.3
 		Distance in meters (double float)
 		or nil if given text cannot be interpreted
 
-UI.Format.SpeedToText( speedInMeters ) -- Tacview 1.8.3
+UI.Format.SpeedToText( speedInMetersPerSecond ) -- Tacview 1.8.3
 
 	Format the given speed (in meter per second) in format and units specified by the user.
 	Use this function to automatically display readable speed numbers in your UI.
@@ -314,15 +330,24 @@ UI.Format.SpeedToText( speedInMeters ) -- Tacview 1.8.3
 
 		Text which represent the speed in the units currently selected in Tacview options
 
+UI.Format.VerticalSpeedToText( speedInMetersPerSecond ) -- Tacview 1.9.5
+
+	Format the given vertical speed (in meter per second) in format and units specified by the user.
+	Use this function to automatically display readable vertical speed numbers in your UI.
+
+	Return value:
+
+		Text which represent the vertical speed in the units currently selected in Tacview options
+
 UI.Format.TextToSpeed( formatedSpeed ) -- Tacview 1.8.3
 UI.Format.TextToSpeedLocalized( formatedSpeed ) -- Tacview 1.8.3
 
 	Convert the given text into a speed in meter per second.
 	Use this function to convert user input into a speed number usable in Tacview telemetry.
-	This function will automatically recognize suffix such as "km/h" or "kts" for example
+	This function will automatically recognize suffix such as "km/h" or "kt" for example
 
 	If no prefix is specified:
-		TextToSpeed will assume the speed is in meters (appropriate to read data from files)
+		TextToSpeed will assume the speed is in meters per second (appropriate to read data from files)
 		TextToSpeedLocalized will assume the speed is in the user current unit system (appropriate to read data from UI input boxes)
 
 	Return value:
@@ -423,7 +448,7 @@ Math
 
 Math.Angle.Subtract( angle1 , angle2 ) -- Tacview 1.7.2
 
-	Substracts two radian angles.
+	Subtracts two radian angles.
 
 	Return value:
 
@@ -529,10 +554,12 @@ Math.Vector.Add( vector1 , vector2 ) -- Tacview 1.7.2
 
 Math.Vector.Subtract( vector1 , vector2 ) -- Tacview 1.7.2
 
-	Substracts two 3D vectors.
+	Subtracts two 3D vectors.
 
 	Return value:
 
+		result = vector1 - vector2
+		
 		A vector which is the difference between vector1 and vector2.
 
 Math.Vector.Multiply( factor , vector ) -- Tacview 1.7.5
@@ -624,9 +651,9 @@ Math.Vector.LocalToGlobal( objectTransform , localCoordinates ) -- Tacview 1.7.2
 
 	localCoordinates =
 	{
-		x = localCartesianPositionX,			-- meters
-		y = localCartesianPositionY,			-- meters
-		z = localCartesianPositionZ,			-- meters
+		x = localCartesianPositionX,			-- meters (Lateral)
+		y = localCartesianPositionY,			-- meters (Vertical)
+		z = localCartesianPositionZ,			-- meters (Longitudinal, negative is forward)
 	}
 
 	Return value:
@@ -674,23 +701,6 @@ Events.Shutdown.RegisterListener( function ) -- Tacview 1.8.0
 		OnShutdown()
 
 			Called right before the Lua add-on is unloaded.
-
---------------------------------------------------------------------------------------------------------------------------------
-Context
-
-	This contains all the information relative the telemetry representation on screen.
-	NOTE: See Lua Main Interface for additional functions.
-
-Context.GetAbsoluteTime() -- Tacview 1.7.5
-
-	Retrieves the current telemetry time in seconds since 1970-01-01 (this parameter is useful to talk with the Telemetry module)
-
-Context.GetDocumentPath() -- Tacview 1.8.7
-
-	Retrieve the full path (directory + file name) of the current document if applicable.
-	This path could be the name of the last file merged if several documents have been loaded together.
-
-	Returns nil if no document has been loaded yet.
 
 --------------------------------------------------------------------------------------------------------------------------------
 StaticObjects
@@ -881,6 +891,17 @@ Telemetry.Load( fileName ) -- Tacview 1.8.0
 	Return value:
 
 		true if given file has been successfully loaded
+
+Telemetry.Save( fileName ) -- Tacview 1.9.5
+
+	Saves the current telemetry to a file.
+	fileName must be a full path. The output format is determined by the file extension.
+	If no file name is provided, the current telemetry’s format and file path will be used.
+	If the format cannot be determined, the data will be saved as a compressed ACMI file (.zip.acmi).
+
+	Return value:
+
+		Returns true if the file was successfully saved.
 
 Telemetry.IsEmpty() -- Tacview 1.7.6
 
@@ -1200,6 +1221,16 @@ Telemetry.GetTextSampleCount( objectHandle , propertyIndex ) -- Tacview 1.8.0
 	Retrieve the number of samples currently loaded in memory for the specified object.
 	This function is typically used to enumerate the object samples.
 
+Telemetry.GetNumericSampleIndex( objectHandle , absoluteTime , propertyIndex ) -- Tacview 1.9.5
+Telemetry.GetTextSampleIndex( objectHandle , absoluteTime , propertyIndex ) -- Tacview 1.9.5
+
+	Returns the index of the first available sample at or immediately after the specified absoluteTime.
+
+	If absoluteTime is beyond the last sample, this function returns nil.
+	In that case you can either decide to abort your operation or to use the last sample index via Telemetry.GetNumericSampleCount()
+
+	This function is particularly useful for accessing telemetry data closest to a specific moment in time.
+
 Telemetry.GetNumericSampleFromIndex( objectHandle , sampleIndex , propertyIndex ) -- Tacview 1.8.0
 Telemetry.GetTextSampleFromIndex( objectHandle , sampleIndex , propertyIndex ) -- Tacview 1.8.0
 
@@ -1488,6 +1519,11 @@ Terrain.GetElevation( longitude , latitude ) -- Tacview 1.7.5
 	Retrieve given point elevation in meter.
 	Longitude and latitude are in radian.
 
+	WARNING: The returned elevation depends on the terrain data currently loaded in memory.
+	It varies not only with the active terrain but also with the camera position.
+	When the camera is far from the requested point, the terrain in that area may be loaded at a lower resolution,
+	which can reduce accuracy.
+
 Terrain.GetMagneticDeclination( longitude , latitude , altitude ) -- Tacview 1.9.3
 
 	Retrieve magnetic declination at the specified location at the current time.
@@ -1496,9 +1532,9 @@ Terrain.GetMagneticDeclination( longitude , latitude , altitude ) -- Tacview 1.9
 	Return value:
 
 		Magnetic declination in radian.
-		You can substract it to a true north heading to get the corresponding magnetic heading.
+		You can subtract it from a true north heading to get the corresponding magnetic heading.
 
-Terrain.AddCustomTexture( textureId , layerId , fileName , filter , topLeftLongitude , topLeftLatitude , topRightLongitude , topRightLatitude , bottomRightLongitude , bottomRightLatitude , bottomLeftLongitude , bottomLeftLatitude ) -- Tacview 1.8.7
+Terrain.AddTexture( textureId , layerId , fileName , filter , topLeftLongitude , topLeftLatitude , topRightLongitude , topRightLatitude , bottomRightLongitude , bottomRightLatitude , bottomLeftLongitude , bottomLeftLatitude ) -- Tacview 1.8.7
 
 	Declare a new custom texture which will be visible by default.
 
@@ -1554,11 +1590,33 @@ Terrain.AddCustomTexture( textureId , layerId , fileName , filter , topLeftLongi
 	before the application start. A work around that limitation, is to provide a full path for your texture file, this will bypass Tacview file manager and
 	directly load the data. The picture will still be cached, this will not degrade loading performances.
 
-Terrain.ShowCustomTexture( textureId ) -- Tacview 1.8.7
-Terrain.HideCustomTexture( textureId ) -- Tacview 1.8.7
+Terrain.GetTextureList( layerFilter ) -- Tacview 1.9.5
+
+	Retrieve ids of custom texture maps currently loaded.
+
+	Use layerFilter to filter the list by layer:
+
+		layerFilter = "Falcon 4"
+
+Terrain.ShowTexture( textureId ) -- Tacview 1.8.7
+Terrain.HideTexture( textureId ) -- Tacview 1.8.7
 
 	Show or hide previously declared custom texture either in \Data\Terrain\Textures\CustomTextureList.xml or via Terrain.AddCustomTexture()
 	textureId is a text which uniquely identify the texture.
+
+Terrain.GetElevationMapList( layerFilter ) -- Tacview 1.9.5
+
+	Retrieve ids of elevation maps currently loaded.
+
+	Use layerFilter to filter the list by layer:
+
+		layerFilter = "DCS World"
+
+Terrain.ShowElevationMap( id ) -- Tacview 1.9.5
+Terrain.HideElevationMap( id ) -- Tacview 1.9.5
+
+	Show or hide previously declared custom elevation map either in \Data\Terrain\Custom\CustomHeightmapList.xml
+	id is a text which uniquely identify the elevation map.
 
 --------------------------------------------------------------------------------------------------------------------------------
 Path
