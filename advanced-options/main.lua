@@ -1,7 +1,7 @@
 
 -- Advanced Options
 -- Author: Erin 'BuzyBee' O'REILLY
--- Last update: 2025-07-16 (Tacview 1.9.4)
+-- Last update: 2025-07-16 (Tacview 1.9.5)
 
 -- Feel free to modify and improve this script!
 
@@ -35,37 +35,11 @@ SOFTWARE.
 -- Setup
 ----------------------------------------------------------------
 
-require("LuaStrict")
+require("lua-strict")
+require("latitude-longitude-grid")
+require("auto-terrain-switch")
 
 local Tacview = require("Tacview194")
-
-local gridVisible = true
-local latLongGridMenuHandle
-
-----------------------------------------------------------------
--- Playback control
-----------------------------------------------------------------
-
-local latLonGridVisibilitySettingName = "Lat/Lon Grid Visibility"
-
-function OnToggleLatLonGridVisibility()
-
-	if gridVisible then
-		Tacview.Settings.SetBoolean( "UI.View.Grid.Visible", false )
-		gridVisible = false
-		Tacview.AddOns.Current.Settings.SetBoolean( latLonGridVisibilitySettingName , gridVisible )
-		Tacview.UI.Menus.SetOption(latLongGridMenuHandle, gridVisible)
-
-		
-	else
-		Tacview.Settings.SetBoolean( "UI.View.Grid.Visible", true )
-		gridVisible = true
-		Tacview.AddOns.Current.Settings.SetBoolean( latLonGridVisibilitySettingName , gridVisible )
-		Tacview.UI.Menus.SetOption(latLongGridMenuHandle, gridVisible)
-
-	end
-
-end
 
 ----------------------------------------------------------------
 -- Initialize this addon
@@ -78,18 +52,17 @@ function Initialize()
 	local currentAddOn = Tacview.AddOns.Current
 
 	currentAddOn.SetTitle("Advanced Options")
-	currentAddOn.SetVersion("1.9.4")
+	currentAddOn.SetVersion("1.9.5")
 	currentAddOn.SetAuthor("BuzyBee")
-	currentAddOn.SetNotes("Provide access to advanced options.")
+	currentAddOn.SetNotes("Advanced tools and options extending Tacview beyond its built-in features.")
 
-	-- Declare context menu for the 3D view
+	-- Declare menus options
 
-	gridVisible = Tacview.AddOns.Current.Settings.GetBoolean(latLonGridVisibilitySettingName, true)
+	local advancedOptionsMenuHandle =  Tacview.UI.Menus.AddMenu(nil, "Advanced Options")
 
-	local mainMenuHandle = Tacview.UI.Menus.AddMenu(nil, "Advanced Options")
-	latLongGridMenuHandle = Tacview.UI.Menus.AddOption( mainMenuHandle , "Lat Lon Grid Visible" , gridVisible , OnToggleLatLonGridVisibility )
+	InitializeAutoTerrainSwitch(advancedOptionsMenuHandle)
+	InitializeLatitudeLongitudeGrid(advancedOptionsMenuHandle)
 
 end
-
 
 Initialize()
