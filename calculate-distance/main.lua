@@ -50,9 +50,6 @@ local timeElapsed = 0
 local timeout = 1
 local displayingLineAndText = false
 
-local NumberOfSegments = 1000
-
-
 local points = {}
 
 ----------------------------------------------------------------
@@ -149,9 +146,14 @@ function OnDrawTransparentUI()
 
 end
 
-local function GetMaxTerrainAlongLine(p1, p2)
+local NumberOfSegments = 1000
 
-    -- Convert to Cartesian
+local function GetPointsAlongLine(p1, p2)
+
+    local pointsAlongLine = {}
+    local maxTerrain = 0
+
+    -- March from p1 to p2 at altitude 0 only for sampling terrain
     local c1 = Tacview.Math.Vector.LongitudeLatitudeToCartesian({
         longitude = p1[1],
         latitude = p1[2],
@@ -164,69 +166,52 @@ local function GetMaxTerrainAlongLine(p1, p2)
         altitude = 0.0
     })
 
-    -- Direction vector
     local dx = c2.x - c1.x
     local dy = c2.y - c1.y
     local dz = c2.z - c1.z
 
-    local length = math.sqrt(dx*dx + dy*dy + dz*dz)
-    
-	if length == 0 then
-        return
+    local length = math.sqrt(dx * dx + dy * dy + dz * dz)
+    if length == 0 then
+        return {}, 0
     end
 
-	local increment = length/NumberOfSegments
+    local increment = length / NumberOfSegments
 
-    -- Normalize direction
     dx = dx / length
     dy = dy / length
     dz = dz / length
 
-    local maxTerrain = 0
+    for i = 0, NumberOfSegments do
 
-    local d = 0.0
-    while d <= length do
+        local d = i * increment
 
-        -- Step along the vector
-        local x = c1.x + dx * d
-        local y = c1.y + dy * d
-        local z = c1.z + dz * d
+        local current = {
+            x = c1.x + dx * d,
+            y = c1.y + dy * d,
+            z = c1.z + dz * d
+        }
 
-        -- Convert back to lon/lat
-        local pos = Tacview.Math.Vector.CartesianToLongitudeLatitude({
-            x = x,
-            y = y,
-            z = z
-        })
+        local pos = Tacview.Math.Vector.CartesianToLongitudeLatitude(current)
 
         local terrainAlt = Tacview.Terrain.GetElevation(pos.longitude, pos.latitude)
-
         if terrainAlt and terrainAlt > maxTerrain then
             maxTerrain = terrainAlt
         end
 
-        d = d + increment
+        pointsAlongLine[#pointsAlongLine + 1] = {
+            longitude = pos.longitude,
+            latitude = pos.latitude
+        }
     end
 
-    return maxTerrain
+    return pointsAlongLine, maxTerrain
 end
 
 function OnDrawTransparentObjects()
 
-	if not enabled then
-		return
-	end
-
 	if not displayingLineAndText then
 		return
 	end
-
-	if not lineRenderStateHandle then
-
-		lineRenderStateHandle = Tacview.UI.Renderer.CreateRenderState(LineRenderState)
-	end
-
-	local renderer = Tacview.UI.Renderer
 
 	local p1 = points[#points-1]
 	local p2 = points[#points]
@@ -235,22 +220,85 @@ function OnDrawTransparentObjects()
 		return
 	end
 
-	local maxAltitude = GetMaxTerrainAlongLine(p1, p2, 1)
+	local renderer = Tacview.UI.Renderer
 
-	local c1 = Tacview.Math.Vector.LongitudeLatitudeToCartesian({
-		longitude = p1[1],
-		latitude = p1[2],
-		altitude = maxAltitude,
-	})
-	
-	local c2 = Tacview.Math.Vector.LongitudeLatitudeToCartesian({
-		longitude = p2[1],
-		latitude = p2[2],
-		altitude = maxAltitude,
-	})
-	
-	renderer.DrawLines(lineRenderStateHandle, 4, {{ c1.x,c1.y,c1.z },{ c2.x,c2.y,c2.z }})
+	local pointsAlongLine, maxTerrain = GetPointsAlongLine(p1, p2)
 
+    if not lineRenderStateHandle then
+        lineRenderStateHandle = Tacview.UI.Renderer.CreateRenderState(LineRenderState)
+    end
+    
+	local drawAltitude = maxTerrain + 10.0
+
+    for i = 1, #pointsAlongLine - 1 do
+
+        local a = Tacview.Math.Vector.LongitudeLatitudeToCartesian({
+            longitude = pointsAlongLine[i].longitude,
+            latitude = pointsAlongLine[i].latitude,
+            altitude = drawAltitude,
+        })
+
+        local b = Tacview.Math.Vector.LongitudeLatitudeToCartesian({
+            longitude = pointsAlongLine[i + 1].longitude,
+            latitude = pointsAlongLine[i + 1].latitude,
+            altitude = drawAltitude,
+        })
+
+        renderer.DrawLines(
+            lineRenderStateHandle,
+            4,
+            {
+                { a.x, a.y, a.z },
+                { b.x, b.y, b.z }
+            }
+        )
+
+    end
+
+	-- Draw a vertical line at the first and last point
+
+    local c1_1 = Tacview.Math.Vector.LongitudeLatitudeToCartesian({
+        longitude = p1[1],
+        latitude = p1[2],
+        altitude = 0,
+    })
+
+    local c1_2 = Tacview.Math.Vector.LongitudeLatitudeToCartesian({
+        longitude = p1[1],
+        latitude = p1[2],
+        altitude = 10000,
+    })
+
+    local c2_1 = Tacview.Math.Vector.LongitudeLatitudeToCartesian({
+        longitude = p2[1],
+        latitude = p2[2],
+        altitude = 0,
+    })
+
+    local c2_2 = Tacview.Math.Vector.LongitudeLatitudeToCartesian({
+        longitude = p2[1],
+        latitude = p2[2],
+        altitude = 10000,
+    })
+
+     renderer.DrawLines(
+        lineRenderStateHandle,
+        4,
+        {
+            { c1_1.x, c1_1.y, c1_1.z },
+            { c1_2.x, c1_2.y, c1_2.z }
+        }
+     )
+
+     renderer.DrawLines(
+        lineRenderStateHandle,
+        4,
+        {
+            { c2_1.x, c2_1.y, c2_1.z },
+            { c2_2.x, c2_2.y, c2_2.z }
+        }
+     )
+	
 end
 
 
