@@ -44,13 +44,19 @@ local bfmTopDownSettingName = "BFM Top-Down"
 local bfmTopDown = false
 local bfmTopDownMenuHandle = nil
 
-local bfmSideViewSettingName = "BFM Side View"
-local bfmSideView = false
-local bfmSideViewMenuHandle = nil
+local bfmAircraftViewSettingName = "BFM Side View"
+local bfmAircraftView = false
+local bfmAircraftViewMenuHandle = nil
 
-local speedTrialAircraftViewSettingName = "Speed Trial Aircraft View"
-local speedTrialAircraftView = false
-local speedTrialAircraftViewMenuHandle = nil
+local trialAircraftViewSettingName = "Trial Aircraft View"
+local trialAircraftView = false
+local trialAircraftViewMenuHandle = nil
+
+local trialTopViewSettingName = "Trial Top View"
+local trialTopView = false
+local trialTopViewMenuHandle = nil
+
+local gateBoundsComputed  = false
 
 --local backgroundRenderStateHandle
 --local textRenderStateHandle
@@ -67,8 +73,6 @@ local speedTrialAircraftViewMenuHandle = nil
 --local textTransform3
 --local textTransform4
 
-
-
 --local msg1
 --local msg2
 
@@ -82,42 +86,26 @@ function OnBFMTopDown()
 
 	-- other options are false
 
-	bfmSideView = false	
-	Tacview.AddOns.Current.Settings.SetBoolean(bfmSideViewSettingName, false ) 
-	Tacview.UI.Menus.SetOption(bfmSideViewMenuHandle, false )
+	bfmAircraftView = false	
+	Tacview.AddOns.Current.Settings.SetBoolean(bfmAircraftViewSettingName, false ) 
+	Tacview.UI.Menus.SetOption(bfmAircraftViewMenuHandle, false )
 
-	speedTrialAircraftView = false	
-	Tacview.AddOns.Current.Settings.SetBoolean(speedTrialAircraftViewSettingName, false ) 
-	Tacview.UI.Menus.SetOption(speedTrialAircraftViewMenuHandle, false )	
+	trialAircraftView = false	
+	Tacview.AddOns.Current.Settings.SetBoolean(trialAircraftViewSettingName, false ) 
+	Tacview.UI.Menus.SetOption(trialAircraftViewMenuHandle, false )	
+
+	trialTopView = false
+	Tacview.AddOns.Current.Settings.SetBoolean(trialTopViewSettingName, false ) 
+	Tacview.UI.Menus.SetOption(trialTopViewMenuHandle, false ) 
 end
 
 function OnBFMSideView()
 
-	bfmSideView = not bfmSideView
+	bfmAircraftView = not bfmAircraftView
 
-	Tacview.AddOns.Current.Settings.SetBoolean(bfmSideViewSettingName, bfmSideView ) 
+	Tacview.AddOns.Current.Settings.SetBoolean(bfmAircraftViewSettingName, bfmAircraftView ) 
 
-	Tacview.UI.Menus.SetOption(bfmSideViewMenuHandle, bfmSideView ) 
-
-	-- other options are false
-
-	bfmTopDown = false
-	Tacview.AddOns.Current.Settings.SetBoolean(bfmTopDownSettingName, false ) 
-	Tacview.UI.Menus.SetOption(bfmTopDownMenuHandle, false )
-
-	speedTrialAircraftView = false	
-	Tacview.AddOns.Current.Settings.SetBoolean(speedTrialAircraftViewSettingName, false ) 
-	Tacview.UI.Menus.SetOption(speedTrialAircraftViewMenuHandle, false )
-
-end
-
-function OnSpeedTrialAircraftView()
-
-	speedTrialAircraftView = not speedTrialAircraftView
-
-	Tacview.AddOns.Current.Settings.SetBoolean(speedTrialAircraftViewSettingName, speedTrialAircraftView ) 
-
-	Tacview.UI.Menus.SetOption(speedTrialAircraftViewMenuHandle, speedTrialAircraftView ) 
+	Tacview.UI.Menus.SetOption(bfmAircraftViewMenuHandle, bfmAircraftView ) 
 
 	-- other options are false
 
@@ -125,26 +113,76 @@ function OnSpeedTrialAircraftView()
 	Tacview.AddOns.Current.Settings.SetBoolean(bfmTopDownSettingName, false ) 
 	Tacview.UI.Menus.SetOption(bfmTopDownMenuHandle, false )
 
-	bfmSideView = false
-	Tacview.AddOns.Current.Settings.SetBoolean(bfmSideViewSettingName, false ) 
-	Tacview.UI.Menus.SetOption(bfmSideViewMenuHandle, false )
+	trialAircraftView = false	
+	Tacview.AddOns.Current.Settings.SetBoolean(trialAircraftViewSettingName, false ) 
+	Tacview.UI.Menus.SetOption(trialAircraftViewMenuHandle, false )
+
+	trialTopView = false
+	Tacview.AddOns.Current.Settings.SetBoolean(trialTopViewSettingName, false ) 
+	Tacview.UI.Menus.SetOption(trialTopViewMenuHandle, false ) 
+
 end
 
-local currentOffensiveAircraft
+function OnTrialAircraftView()
+
+	trialAircraftView = not trialAircraftView
+
+	Tacview.AddOns.Current.Settings.SetBoolean(trialAircraftViewSettingName, trialAircraftView ) 
+
+	Tacview.UI.Menus.SetOption(trialAircraftViewMenuHandle, trialAircraftView ) 
+
+	-- other options are false
+
+	bfmTopDown = false
+	Tacview.AddOns.Current.Settings.SetBoolean(bfmTopDownSettingName, false ) 
+	Tacview.UI.Menus.SetOption(bfmTopDownMenuHandle, false )
+
+	bfmAircraftView = false
+	Tacview.AddOns.Current.Settings.SetBoolean(bfmAircraftViewSettingName, false ) 
+	Tacview.UI.Menus.SetOption(bfmAircraftViewMenuHandle, false )
+
+	trialTopView = false
+	Tacview.AddOns.Current.Settings.SetBoolean(trialTopViewSettingName, false ) 
+	Tacview.UI.Menus.SetOption(trialTopViewMenuHandle, false ) 
+end
+
+
+function OnTrialTopView()
+
+	trialTopView = not trialTopView
+
+	Tacview.AddOns.Current.Settings.SetBoolean(trialAircraftViewSettingName, trialTopView ) 
+
+	Tacview.UI.Menus.SetOption(trialAircraftViewMenuHandle, trialTopView ) 
+
+	-- other options are false
+
+	bfmTopDown = false
+	Tacview.AddOns.Current.Settings.SetBoolean(bfmTopDownSettingName, false ) 
+	Tacview.UI.Menus.SetOption(bfmTopDownMenuHandle, false )
+
+	bfmAircraftView = false
+	Tacview.AddOns.Current.Settings.SetBoolean(bfmAircraftViewSettingName, false ) 
+	Tacview.UI.Menus.SetOption(bfmAircraftViewMenuHandle, false )
+
+	trialAircraftView = false	
+	Tacview.AddOns.Current.Settings.SetBoolean(trialAircraftViewSettingName, false ) 
+	Tacview.UI.Menus.SetOption(trialAircraftViewMenuHandle, false )
+end
 
 function OnUpdate(dt, absoluteTime)
 
 	if bfmTopDown then
 
-		--if  Tacview.Settings.GetString("UI.View.Camera.Mode") ~= "Free" then
-	--
-	--		Tacview.Settings.SetString("UI.View.Camera.Mode","Free")
-	--	end	
+		-- Satellite View
 
 		if  Tacview.Settings.GetString("UI.View.Camera.Mode") ~= "Satellite" then
 	
 			Tacview.Settings.SetString("UI.View.Camera.Mode","Satellite")
 		end	
+
+		-- Focus the camera on the center between the two players
+		-- (In Satellite View it is not necessary to place the camera in position)
 
 		local player1 = Tacview.Context.GetSelectedObject(0) 
 		local player2 = Tacview.Context.GetSelectedObject(1) 
@@ -156,20 +194,15 @@ function OnUpdate(dt, absoluteTime)
 		local transform1 = Tacview.Telemetry.GetCurrentTransform(player1)
 		local transform2 = Tacview.Telemetry.GetCurrentTransform(player2)
 
-		-- Focus the camera on the midpoint between the two players.
-		-- In Satellite View it is not necessary to place the camera 
-
-		local midpointVector = { x = (transform1.x + transform2.x)/2, 
-							y =(transform1.y + transform2.y)/2, 
-							z = (transform1.z + transform2.z)/2	}
+		local midpointVector = { 	x = (transform1.x + transform2.x)/2, 
+									y =(transform1.y + transform2.y)/2, 
+									z = (transform1.z + transform2.z)/2		}
 
 		local cameraVectorSpherical = Tacview.Math.Vector.CartesianToLongitudeLatitude(midpointVector)
 
 		Tacview.Context.Camera.SetSphericalPosition( cameraVectorSpherical.longitude , cameraVectorSpherical.latitude , cameraVectorSpherical.altitude )
 
-	--	local midpointVectorNormalized = Tacview.Math.Vector.Normalize(midpointVector) 
-
-		-- Bounding Sphere
+		-- Set range based on bounding sphere
 
 		local radius = 0.5 * Tacview.Math.Vector.GetDistanceBetweenObjects( transform1 , transform2 )
 
@@ -177,28 +210,9 @@ function OnUpdate(dt, absoluteTime)
 
 		Tacview.Context.Camera.SetRangeToTarget( range )
 
-		
+	elseif bfmAircraftView then
 
---		local midpointVectorSpherical = Tacview.Math.Vector.CartesianToLongitudeLatitude(midpointVector)
---
---		local distance = Tacview.Math.Vector.GetDistanceOnEarth(transform1.longitude, transform1.latitude, transform2.longitude, transform2.latitude, 0)
---
---		local range = distance * math.sqrt(3)/2 + math.abs(transform1.altitude-transform2.altitude)
-
-		--local cameraVector = { 	x = midpointVector.x + range*midpointVectorNormalized.x,
-		--						y = midpointVector.y + range*midpointVectorNormalized.y,
-		--						z = midpointVector.z + range*midpointVectorNormalized.z
-		--					}
-
-
-
-		--Tacview.Context.Camera.SetRotation(
-		--	0,
-		--	-math.pi/2,
-		--	0
-		--)
-
-	elseif bfmSideView then
+		-- Dogfight Mode Centered
 
 		if 	Tacview.Settings.GetString("UI.View.Camera.Mode") ~= "External" or
 			not Tacview.Settings.GetBoolean("UI.View.Camera.Dogfight.Enabled") or
@@ -209,6 +223,8 @@ function OnUpdate(dt, absoluteTime)
 			Tacview.Settings.SetString("UI.View.Camera.Dogfight.Mode", "Centered") 
 		end		
 
+		-- Set range based on bounding sphere
+
 		local player1 = Tacview.Context.GetSelectedObject(0) 
 		local player2 = Tacview.Context.GetSelectedObject(1) 
 
@@ -219,7 +235,6 @@ function OnUpdate(dt, absoluteTime)
 		local transform1 = Tacview.Telemetry.GetCurrentTransform(player1)
 		local transform2 = Tacview.Telemetry.GetCurrentTransform(player2)
 
-		-- Bounding Sphere
 
 		local radius = 0.5 * Tacview.Math.Vector.GetDistanceBetweenObjects( transform1 , transform2 )
 
@@ -227,24 +242,9 @@ function OnUpdate(dt, absoluteTime)
 
 		Tacview.Context.Camera.SetRangeToTarget( range )
 
-		--[[if  Tacview.Settings.GetString("UI.View.Camera.Mode") ~= "Free" then
-	
-			Tacview.Settings.SetString("UI.View.Camera.Mode","Free")
-		end
-
-		local player1 = Tacview.Context.GetSelectedObject(0) 
-		local player2 = Tacview.Context.GetSelectedObject(1) 
-
-		if not player1 or not player2 then
-			return
-		end
-
-		local transform1 = Tacview.Telemetry.GetCurrentTransform(player1)
-		local transform2 = Tacview.Telemetry.GetCurrentTransform(player2)
-
 		-- Determine who is on offense vs. defense
 
-		local p1offense 
+		--[[local p1offense 
 		local p2offense
 
 		local P1 = {x = transform1.x, y = transform1.y, z = transform1.z}
@@ -281,8 +281,6 @@ function OnUpdate(dt, absoluteTime)
 			p2offense = false
 		end 
 
-		-- print("p1offense") elseif p2offense then print("p2offense") end
-
 		local defensivePlayerTransform
 		
 		if p1offense then 
@@ -296,9 +294,11 @@ function OnUpdate(dt, absoluteTime)
 			else
 				--do not switch defenders
 			end
-		end
+		end	--]]
 
-		local vectorBetweenPlayers = Tacview.Math.Vector.Subtract({x = transform2.x, y = transform2.y, z = transform2.z} , {x = transform1.x, y = transform1.y, z = transform1.z} )
+		-- True Side View (not helpful)
+
+		--[[local vectorBetweenPlayers = Tacview.Math.Vector.Subtract({x = transform2.x, y = transform2.y, z = transform2.z} , {x = transform1.x, y = transform1.y, z = transform1.z} )
 
 		local vectorBetweenPlayersNormalized = Tacview.Math.Vector.Normalize(vectorBetweenPlayers) 
 	
@@ -351,7 +351,9 @@ function OnUpdate(dt, absoluteTime)
 			yaw
 		)--]]
 
-	elseif speedTrialAircraftView then
+	elseif trialAircraftView then
+
+		-- Dogfight Mode Look Forward
 
 		if 	Tacview.Settings.GetString("UI.View.Camera.Mode") ~= "External" or
 			not Tacview.Settings.GetBoolean("UI.View.Camera.Dogfight.Enabled") or
@@ -362,15 +364,17 @@ function OnUpdate(dt, absoluteTime)
 			Tacview.Settings.SetString("UI.View.Camera.Dogfight.Mode", "LookForward") 
 		end	
 
-		local player1 = Tacview.Context.GetSelectedObject(0)
+		-- Get as close as possible
 
-		if not player1 then
-			return
-		end
+		Tacview.Context.Camera.SetRangeToTarget(0)
 
-		local transform1 = Tacview.Telemetry.GetCurrentTransform(player1)
+		-- Control camera rotation
 
-		local positionVector = {x = transform1.x, y = transform1.y, z = transform1.z}
+		Tacview.Context.Camera.SetRotation(0, -math.pi/2/4, 0)
+
+		-- True side view (not helpful)
+
+		--[[local positionVector = {x = transform1.x, y = transform1.y, z = transform1.z}
 		
 		local positionVectorNormalized = Tacview.Math.Vector.Normalize(positionVector) 
 
@@ -412,7 +416,38 @@ function OnUpdate(dt, absoluteTime)
 		local pitch = math.atan(	positionVectorSpherical.altitude - cameraVectorSpherical.altitude,
 						bearingRangeAltitude.range )
 
-		Tacview.Context.Camera.SetRotation(0, pitch, yaw)
+		Tacview.Context.Camera.SetRotation(0, pitch, yaw)--]]
+
+	elseif trialTopView then
+
+		-- Satellite View
+
+		if  Tacview.Settings.GetString("UI.View.Camera.Mode") ~= "Satellite" then
+	
+			Tacview.Settings.SetString("UI.View.Camera.Mode","Satellite")
+		end	
+
+		-- Perform calculations on the gates to get the midpoint and maximum distance from midpoint to object
+
+		local midpointVector = {x=0,y=0,z=0}
+		local radius = 0
+
+		if not gateBoundsComputed  then
+			radius, midpointVector = ComputeGateBounds()
+		end	
+
+		-- In Satellite View it is not necessary to place the camera , just tell it where to point.
+
+		local cameraVectorSpherical = Tacview.Math.Vector.CartesianToLongitudeLatitude(midpointVector)
+
+		Tacview.Context.Camera.SetSphericalPosition( cameraVectorSpherical.longitude , cameraVectorSpherical.latitude , cameraVectorSpherical.altitude )
+
+		-- Set range using bounding sphere
+
+		local range = radius / math.sin(math.rad(60)/2)
+
+		Tacview.Context.Camera.SetRangeToTarget(range )
+
 	end
 end
 
@@ -428,15 +463,70 @@ end
 function OnContextMenu(contextMenuId, objectHandle)
 
 		bfmTopDownMenuHandle = Tacview.UI.Menus.AddExclusiveOption(contextMenuId, "BFM Top-Down", bfmTopDown, OnBFMTopDown)
-		bfmSideViewMenuHandle = Tacview.UI.Menus.AddExclusiveOption(contextMenuId, "BFM Side View", bfmSideView, OnBFMSideView)
-		speedTrialAircraftViewMenuHandle = Tacview.UI.Menus.AddExclusiveOption(contextMenuId, "Speed Trial Aircraft View", speedTrialAircraftView, OnSpeedTrialAircraftView)
+		bfmAircraftViewMenuHandle = Tacview.UI.Menus.AddExclusiveOption(contextMenuId, "BFM Side View", bfmAircraftView, OnBFMSideView)
+		trialAircraftViewMenuHandle = Tacview.UI.Menus.AddExclusiveOption(contextMenuId, "Trial Aircraft View", trialAircraftView, OnTrialAircraftView)
+		trialTopViewMenuHandle = Tacview.UI.Menus.AddExclusiveOption(contextMenuId, "Trial Top View", trialTopView, OnTrialTopView)
+end
+
+function ComputeGateBounds()
+
+		local objectTransforms = {}
+		local center = {x=0, y=0, z=0}
+
+		local objectCount = Tacview.Telemetry.GetObjectCount()
+
+		for i=0,objectCount-1 do
+			
+			local objectHandle = Tacview.Telemetry.GetObjectHandleByIndex(i)
+
+			if objectHandle then
+
+				local objectTags = Tacview.Telemetry.GetCurrentTags(objectHandle)
+
+				if objectTags then
+
+					if not Tacview.Telemetry.AnyGivenTagActive(objectTags, Tacview.Telemetry.Tags.Bullseye|Tacview.Telemetry.Tags.FixedWing) then
+			
+						local transform = Tacview.Telemetry.GetCurrentTransform(objectHandle)
+					
+						if transform then
+						
+							objectTransforms[#objectTransforms+1]  = transform
+						
+							center.x = center.x + transform.x
+							center.y = center.y + transform.y
+							center.z = center.z + transform.z
+						
+						end
+					end
+				end
+			end
+		end
+
+		-- Calculate the center point of all relevant objects and find the maximum distances between the center and each object
+
+		local midpointVector = {
+			x = center.x / #objectTransforms,
+			y = center.y / #objectTransforms,
+			z = center.z / #objectTransforms
+		}
+
+		-- Get the maximum distance between the midpoint and any relevant object
+
+		local radius = 0
+
+		for i = 1, #objectTransforms do
+			local distance = Tacview.Math.Vector.GetDistanceBetweenObjects(midpointVector,objectTransforms[i])
+			radius = math.max(radius, distance)
+		end
+
+		return radius, midpointVector
 
 end
 
-
 --[[function OnDrawTransparentUI()
 
-	if BFMTopDown or BFMSideView then
+	if BFMTopDown or bfmAircraftView then
 
 		local BackgroundHeight = 100
 		local BackgroundWidth = 100
@@ -628,6 +718,18 @@ end
 	end
 end --]]
 
+function OnDocumentLoaded()
+
+	gateBoundsComputed  = false
+end
+
+function OnShutdown()
+
+	Tacview.Settings.SetBoolean("UI.View.Overlay.Visible","true")
+end
+
+
+
 ----------------------------------------------------------------
 -- Add-on initialization
 ----------------------------------------------------------------
@@ -642,15 +744,16 @@ function Initialize()
 	Tacview.AddOns.Current.SetNotes("Special options requested by Strike Fighter League")
 
 	bfmTopDown = Tacview.AddOns.Current.Settings.GetBoolean(bfmTopDownSettingName, false )
-	bfmSideView = Tacview.AddOns.Current.Settings.GetBoolean(bfmSideViewSettingName, false )
-	speedTrialAircraftView = Tacview.AddOns.Current.Settings.GetBoolean(speedTrialAircraftViewSettingName, false )
+	bfmAircraftView = Tacview.AddOns.Current.Settings.GetBoolean(bfmAircraftViewSettingName, false )
+	trialAircraftView = Tacview.AddOns.Current.Settings.GetBoolean(trialAircraftViewSettingName, false )
 
-	--local mainMenuHandle = Tacview.UI.Menus.AddMenu(nil, "Strike Fighter League")
-	
+		Tacview.Settings.SetBoolean("UI.View.Overlay.Visible","false")
+
 	Tacview.UI.Renderer.ContextMenu.RegisterListener(OnContextMenu) -- Tacview 1.7.6
 	Tacview.Events.Update.RegisterListener(OnUpdate) -- Tacview 1.7.2
 	-- Tacview.Events.DrawTransparentUI.RegisterListener(OnDrawTransparentUI) -- Tacview 1.7.2
-
+	Tacview.Events.DocumentLoaded.RegisterListener(OnDocumentLoaded) 
+	Tacview.Events.Shutdown.RegisterListener( OnShutdown ) 
 
 end
 
