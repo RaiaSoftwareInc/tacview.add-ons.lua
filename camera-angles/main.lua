@@ -242,6 +242,8 @@ function OnUpdate(dt, absoluteTime)
 
 		Tacview.Context.Camera.SetRangeToTarget( math.max(1000,range))
 
+		Tacview.Context.Camera.SetRotation(0,-math.pi/8,0)
+
 		-- Determine who is on offense vs. defense
 
 		--[[local p1offense 
