@@ -48,15 +48,20 @@ local bfmAircraftViewSettingName = "BFM Side View"
 local bfmAircraftView = false
 local bfmAircraftViewMenuHandle = nil
 
-local trialAircraftViewSettingName = "Trial Aircraft View"
-local trialAircraftView = false
-local trialAircraftViewMenuHandle = nil
+local trialChaseViewSettingName = "Trial Aircraft View"
+local trialChaseView = false
+local trialChaseViewMenuHandle = nil
 
 local trialTopViewSettingName = "Trial Top View"
 local trialTopView = false
 local trialTopViewMenuHandle = nil
 
+local midpointLongitude
+local midpointLatitude
+
 local gateBoundsComputed  = false
+
+local gatesRadius = 0
 
 --local backgroundRenderStateHandle
 --local textRenderStateHandle
@@ -90,9 +95,9 @@ function OnBFMTopDown()
 	Tacview.AddOns.Current.Settings.SetBoolean(bfmAircraftViewSettingName, false ) 
 	Tacview.UI.Menus.SetOption(bfmAircraftViewMenuHandle, false )
 
-	trialAircraftView = false	
-	Tacview.AddOns.Current.Settings.SetBoolean(trialAircraftViewSettingName, false ) 
-	Tacview.UI.Menus.SetOption(trialAircraftViewMenuHandle, false )	
+	trialChaseView = false	
+	Tacview.AddOns.Current.Settings.SetBoolean(trialChaseViewSettingName, false ) 
+	Tacview.UI.Menus.SetOption(trialChaseViewMenuHandle, false )	
 
 	trialTopView = false
 	Tacview.AddOns.Current.Settings.SetBoolean(trialTopViewSettingName, false ) 
@@ -113,9 +118,9 @@ function OnBFMSideView()
 	Tacview.AddOns.Current.Settings.SetBoolean(bfmTopDownSettingName, false ) 
 	Tacview.UI.Menus.SetOption(bfmTopDownMenuHandle, false )
 
-	trialAircraftView = false	
-	Tacview.AddOns.Current.Settings.SetBoolean(trialAircraftViewSettingName, false ) 
-	Tacview.UI.Menus.SetOption(trialAircraftViewMenuHandle, false )
+	trialChaseView = false	
+	Tacview.AddOns.Current.Settings.SetBoolean(trialChaseViewSettingName, false ) 
+	Tacview.UI.Menus.SetOption(trialChaseViewMenuHandle, false )
 
 	trialTopView = false
 	Tacview.AddOns.Current.Settings.SetBoolean(trialTopViewSettingName, false ) 
@@ -123,13 +128,13 @@ function OnBFMSideView()
 
 end
 
-function OnTrialAircraftView()
+function OnTrialChaseView()
 
-	trialAircraftView = not trialAircraftView
+	trialChaseView = not trialChaseView
 
-	Tacview.AddOns.Current.Settings.SetBoolean(trialAircraftViewSettingName, trialAircraftView ) 
+	Tacview.AddOns.Current.Settings.SetBoolean(trialChaseViewSettingName, trialChaseView ) 
 
-	Tacview.UI.Menus.SetOption(trialAircraftViewMenuHandle, trialAircraftView ) 
+	Tacview.UI.Menus.SetOption(trialChaseViewMenuHandle, trialChaseView ) 
 
 	-- other options are false
 
@@ -151,9 +156,9 @@ function OnTrialTopView()
 
 	trialTopView = not trialTopView
 
-	Tacview.AddOns.Current.Settings.SetBoolean(trialAircraftViewSettingName, trialTopView ) 
+	Tacview.AddOns.Current.Settings.SetBoolean(trialTopViewSettingName, trialTopView ) 
 
-	Tacview.UI.Menus.SetOption(trialAircraftViewMenuHandle, trialTopView ) 
+	Tacview.UI.Menus.SetOption(trialTopViewMenuHandle, trialTopView ) 
 
 	-- other options are false
 
@@ -165,9 +170,9 @@ function OnTrialTopView()
 	Tacview.AddOns.Current.Settings.SetBoolean(bfmAircraftViewSettingName, false ) 
 	Tacview.UI.Menus.SetOption(bfmAircraftViewMenuHandle, false )
 
-	trialAircraftView = false	
-	Tacview.AddOns.Current.Settings.SetBoolean(trialAircraftViewSettingName, false ) 
-	Tacview.UI.Menus.SetOption(trialAircraftViewMenuHandle, false )
+	trialChaseView = false	
+	Tacview.AddOns.Current.Settings.SetBoolean(trialChaseViewSettingName, false ) 
+	Tacview.UI.Menus.SetOption(trialChaseViewMenuHandle, false )
 end
 
 function OnUpdate(dt, absoluteTime)
@@ -176,9 +181,18 @@ function OnUpdate(dt, absoluteTime)
 
 		-- Satellite View
 
-		if  Tacview.Settings.GetString("UI.View.Camera.Mode") ~= "Satellite" then
+		--if  Tacview.Settings.GetString("UI.View.Camera.Mode") ~= "Satellite" then
 	
-			Tacview.Settings.SetString("UI.View.Camera.Mode","Satellite")
+		--	Tacview.Settings.SetString("UI.View.Camera.Mode","Satellite")
+		--end	
+
+		if 	Tacview.Settings.GetString("UI.View.Camera.Mode") ~= "External" or
+			not Tacview.Settings.GetBoolean("UI.View.Camera.Dogfight.Enabled") or
+			Tacview.Settings.GetString("UI.View.Camera.Dogfight.Mode") ~= "Centered" then
+
+			Tacview.Settings.SetString("UI.View.Camera.Mode","External")
+			Tacview.Settings.SetBoolean("UI.View.Camera.Dogfight.Enabled", true)
+			Tacview.Settings.SetString("UI.View.Camera.Dogfight.Mode", "Centered") 
 		end	
 
 		-- Focus the camera on the center between the two players
@@ -209,6 +223,8 @@ function OnUpdate(dt, absoluteTime)
 		local range = radius / math.sin(math.rad(60)/2)
 
 		Tacview.Context.Camera.SetRangeToTarget( math.max(1000,range))
+
+		Tacview.Context.Camera.SetRotation(0,-math.pi/2,0)
 
 	elseif bfmAircraftView then
 
@@ -353,7 +369,7 @@ function OnUpdate(dt, absoluteTime)
 			yaw
 		)--]]
 
-	elseif trialAircraftView then
+	elseif trialChaseView then
 
 		-- Dogfight Mode Look Forward
 
@@ -368,7 +384,7 @@ function OnUpdate(dt, absoluteTime)
 
 		-- Get as close as possible
 
-		Tacview.Context.Camera.SetRangeToTarget(0)
+		Tacview.Context.Camera.SetRangeToTarget(50)
 
 		-- Control camera rotation
 
@@ -431,24 +447,27 @@ function OnUpdate(dt, absoluteTime)
 
 		-- Perform calculations on the gates to get the midpoint and maximum distance from midpoint to object
 
-		local midpointVector = {x=0,y=0,z=0}
+		--local midpointVector = {x=0,y=0,z=0}
+		
 		local radius = 0
 
 		if not gateBoundsComputed  then
-			radius, midpointVector = ComputeGateBounds()
+			midpointLongitude, midpointLatitude, gatesRadius = ComputeGateMidpoint()
+			gateBoundsComputed = true
 		end	
 
 		-- In Satellite View it is not necessary to place the camera , just tell it where to point.
 
-		local cameraVectorSpherical = Tacview.Math.Vector.CartesianToLongitudeLatitude(midpointVector)
+		if not midpointLatitude or not midpointLongitude then
+			return
+		end
 
-		Tacview.Context.Camera.SetSphericalPosition( cameraVectorSpherical.longitude , cameraVectorSpherical.latitude , cameraVectorSpherical.altitude )
+		Tacview.Context.Camera.SetSphericalPosition( midpointLongitude , midpointLatitude ,0 )
 
 		-- Set range using bounding sphere
 
-		local range = radius / math.sin(math.rad(60)/2)
-
-		Tacview.Context.Camera.SetRangeToTarget(range )
+		local range = gatesRadius / math.sin(math.rad(60)/2)
+		Tacview.Context.Camera.SetRangeToTarget(range)
 
 	end
 end
@@ -466,64 +485,112 @@ function OnContextMenu(contextMenuId, objectHandle)
 
 		bfmTopDownMenuHandle = Tacview.UI.Menus.AddExclusiveOption(contextMenuId, "BFM Top-Down", bfmTopDown, OnBFMTopDown)
 		bfmAircraftViewMenuHandle = Tacview.UI.Menus.AddExclusiveOption(contextMenuId, "BFM Side View", bfmAircraftView, OnBFMSideView)
-		trialAircraftViewMenuHandle = Tacview.UI.Menus.AddExclusiveOption(contextMenuId, "Trial Aircraft View", trialAircraftView, OnTrialAircraftView)
+		trialChaseViewMenuHandle = Tacview.UI.Menus.AddExclusiveOption(contextMenuId, "Trial Chase View", trialChaseView, OnTrialChaseView)
 		trialTopViewMenuHandle = Tacview.UI.Menus.AddExclusiveOption(contextMenuId, "Trial Top View", trialTopView, OnTrialTopView)
 end
 
-function ComputeGateBounds()
+function ComputeGateMidpoint()
 
-		local objectTransforms = {}
-		local center = {x=0, y=0, z=0}
+	local minLongitude
+	local maxLongitude
+	local minLatitude
+	local maxLatitude
 
-		local objectCount = Tacview.Telemetry.GetObjectCount()
+	local radius = 0
 
-		for i=0,objectCount-1 do
+	local objectCount = Tacview.Telemetry.GetObjectCount()
+
+	for i=0,objectCount-1 do
 			
-			local objectHandle = Tacview.Telemetry.GetObjectHandleByIndex(i)
+		local objectHandle = Tacview.Telemetry.GetObjectHandleByIndex(i)
 
-			if objectHandle then
+		if objectHandle then
 
-				local objectTags = Tacview.Telemetry.GetCurrentTags(objectHandle)
+			local objectTags = Tacview.Telemetry.GetCurrentTags(objectHandle)
 
-				if objectTags then
+			if objectTags then
 
-					if not Tacview.Telemetry.AnyGivenTagActive(objectTags, Tacview.Telemetry.Tags.Bullseye|Tacview.Telemetry.Tags.FixedWing) then
+				if not Tacview.Telemetry.AnyGivenTagActive(objectTags, Tacview.Telemetry.Tags.Bullseye|Tacview.Telemetry.Tags.FixedWing) then
 			
-						local transform = Tacview.Telemetry.GetCurrentTransform(objectHandle)
+					local transform = Tacview.Telemetry.GetCurrentTransform(objectHandle)
 					
-						if transform then
-						
-							objectTransforms[#objectTransforms+1]  = transform
-						
-							center.x = center.x + transform.x
-							center.y = center.y + transform.y
-							center.z = center.z + transform.z
-						
+					if transform then
+
+						--objectTransforms[#objectTransforms+1]  = transform
+
+						if not minLongitude then
+							minLongitude = transform.longitude
+						else
+							minLongitude = math.min(minLongitude,transform.longitude)
+						end
+
+					if not maxLongitude then
+							maxLongitude = transform.longitude
+						else
+							maxLongitude = math.max(maxLongitude,transform.longitude)
+						end
+
+						if not minLatitude then
+							minLatitude = transform.latitude
+						else
+							minLatitude = math.min(minLatitude,transform.latitude)
+						end
+
+						if not maxLatitude then
+							maxLatitude = transform.latitude
+						else
+							maxLatitude = math.max(maxLatitude,transform.latitude)
 						end
 					end
 				end
 			end
 		end
+	end
 
-		-- Calculate the center point of all relevant objects and find the maximum distances between the center and each object
+	midpointLongitude = (minLongitude + maxLongitude)/2
+	midpointLatitude = (minLatitude + maxLatitude)/2 
 
-		local midpointVector = {
-			x = center.x / #objectTransforms,
-			y = center.y / #objectTransforms,
-			z = center.z / #objectTransforms
-		}
+	for i=0,objectCount-1 do
 
-		-- Get the maximum distance between the midpoint and any relevant object
+		local objectHandle = Tacview.Telemetry.GetObjectHandleByIndex(i)
 
-		local radius = 0
+		if objectHandle then
 
-		for i = 1, #objectTransforms do
-			local distance = Tacview.Math.Vector.GetDistanceBetweenObjects(midpointVector,objectTransforms[i])
-			radius = math.max(radius, distance)
+			local objectTags = Tacview.Telemetry.GetCurrentTags(objectHandle)
+
+			if objectTags then
+
+				if not Tacview.Telemetry.AnyGivenTagActive(objectTags, Tacview.Telemetry.Tags.Bullseye) then
+			
+					local transform = Tacview.Telemetry.GetCurrentTransform(objectHandle)
+					
+					if transform then
+						
+						radius = math.max(radius, Tacview.Math.Vector.GetDistanceOnEarth( transform.longitude, transform.latitude, midpointLongitude, midpointLatitude, 0))
+					end
+				end
+			end
 		end
+	end
 
-		return radius, midpointVector
+	return midpointLongitude, midpointLatitude, radius
 
+	-- Calculate the center point of all relevant objects and find the maximum distances between the center and each object
+
+	--local midpointVector = {
+	--	x = center.x / #objectTransforms,
+	--	y = center.y / #objectTransforms,
+	--	z = center.z / #objectTransforms
+	--}
+
+	-- Get the maximum distance between the midpoint and any relevant object
+
+	--local radius = 0
+
+	--for i = 1, #objectTransforms do
+	--	local distance = Tacview.Math.Vector.GetDistanceBetweenObjects(midpointVector,objectTransforms[i])
+	--	radius = math.max(radius, distance)
+	--end
 end
 
 --[[function OnDrawTransparentUI()
@@ -747,7 +814,7 @@ function Initialize()
 
 	bfmTopDown = Tacview.AddOns.Current.Settings.GetBoolean(bfmTopDownSettingName, false )
 	bfmAircraftView = Tacview.AddOns.Current.Settings.GetBoolean(bfmAircraftViewSettingName, false )
-	trialAircraftView = Tacview.AddOns.Current.Settings.GetBoolean(trialAircraftViewSettingName, false )
+	trialChaseView = Tacview.AddOns.Current.Settings.GetBoolean(trialChaseViewSettingName, false )
 
 		Tacview.Settings.SetBoolean("UI.View.Overlay.Visible", false)
 
