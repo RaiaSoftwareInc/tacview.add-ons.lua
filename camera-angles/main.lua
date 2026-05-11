@@ -208,7 +208,7 @@ function OnUpdate(dt, absoluteTime)
 
 		local range = radius / math.sin(math.rad(60)/2)
 
-		Tacview.Context.Camera.SetRangeToTarget( range )
+		Tacview.Context.Camera.SetRangeToTarget( math.max(1000,range))
 
 	elseif bfmAircraftView then
 
@@ -240,7 +240,7 @@ function OnUpdate(dt, absoluteTime)
 
 		local range = radius / math.sin(math.rad(60)/2)
 
-		Tacview.Context.Camera.SetRangeToTarget( range )
+		Tacview.Context.Camera.SetRangeToTarget( math.max(1000,range))
 
 		-- Determine who is on offense vs. defense
 
@@ -725,7 +725,7 @@ end
 
 function OnShutdown()
 
-	Tacview.Settings.SetBoolean("UI.View.Overlay.Visible","true")
+	Tacview.Settings.SetBoolean("UI.View.Overlay.Visible", true)
 end
 
 
@@ -747,7 +747,7 @@ function Initialize()
 	bfmAircraftView = Tacview.AddOns.Current.Settings.GetBoolean(bfmAircraftViewSettingName, false )
 	trialAircraftView = Tacview.AddOns.Current.Settings.GetBoolean(trialAircraftViewSettingName, false )
 
-		Tacview.Settings.SetBoolean("UI.View.Overlay.Visible","false")
+		Tacview.Settings.SetBoolean("UI.View.Overlay.Visible", false)
 
 	Tacview.UI.Renderer.ContextMenu.RegisterListener(OnContextMenu) -- Tacview 1.7.6
 	Tacview.Events.Update.RegisterListener(OnUpdate) -- Tacview 1.7.2
