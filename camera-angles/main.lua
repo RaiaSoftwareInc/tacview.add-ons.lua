@@ -807,10 +807,10 @@ function Initialize()
 
 	-- Declare add-on information
 
-	Tacview.AddOns.Current.SetTitle("Strike Fighter League")
+	Tacview.AddOns.Current.SetTitle("Camera Angles")
 	Tacview.AddOns.Current.SetVersion("0.1")
 	Tacview.AddOns.Current.SetAuthor("BuzyBee")
-	Tacview.AddOns.Current.SetNotes("Special options requested by Strike Fighter League")
+	Tacview.AddOns.Current.SetNotes("Special camera options for broadcasting")
 
 	bfmTopDown = Tacview.AddOns.Current.Settings.GetBoolean(bfmTopDownSettingName, false )
 	bfmAircraftView = Tacview.AddOns.Current.Settings.GetBoolean(bfmAircraftViewSettingName, false )
