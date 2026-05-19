@@ -121,86 +121,90 @@ function GetGatesInfo()
 
 	local gates = {}
 
-	-- Find the gate number in the Pilot property and the gate height in the Name property
-	
-	local pilotNamePropertyIndex = Tacview.Telemetry.GetObjectsTextPropertyIndex("Pilot", false )
+	local pilotNamePropertyIndex = Tacview.Telemetry.GetObjectsTextPropertyIndex("Pilot", false)
 
 	if pilotNamePropertyIndex == Tacview.Telemetry.InvalidPropertyIndex then
-		
 		Tacview.UI.Warning("Unable to add splines because of missing Pilot property")
-
 		return
 	end
-	
-	local namePropertyIndex = Tacview.Telemetry.GetObjectsTextPropertyIndex("Name", false )
+
+	local namePropertyIndex = Tacview.Telemetry.GetObjectsTextPropertyIndex("Name", false)
 
 	if namePropertyIndex == Tacview.Telemetry.InvalidPropertyIndex then
-		
 		Tacview.UI.Warning("Unable to add splines because of missing Name property")
-		
 		return
-	end		
+	end
 
 	local count = Tacview.Telemetry.GetObjectCount()
-
 	local absoluteTime = Tacview.Context.GetAbsoluteTime()
-	
-	for index=0,count-1 do
 
-		local objectHandle = Tacview.Telemetry.GetObjectHandleByIndex(index) 
+	for index = 0, count - 1 do
+
+		local objectHandle = Tacview.Telemetry.GetObjectHandleByIndex(index)
 
 		if objectHandle then
 
-			local objectTags = Tacview.Telemetry.GetCurrentTags(objectHandle) 
-	
-			if objectTags then
-		
-				if Tacview.Telemetry.AnyGivenTagActive(objectTags, Tacview.Telemetry.Tags.Building) then
+			local objectTags = Tacview.Telemetry.GetCurrentTags(objectHandle)
 
-					local transform = Tacview.Telemetry.GetCurrentTransform(objectHandle)
+			if objectTags and Tacview.Telemetry.AnyGivenTagActive(objectTags, Tacview.Telemetry.Tags.Building) then
 
-					if transform then
+				local pilot = Tacview.Telemetry.GetTextSample(objectHandle, absoluteTime, pilotNamePropertyIndex)
+				local name = Tacview.Telemetry.GetTextSample(objectHandle, absoluteTime, namePropertyIndex)
+				local transform = Tacview.Telemetry.GetCurrentTransform(objectHandle)
 
-						local name = Tacview.Telemetry.GetTextSample(objectHandle ,absoluteTime , namePropertyIndex )
+				if pilot and name and transform then
 
-						if name then
+					if string.match(pilot, "Finish Gate") then
+						
+						local gateHeight = 62.98 -- the actual height of the gate object
 
-							local altitude = string.match(name, "(%d+)ft")
+						local adjustedAltitudeForSpline = Tacview.Terrain.GetElevation(transform.longitude, transform.latitude) + 0.5 * gateHeight
 
-							if altitude then
+						local gateCenterCartesianForSpline =
+							Tacview.Math.Vector.LongitudeLatitudeToCartesian({
+								longitude = transform.longitude,
+								latitude = transform.latitude,
+								altitude = adjustedAltitudeForSpline
+							})
 
-								altitude = Tacview.Math.Units.FeetToMeters(altitude)
+						gates["Finish Gate"] = {
+							x = gateCenterCartesianForSpline.x,
+							y = gateCenterCartesianForSpline.y,
+							z = gateCenterCartesianForSpline.z
+						}
 
-								-- Set the gates at the correct height as per their name (200ft, 400ft etc.)
+					else
 
-								transform.altitude = Tacview.Terrain.GetElevation(transform.longitude, transform.latitude) + altitude
+						local altitude = string.match(name, "(%d+)ft")
 
-								Tacview.Telemetry.SetTransform(objectHandle, absoluteTime, transform)
+						if altitude then
 
-								-- Prepare a table of x,y,z, points corresponding to the center of each gate
-								-- Must add half the height of the gate to get the center.
+							altitude = Tacview.Math.Units.FeetToMeters(altitude)
 
-								local gateHeight = 62.98 -- the actual height of the gate object
+							local adjustedAltitudeForSpline =
+								Tacview.Terrain.GetElevation(transform.longitude, transform.latitude) + altitude
 
-								transform.altitude = transform.altitude + 0.5 * gateHeight
+							local gateCenterCartesianForSpline =
+								Tacview.Math.Vector.LongitudeLatitudeToCartesian({
+									longitude = transform.longitude,
+									latitude = transform.latitude,
+									altitude = adjustedAltitudeForSpline
+								})
 
-								local pilot = Tacview.Telemetry.GetTextSample(objectHandle ,absoluteTime , pilotNamePropertyIndex )
-		
-								if pilot then
-	
-									for gateNumberText in string.gmatch(pilot, "%d+") do
-	
-										local gateNumber = tonumber(gateNumberText)
-	
-										if gateNumber then
-				
-											gates[gateNumber] = {x = transform.x, y = transform.y, z = transform.z}
-										end
-									end
+							for gateNumberText in string.gmatch(pilot, "%d+") do
+
+								local gateNumber = tonumber(gateNumberText)
+
+								if gateNumber then
+									gates[gateNumber] = {
+										x = gateCenterCartesianForSpline.x,
+										y = gateCenterCartesianForSpline.y,
+										z = gateCenterCartesianForSpline.z
+									}
 								end
 							end
 						end
-					end		
+					end
 				end
 			end
 		end
@@ -234,16 +238,21 @@ function BuildSpline(gates)
 	local orderedGates = {}
 
 	for gateNumber = 1, 100 do
+
 		if gates[gateNumber] then
+
 			orderedGates[#orderedGates + 1] = gates[gateNumber]
 		end
+	end
+
+	if gates["Finish Gate"] then 
+
+		orderedGates[#orderedGates + 1] = gates["Finish Gate"]
 	end
 
     local numberOfSteps = 10
 
     for i = 1, #orderedGates - 1 do
-
-        --print("doing gate " .. i .. " to " .. i + 1)
 
         local p0 = orderedGates[math.max(i - 1, 1)]
         local p1 = orderedGates[i]
