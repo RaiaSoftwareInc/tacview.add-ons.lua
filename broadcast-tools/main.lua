@@ -171,13 +171,13 @@ local function GetGateSortKeys(pilot)
 	local lowerPilot = string.lower(pilot)
 
 	if string.match(lowerPilot, "finish%s*gate") then
-		gateSortKeys[#gateSortKeys + 1] = 999
+		gateSortKeys[#gateSortKeys + 1] = 9999
 	end
 
-	for numberText, suffix in string.gmatch(lowerPilot, "(%d+)%s*([a-z]*)") do
+	for numberText, suffix in string.gmatch(lowerPilot, "(%d+)([a-z]*)") do
 
-		print("numberText: " .. numberText)
-		print("suffix: " .. suffix)
+		--print("numberText: " .. numberText)
+		--print("suffix: " .. suffix)
 
 		local gateNumber = tonumber(numberText)
 
@@ -203,7 +203,7 @@ local function GetGateSortKeys(pilot)
 	end
 
 	for k,v in ipairs(gateSortKeys) do
-		print("gateSortKey: " .. v)
+		--print("gateSortKey: " .. v)
 	end
 
 	return gateSortKeys
@@ -316,7 +316,6 @@ function BuildSpline(gates)
 	local orderedKeys = {}
 
 	for key, gate in pairs(gates) do
-		print(key)
 		orderedKeys[#orderedKeys + 1] = key
 	end
 
@@ -328,7 +327,7 @@ function BuildSpline(gates)
 		orderedGates[#orderedGates + 1] = gates[key]
 	end
 
-	local numberOfSteps = 10
+	local numberOfSteps = 20
 
 	for i = 1, #orderedGates - 1 do
 
