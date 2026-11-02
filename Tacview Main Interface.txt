@@ -831,7 +831,7 @@ UI.Renderer.Print( transform , renderStateHandle , text ) -- Tacview 1.7.3
 		x = number,
 		y = number,
 
-		-- Optional scale
+		-- Optional font size (32 by default)
 
 		scale = number
 	}

@@ -355,6 +355,20 @@ UI.Format.TextToSpeedLocalized( formatedSpeed ) -- Tacview 1.8.3
 		Speed in meter per second (double float)
 		or nil if given text cannot be interpreted
 
+UI.Format.CoordinatesToText( longitudeInRadian, latitudeInRadian [, separator ] ) -- Tacview 1.9.6
+
+	Formats the given geographical coordinates according to the coordinate system and format currently selected by the user.
+	Use this function to display coordinates in your UI while automatically honoring Tacview user preferences.
+
+	The optional separator is used between latitude and longitude when the selected coordinate system displays them separately.
+	For example, use "\n" to display latitude and longitude on separate lines.
+
+	It has no effect on coordinate systems represented by a single value, such as MGRS.
+
+	Return value:
+
+		Text representing the given geographical coordinates according to the current Tacview options.
+
 UI.Format.LongitudeToText( longitudeInRadian ) -- Tacview 1.8.2
 UI.Format.LatitudeToText( latitudeInRadian ) -- Tacview 1.8.2
 
